@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset='utf-8'>
+    <meta name='viewport' content='width=device-width, initial-scale=1'>
+    <meta name='mobile-web-app-capable' content='yes'>
+    <meta name='apple-mobile-web-app-capable' content='yes'>
+    <title>AR Котики</title>
+    <link rel='stylesheet' href='../css/stylesheet.css'>
+    <link rel='stylesheet' href='../css/pygment_trac.css'>
+    <script type="module">
+      import {WebXRButton} from '../js/util/webxr-button.js';
+      import {Scene} from '../js/render/scenes/scene.js';
+      import {Renderer, createWebGLContext} from '../js/render/core/renderer.js';
+      import {Gltf2Node} from '../js/render/nodes/gltf2.js';
+      import {DropShadowNode} from '../js/render/nodes/drop-shadow.js';
+      import {vec3} from '../js/render/math/gl-matrix.js';
+
+      // XR глобальные переменные
+      let xrButton = null;
+      let xrRefSpace = null;
+      let xrHitTestSource = null;
+
+      // WebGL глобальные переменные
+      let gl = null;
+      let renderer = null;
+      let scene = new Scene();
+      scene.enableStats(false);
+
+      let arObject = new Node();
+      arObject.visible = false;
+      scene.addNode(arObject);
+
+      // Загружаем модель кота
+      let cat = new Gltf2Node({url: './Cat.fbx'});
+      arObject.addNode(cat);
+
+      // Добавляем ретикул для указания места размещения
+      let reticle = new Gltf2Node({url: '../media/gltf/reticle/reticle.gltf'});
+      reticle.visible = false;
+      scene.addNode(reticle);
+
+      // Добавляем тень под котом
+      let shadow = new DropShadowNode();
+      vec3.set(shadow.scale, 0.15, 0.15, 0.15);
+      arObject.addNode(shadow);
+
+      const MAX_CATS = 30;
+      let cats = [];
+
+      // Делаем фон прозрачным для AR
+      scene.clear = false;
+
+      function initXR() {
+        xrButton = new WebXRButton({
+          onRequestSession: onRequestSession,
+          onEndSession: onEndSession,
+          textEnterXRTitle: "START AR",
+          textXRNotFoundTitle: "AR NOT FOUND",
+          textExitXRTitle: "EXIT AR",
+        });
+        document.querySelector('header').appendChild(xrButton.domElement);
+
+        if (navigator.xr) {
+          navigator.xr.isSessionSupported('immersive-ar').then((supported) => {
+            xrButton.enabled = supported;
+          });
+        }
+      }
+
+      function onRequestSession() {
+        let sessionInit = {
+          requiredFeatures: ['hit-test'],
+          optionalFeatures: ['dom-overlay'],
+          domOverlay: { root: document.body }
+        };
+
+        navigator.xr.requestSession('immersive-ar', sessionInit)
+          .then((session) => {
+            xrButton.setSession(session);
+            onSessionStarted(session);
+          });
+      }
+
+      function onSessionStarted(session) {
+        session.addEventListener('end', onSessionEnded);
+
+        let canvas = document.createElement('canvas');
+        gl = canvas.getContext('webgl', { xrCompatible: true });
+        renderer = new Renderer(gl);
+
+        session.updateRenderState({
+          baseLayer: new XRWebGLLayer(session, gl)
+        });
+
+        session.requestReferenceSpace('local').then((refSpace) => {
+          xrRefSpace = refSpace;
+          session.requestAnimationFrame(onXRFrame);
+        });
+
+        session.requestHitTestSource({ space: xrRefSpace }).then((source) => {
+          xrHitTestSource = source;
+        });
+
+        session.addEventListener('select', onSelect);
+      }
+
+      function onEndSession(session) {
+        xrHitTestSource.cancel();
+        xrHitTestSource = null;
+        session.end();
+      }
+
+      function onSessionEnded(event) {
+        xrButton.setSession(null);
+      }
+
+      function addCatAt(matrix) {
+        let newCat = arObject.clone();
+        newCat.visible = true;
+        newCat.matrix = matrix;
+        scene.addNode(newCat);
+
+        cats.push(newCat);
+
+        if (cats.length > MAX_CATS) {
+          let oldCat = cats.shift();
+          scene.removeNode(oldCat);
+        }
+      }
+
+      function onSelect(event) {
+        if (reticle.visible) {
+          addCatAt(reticle.matrix);
+        }
+      }
+
+      function onXRFrame(t, frame) {
+        let session = frame.session;
+        let pose = frame.getViewerPose(xrRefSpace);
+
+        reticle.visible = false;
+
+        if (pose) {
+          let hitTestResults = frame.getHitTestResults(xrHitTestSource);
+          if (hitTestResults.length > 0) {
+            let hit = hitTestResults[0];
+            let pose = hit.getPose(xrRefSpace);
+            reticle.visible = true;
+            reticle.matrix = pose.transform.matrix;
+          }
+        }
+
+        scene.startFrame();
+        scene.drawXRFrame(frame, pose);
+        scene.endFrame();
+
+        session.requestAnimationFrame(onXRFrame);
+      }
+
+      // Инициализация
+      initXR();
+    </script>
+  </head>
+  <body>
+    <header>
+      <details open>
+        <summary>AR Котики</summary>
+        <p>
+          Размещайте виртуальных котов в реальном мире с помощью AR.
+          <a class="back" href="../">Назад</a>
+        </p>
+      </details>
+    </header>
+  </body>
+</html> 
