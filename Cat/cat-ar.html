@@ -97,14 +97,16 @@
       
       // Создаем модель кота
       let cat = new Gltf2Node({
-        url: './Cat.glb',
-        scale: [0.0001, 0.0001, 0.0001], // Устанавливаем очень маленький размер сразу
-        translation: [0, 0, -2], // Ближе к камере
+        url: './result.gltf',
         onLoad: () => {
           // Создаем элемент для отладки
           const debugElement = document.createElement('div');
           debugElement.id = 'debug';
           document.body.appendChild(debugElement);
+          
+          // Устанавливаем очень маленький размер
+          cat.scale = [0.0001, 0.0001, 0.0001];
+          cat.translation = [0, 0, -2];
           
           // Обновляем отладочную информацию
           debugElement.innerHTML = `
