@@ -62,15 +62,45 @@
       let renderer = null;
       let scene = new Scene();
       
+      // Добавляем освещение
+      scene.addNode({
+        light: {
+          type: 'directional',
+          color: {r: 1, g: 1, b: 1},
+          intensity: 1.0,
+          direction: {x: 0, y: -1, z: 0}
+        }
+      });
+
+      // Добавляем фоновое освещение
+      scene.addNode({
+        light: {
+          type: 'ambient',
+          color: {r: 0.5, g: 0.5, b: 0.5},
+          intensity: 0.5
+        }
+      });
+      
       // Создаем модель кота
       let cat = new Gltf2Node({
         url: './Cat.glb',
         onLoad: () => {
           console.log('Кот успешно загружен');
           // Размещаем кота в новом положении
-          cat.translation = [50, 2, 15]; // x, y, z координаты
-          cat.scale = [0.05, 0.05, 0.05]; // уменьшаем размер в 10 раз
+          cat.translation = [0, 0, -10]; // Отодвигаем кота дальше от камеры
+          cat.scale = [0.05, 0.05, 0.05];
           cat.visible = true;
+          
+          // Добавляем материал для кота
+          if (cat.meshes) {
+            cat.meshes.forEach(mesh => {
+              if (mesh.material) {
+                mesh.material.baseColorFactor = [1, 1, 1, 1]; // Белый цвет
+                mesh.material.metallicFactor = 0.0;
+                mesh.material.roughnessFactor = 0.8;
+              }
+            });
+          }
         },
         onError: (error) => {
           console.error('Ошибка загрузки кота:', error);
