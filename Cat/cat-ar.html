@@ -14,6 +14,7 @@
       import {Renderer, createWebGLContext} from '../js/render/core/renderer.js';
       import {Gltf2Node} from '../js/render/nodes/gltf2.js';
       import {QueryArgs} from '../js/util/query-args.js';
+      import {InlineViewerHelper} from '../js/util/inline-viewer-helper.js';
 
       // Если требуется, используем полифилл для поддержки мобильных устройств
       import WebXRPolyfill from '../js/third-party/webxr-polyfill/build/webxr-polyfill.module.js';
@@ -33,7 +34,7 @@
       
       // Создаем модель кота
       let cat = new Gltf2Node({
-        url: './Cat.fbx',
+        url: './Cat.glb',
         onLoad: () => {
           console.log('Кот успешно загружен');
           // Размещаем кота немного впереди пользователя
@@ -50,7 +51,7 @@
           errorDiv.style.top = '50%';
           errorDiv.style.left = '50%';
           errorDiv.style.transform = 'translate(-50%, -50%)';
-          errorDiv.textContent = 'Ошибка загрузки модели кота: ' + error;
+          errorDiv.textContent = 'Ошибка загрузки кота: ' + error;
           document.body.appendChild(errorDiv);
         }
       });
@@ -73,8 +74,8 @@
 
           // Инициализируем WebGL сразу
           initGL();
-          // Запускаем анимацию
-          requestAnimationFrame(onFrame);
+          // Запускаем inline сессию
+          navigator.xr.requestSession('inline').then(onSessionStarted);
         }
       }
 
@@ -141,19 +142,6 @@
         }
       }
 
-      function onFrame(t) {
-        // Вращаем кота
-        if (cat.visible) {
-          cat.rotation[1] += 0.01;
-        }
-
-        scene.startFrame();
-        scene.drawFrame();
-        scene.endFrame();
-
-        requestAnimationFrame(onFrame);
-      }
-
       function onXRFrame(t, frame) {
         let session = frame.session;
         let refSpace = session.isImmersive ?
@@ -161,7 +149,7 @@
                          inlineViewerHelper.referenceSpace;
         let pose = frame.getViewerPose(refSpace);
 
-        // Вращаем кота
+        // Вращаем модель
         if (cat.visible) {
           cat.rotation[1] += 0.01;
         }
