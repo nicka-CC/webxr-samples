@@ -63,23 +63,25 @@
       let scene = new Scene();
       
       // Добавляем освещение
-      scene.addNode({
+      const directionalLight = {
         light: {
           type: 'directional',
           color: {r: 1, g: 1, b: 1},
           intensity: 1.0,
           direction: {x: 0, y: -1, z: 0}
         }
-      });
+      };
+      scene.addNode(directionalLight);
 
       // Добавляем фоновое освещение
-      scene.addNode({
+      const ambientLight = {
         light: {
           type: 'ambient',
           color: {r: 0.5, g: 0.5, b: 0.5},
           intensity: 0.5
         }
-      });
+      };
+      scene.addNode(ambientLight);
       
       // Создаем модель кота
       let cat = new Gltf2Node({
