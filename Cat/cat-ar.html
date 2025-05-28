@@ -104,15 +104,22 @@
           debugElement.id = 'debug';
           document.body.appendChild(debugElement);
           
-          // Устанавливаем очень маленький размер
-          cat.scale = [0.0001, 0.0001, 0.0001];
-          cat.translation = [0, 0, -2];
+          // Создаем корневой узел для трансформации
+          const rootNode = new Node();
+          rootNode.scale = [0.0001, 0.0001, 0.0001];
+          rootNode.translation = [0, 0, -2];
+          
+          // Добавляем кота как дочерний элемент
+          rootNode.addNode(cat);
+          
+          // Добавляем корневой узел в сцену
+          scene.addNode(rootNode);
           
           // Обновляем отладочную информацию
           debugElement.innerHTML = `
             Кот загружен<br>
-            Масштаб: [${cat.scale.join(', ')}]<br>
-            Позиция: [${cat.translation.join(', ')}]
+            Масштаб корня: [${rootNode.scale.join(', ')}]<br>
+            Позиция корня: [${rootNode.translation.join(', ')}]
           `;
           
           cat.visible = true;
@@ -120,15 +127,15 @@
           // Добавляем обработчик для изменения размера
           window.addEventListener('keydown', (e) => {
             if (e.key === '+' || e.key === '=') {
-              cat.scale = cat.scale.map(s => s * 1.1);
+              rootNode.scale = rootNode.scale.map(s => s * 1.1);
             } else if (e.key === '-' || e.key === '_') {
-              cat.scale = cat.scale.map(s => s * 0.9);
+              rootNode.scale = rootNode.scale.map(s => s * 0.9);
             }
             
             debugElement.innerHTML = `
               Кот загружен<br>
-              Масштаб: [${cat.scale.join(', ')}]<br>
-              Позиция: [${cat.translation.join(', ')}]
+              Масштаб корня: [${rootNode.scale.join(', ')}]<br>
+              Позиция корня: [${rootNode.translation.join(', ')}]
             `;
           });
         },
@@ -147,9 +154,6 @@
         }
       });
       
-      // Добавляем кота в сцену
-      scene.addNode(cat);
-
       // Добавляем обработку клавиш
       const keys = {
         ArrowUp: false,
