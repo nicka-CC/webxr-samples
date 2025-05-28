@@ -15,6 +15,13 @@
       import {Gltf2Node} from '../js/render/nodes/gltf2.js';
       import {DropShadowNode} from '../js/render/nodes/drop-shadow.js';
       import {vec3} from '../js/render/math/gl-matrix.js';
+      import {QueryArgs} from '../js/util/query-args.js';
+
+      // Если требуется, используем полифилл для поддержки мобильных устройств
+      import WebXRPolyfill from '../js/third-party/webxr-polyfill/build/webxr-polyfill.module.js';
+      if (QueryArgs.getBool('usePolyfill', true)) {
+        let polyfill = new WebXRPolyfill();
+      }
 
       // XR глобальные переменные
       let xrButton = null;
@@ -30,13 +37,10 @@
       // Создаем AR сцену
       class ARCatScene {
         constructor() {
-          this.arObject = new Node();
-          this.arObject.visible = false;
-          scene.addNode(this.arObject);
-
           // Загружаем модель кота
           this.cat = new Gltf2Node({url: './Cat.fbx'});
-          this.arObject.addNode(this.cat);
+          this.cat.scale = [0.1, 0.1, 0.1]; // Уменьшаем размер для удобства
+          scene.addNode(this.cat);
 
           // Добавляем ретикул для указания места размещения
           this.reticle = new Gltf2Node({url: '../media/gltf/reticle/reticle.gltf'});
@@ -46,14 +50,14 @@
           // Добавляем тень под котом
           this.shadow = new DropShadowNode();
           vec3.set(this.shadow.scale, 0.15, 0.15, 0.15);
-          this.arObject.addNode(this.shadow);
+          this.cat.addNode(this.shadow);
 
           this.MAX_CATS = 30;
           this.cats = [];
         }
 
         addCatAt(matrix) {
-          let newCat = this.arObject.clone();
+          let newCat = this.cat.clone();
           newCat.visible = true;
           newCat.matrix = matrix;
           scene.addNode(newCat);
@@ -123,7 +127,9 @@
 
         let canvas = document.createElement('canvas');
         gl = canvas.getContext('webgl', { xrCompatible: true });
+        document.body.appendChild(gl.canvas);
         renderer = new Renderer(gl);
+        scene.setRenderer(renderer);
 
         session.updateRenderState({
           baseLayer: new XRWebGLLayer(session, gl)
