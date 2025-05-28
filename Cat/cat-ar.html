@@ -12,9 +12,9 @@
       import {WebXRButton} from '../js/util/webxr-button.js';
       import {Scene} from '../js/render/scenes/scene.js';
       import {Renderer, createWebGLContext} from '../js/render/core/renderer.js';
+      import {SkyboxNode} from '../js/render/nodes/skybox.js';
+      import {InlineViewerHelper} from '../js/util/inline-viewer-helper.js';
       import {Gltf2Node} from '../js/render/nodes/gltf2.js';
-      import {DropShadowNode} from '../js/render/nodes/drop-shadow.js';
-      import {vec3} from '../js/render/math/gl-matrix.js';
       import {QueryArgs} from '../js/util/query-args.js';
 
       // Если требуется, используем полифилл для поддержки мобильных устройств
@@ -25,71 +25,20 @@
 
       // XR глобальные переменные
       let xrButton = null;
-      let xrRefSpace = null;
-      let xrHitTestSource = null;
+      let xrImmersiveRefSpace = null;
+      let inlineViewerHelper = null;
 
       // WebGL глобальные переменные
       let gl = null;
       let renderer = null;
       let scene = new Scene();
-      scene.enableStats(false);
-
-      // Создаем AR сцену
-      class ARCatScene {
-        constructor() {
-          // Загружаем модель кота
-          this.cat = new Gltf2Node({url: './Cat.fbx'});
-          this.cat.scale = [0.1, 0.1, 0.1]; // Уменьшаем размер для удобства
-          scene.addNode(this.cat);
-
-          // Добавляем ретикул для указания места размещения
-          this.reticle = new Gltf2Node({url: '../media/gltf/reticle/reticle.gltf'});
-          this.reticle.visible = false;
-          scene.addNode(this.reticle);
-
-          // Добавляем тень под котом
-          this.shadow = new DropShadowNode();
-          vec3.set(this.shadow.scale, 0.15, 0.15, 0.15);
-          this.cat.addNode(this.shadow);
-
-          this.MAX_CATS = 30;
-          this.cats = [];
-        }
-
-        addCatAt(matrix) {
-          let newCat = this.cat.clone();
-          newCat.visible = true;
-          newCat.matrix = matrix;
-          scene.addNode(newCat);
-
-          this.cats.push(newCat);
-
-          if (this.cats.length > this.MAX_CATS) {
-            let oldCat = this.cats.shift();
-            scene.removeNode(oldCat);
-          }
-        }
-
-        update(frame, refSpace) {
-          this.reticle.visible = false;
-
-          if (frame) {
-            let hitTestResults = frame.getHitTestResults(xrHitTestSource);
-            if (hitTestResults.length > 0) {
-              let hit = hitTestResults[0];
-              let pose = hit.getPose(refSpace);
-              this.reticle.visible = true;
-              this.reticle.matrix = pose.transform.matrix;
-            }
-          }
-        }
-      }
-
-      // Создаем экземпляр AR сцены
-      let arScene = new ARCatScene();
-
-      // Делаем фон прозрачным для AR
-      scene.clear = false;
+      let cat = new Gltf2Node({url: './Cat.fbx'});
+      // Уменьшаем размер кота для удобства
+      cat.scale = [0.1, 0.1, 0.1];
+      scene.addNode(cat);
+      // Добавляем небо для inline view
+      let skybox = new SkyboxNode({url: '../media/textures/milky-way-4k.png'});
+      scene.addNode(skybox);
 
       function initXR() {
         xrButton = new WebXRButton({
@@ -102,82 +51,104 @@
         document.querySelector('header').appendChild(xrButton.domElement);
 
         if (navigator.xr) {
+          // Проверяем поддержку 'immersive-ar' режима
           navigator.xr.isSessionSupported('immersive-ar').then((supported) => {
             xrButton.enabled = supported;
           });
+
+          navigator.xr.requestSession('inline').then(onSessionStarted);
         }
       }
 
       function onRequestSession() {
-        let sessionInit = {
-          requiredFeatures: ['hit-test'],
-          optionalFeatures: ['dom-overlay'],
-          domOverlay: { root: document.body }
-        };
+        return navigator.xr.requestSession('immersive-ar')
+            .then((session) => {
+              xrButton.setSession(session);
+              session.isImmersive = true;
+              onSessionStarted(session);
+            });
+      }
 
-        navigator.xr.requestSession('immersive-ar', sessionInit)
-          .then((session) => {
-            xrButton.setSession(session);
-            onSessionStarted(session);
-          });
+      function initGL() {
+        if (gl)
+          return;
+
+        gl = createWebGLContext({
+          xrCompatible: true
+        });
+        document.body.appendChild(gl.canvas);
+
+        function onResize() {
+          gl.canvas.width = gl.canvas.clientWidth * window.devicePixelRatio;
+          gl.canvas.height = gl.canvas.clientHeight * window.devicePixelRatio;
+        }
+        window.addEventListener('resize', onResize);
+        onResize();
+
+        renderer = new Renderer(gl);
+        scene.setRenderer(renderer);
       }
 
       function onSessionStarted(session) {
         session.addEventListener('end', onSessionEnded);
 
-        let canvas = document.createElement('canvas');
-        gl = canvas.getContext('webgl', { xrCompatible: true });
-        document.body.appendChild(gl.canvas);
-        renderer = new Renderer(gl);
-        scene.setRenderer(renderer);
+        if (session.isImmersive) {
+          // В режиме AR не рисуем фон, чтобы был виден реальный мир
+          skybox.visible = false;
+        }
 
-        session.updateRenderState({
-          baseLayer: new XRWebGLLayer(session, gl)
-        });
+        initGL();
 
-        session.requestReferenceSpace('local').then((refSpace) => {
-          xrRefSpace = refSpace;
+        session.updateRenderState({ baseLayer: new XRWebGLLayer(session, gl) });
+
+        let refSpaceType = session.isImmersive ? 'local' : 'viewer';
+        session.requestReferenceSpace(refSpaceType).then((refSpace) => {
+          if (session.isImmersive) {
+            xrImmersiveRefSpace = refSpace;
+
+            xrImmersiveRefSpace.addEventListener('reset', (evt) => {
+              if (evt.transform) {
+                // AR должен оставаться привязанным к реальному миру
+                xrImmersiveRefSpace = xrImmersiveRefSpace.getOffsetReferenceSpace(evt.transform);
+              }
+            });
+          } else {
+            inlineViewerHelper = new InlineViewerHelper(gl.canvas, refSpace);
+          }
           session.requestAnimationFrame(onXRFrame);
         });
-
-        session.requestHitTestSource({ space: xrRefSpace }).then((source) => {
-          xrHitTestSource = source;
-        });
-
-        session.addEventListener('select', onSelect);
       }
 
       function onEndSession(session) {
-        xrHitTestSource.cancel();
-        xrHitTestSource = null;
         session.end();
       }
 
       function onSessionEnded(event) {
-        xrButton.setSession(null);
-      }
-
-      function onSelect(event) {
-        if (arScene.reticle.visible) {
-          arScene.addCatAt(arScene.reticle.matrix);
+        if (event.session.isImmersive) {
+          xrButton.setSession(null);
+          // Возвращаем фон при выходе из AR
+          skybox.visible = true;
         }
       }
 
+      // Вызывается каждый раз, когда XRSession запрашивает новый кадр
       function onXRFrame(t, frame) {
         let session = frame.session;
-        let pose = frame.getViewerPose(xrRefSpace);
-
-        // Обновляем AR сцену
-        arScene.update(frame, xrRefSpace);
+        let refSpace = session.isImmersive ?
+                         xrImmersiveRefSpace :
+                         inlineViewerHelper.referenceSpace;
+        let pose = frame.getViewerPose(refSpace);
 
         scene.startFrame();
-        scene.drawXRFrame(frame, pose);
-        scene.endFrame();
 
         session.requestAnimationFrame(onXRFrame);
+
+        scene.drawXRFrame(frame, pose);
+
+        scene.endFrame();
       }
 
-      // Инициализация
+      // Запускаем XR приложение
       initXR();
     </script>
   </head>
