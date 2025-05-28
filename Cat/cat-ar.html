@@ -220,14 +220,6 @@
                          inlineViewerHelper.referenceSpace;
         let pose = frame.getViewerPose(refSpace);
 
-        // Обновляем позицию кота
-        updateCatPosition();
-
-        // Вращаем кота
-        if (cat.visible) {
-          cat.rotation[1] += 0.01;
-        }
-
         scene.startFrame();
         session.requestAnimationFrame(onXRFrame);
         scene.drawXRFrame(frame, pose);
