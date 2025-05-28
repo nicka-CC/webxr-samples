@@ -67,8 +67,8 @@
         url: './Cat.glb',
         onLoad: () => {
           console.log('Кот успешно загружен');
-          // Размещаем кота немного впереди пользователя
-          cat.translation = [0, 0, -1];
+          // Размещаем кота в новом положении
+          cat.translation = [5, 2, 1.5]; // x, y, z координаты
           cat.scale = [0.01, 0.01, 0.01];
           cat.visible = true;
         },
@@ -87,6 +87,46 @@
         }
       });
       scene.addNode(cat);
+
+      // Добавляем обработку клавиш
+      const keys = {
+        ArrowUp: false,
+        ArrowDown: false,
+        ArrowLeft: false,
+        ArrowRight: false,
+        w: false,
+        s: false,
+        a: false,
+        d: false
+      };
+
+      window.addEventListener('keydown', (e) => {
+        if (keys.hasOwnProperty(e.key)) {
+          keys[e.key] = true;
+        }
+      });
+
+      window.addEventListener('keyup', (e) => {
+        if (keys.hasOwnProperty(e.key)) {
+          keys[e.key] = false;
+        }
+      });
+
+      function updateCatPosition() {
+        const moveSpeed = 0.01;
+        if (keys.ArrowUp || keys.w) {
+          cat.translation[2] -= moveSpeed;
+        }
+        if (keys.ArrowDown || keys.s) {
+          cat.translation[2] += moveSpeed;
+        }
+        if (keys.ArrowLeft || keys.a) {
+          cat.translation[0] -= moveSpeed;
+        }
+        if (keys.ArrowRight || keys.d) {
+          cat.translation[0] += moveSpeed;
+        }
+      }
 
       function initXR() {
         xrButton = new WebXRButton({
@@ -179,6 +219,9 @@
                          xrImmersiveRefSpace :
                          inlineViewerHelper.referenceSpace;
         let pose = frame.getViewerPose(refSpace);
+
+        // Обновляем позицию кота
+        updateCatPosition();
 
         // Вращаем кота
         if (cat.visible) {
