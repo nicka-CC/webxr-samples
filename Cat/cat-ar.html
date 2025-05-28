@@ -95,71 +95,20 @@
       };
       scene.addNode(ambientLight);
       
-      // Создаем модель кота
-      let cat = new Gltf2Node({
+      // Создаем корневой узел для модели
+      const modelNode = new Node();
+      modelNode.scale = [0.5, 0.5, 0.5];
+      modelNode.translation = [0, 0, -4];
+      scene.addNode(modelNode);
+
+      // Создаем модель
+      let model = new Gltf2Node({
         url: './Duck.glb',
         onLoad: () => {
-          console.log('Модель кота загружена');
-          
-          // Создаем элемент для отладки
-          const debugElement = document.createElement('div');
-          debugElement.id = 'debug';
-          document.body.appendChild(debugElement);
-
-
-          // Проверяем структуру модели
-          console.log('Структура модели:', cat);
-          console.log('Масштаб:', cat.scale);
-          console.log('Позиция:', cat.translation);
-          console.log('Матрица:', cat.matrix);
-          
-          // Устанавливаем базовые трансформации
-          cat.scale = [0.1, 0.1, 0.1];
-          cat.translation = [0, 0, -2];
-          
-          // Обновляем отладочную информацию
-          debugElement.innerHTML = `
-            Кот загружен<br>
-            Масштаб: [${cat.scale.join(', ')}]<br>
-            Позиция: [${cat.translation.join(', ')}]<br>
-            Матрица: [${Array.from(cat.matrix).join(', ')}]
-          `;
-          
-          cat.visible = true;
-          
-          // Добавляем обработчик для изменения размера
-          window.addEventListener('keydown', (e) => {
-            if (e.key === '+' || e.key === '=') {
-              cat.scale = cat.scale.map(s => s * 1.1);
-            } else if (e.key === '-' || e.key === '_') {
-              cat.scale = cat.scale.map(s => s * 0.9);
-            }
-            
-            debugElement.innerHTML = `
-              Кот загружен<br>
-              Масштаб: [${cat.scale.join(', ')}]<br>
-              Позиция: [${cat.translation.join(', ')}]<br>
-              Матрица: [${Array.from(cat.matrix).join(', ')}]
-            `;
-          });
-        },
-        onError: (error) => {
-          console.error('Ошибка загрузки кота:', error);
-          // Показываем ошибку на экране
-          let errorDiv = document.createElement('div');
-          errorDiv.style.color = 'red';
-          errorDiv.style.position = 'fixed';
-          errorDiv.style.top = '50%';
-          errorDiv.style.left = '50%';
-          errorDiv.style.transform = 'translate(-50%, -50%)';
-          errorDiv.style.zIndex = '3';
-          errorDiv.textContent = 'Ошибка загрузки кота: ' + error;
-          document.body.appendChild(errorDiv);
+          // Добавляем модель в сцену
+          scene.addNode(model);
         }
       });
-      
-      // Добавляем кота в сцену
-      scene.addNode(cat);
       
       // Добавляем обработку клавиш
       const keys = {
@@ -188,16 +137,16 @@
       function updateCatPosition() {
         const moveSpeed = 0.01;
         if (keys.ArrowUp || keys.w) {
-          cat.translation[2] -= moveSpeed;
+          model.translation[2] -= moveSpeed;
         }
         if (keys.ArrowDown || keys.s) {
-          cat.translation[2] += moveSpeed;
+          model.translation[2] += moveSpeed;
         }
         if (keys.ArrowLeft || keys.a) {
-          cat.translation[0] -= moveSpeed;
+          model.translation[0] -= moveSpeed;
         }
         if (keys.ArrowRight || keys.d) {
-          cat.translation[0] += moveSpeed;
+          model.translation[0] += moveSpeed;
         }
       }
 
