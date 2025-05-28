@@ -103,13 +103,11 @@
 
       // Создаем модель
       let model = new Gltf2Node({
-        url: './Duck.glb',
-        onLoad: () => {
-          // Добавляем модель в сцену
-          scene.addNode(model);
-        }
+        url: './Duck.glb'
       });
-
+      model.scale = [0.5, 0.5, 0.5];
+      model.translation = [0, 0, -4];
+      scene.addNode(model);
 
       // Добавляем обработку клавиш
       const keys = {
