@@ -32,10 +32,28 @@
       let scene = new Scene();
       
       // Создаем модель кота
-      let cat = new Gltf2Node({url: './Cat.fbx'});
-      cat.scale = [0.1, 0.1, 0.1];
-      // Размещаем кота немного впереди пользователя
-      cat.translation = [0, 0, -1];
+      let cat = new Gltf2Node({
+        url: './Cat.fbx',
+        onLoad: () => {
+          console.log('Кот успешно загружен');
+          // Размещаем кота немного впереди пользователя
+          cat.translation = [0, 0, -1];
+          cat.scale = [0.1, 0.1, 0.1];
+          cat.visible = true;
+        },
+        onError: (error) => {
+          console.error('Ошибка загрузки кота:', error);
+          // Показываем ошибку на экране
+          let errorDiv = document.createElement('div');
+          errorDiv.style.color = 'red';
+          errorDiv.style.position = 'absolute';
+          errorDiv.style.top = '50%';
+          errorDiv.style.left = '50%';
+          errorDiv.style.transform = 'translate(-50%, -50%)';
+          errorDiv.textContent = 'Ошибка загрузки модели кота: ' + error;
+          document.body.appendChild(errorDiv);
+        }
+      });
       scene.addNode(cat);
 
       function initXR() {
@@ -125,7 +143,9 @@
 
       function onFrame(t) {
         // Вращаем кота
-        cat.rotation[1] += 0.01;
+        if (cat.visible) {
+          cat.rotation[1] += 0.01;
+        }
 
         scene.startFrame();
         scene.drawFrame();
@@ -142,7 +162,9 @@
         let pose = frame.getViewerPose(refSpace);
 
         // Вращаем кота
-        cat.rotation[1] += 0.01;
+        if (cat.visible) {
+          cat.rotation[1] += 0.01;
+        }
 
         scene.startFrame();
         session.requestAnimationFrame(onXRFrame);
