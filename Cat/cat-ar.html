@@ -16,6 +16,8 @@
       import {InlineViewerHelper} from '../js/util/inline-viewer-helper.js';
       import {Gltf2Node} from '../js/render/nodes/gltf2.js';
       import {QueryArgs} from '../js/util/query-args.js';
+      import {DropShadowNode} from '../js/render/nodes/drop-shadow.js';
+      import {vec3} from '../js/render/math/gl-matrix.js';
 
       // Если требуется, используем полифилл для поддержки мобильных устройств
       import WebXRPolyfill from '../js/third-party/webxr-polyfill/build/webxr-polyfill.module.js';
@@ -27,18 +29,50 @@
       let xrButton = null;
       let xrImmersiveRefSpace = null;
       let inlineViewerHelper = null;
+      let xrHitTestSource = null;
 
       // WebGL глобальные переменные
       let gl = null;
       let renderer = null;
       let scene = new Scene();
+      
+      // Создаем базовую модель кота
       let cat = new Gltf2Node({url: './Cat.fbx'});
-      // Уменьшаем размер кота для удобства
       cat.scale = [0.1, 0.1, 0.1];
+      cat.visible = false; // Скрываем базовую модель
       scene.addNode(cat);
+
+      // Добавляем ретикул для указания места размещения
+      let reticle = new Gltf2Node({url: '../media/gltf/reticle/reticle.gltf'});
+      reticle.visible = false;
+      scene.addNode(reticle);
+
       // Добавляем небо для inline view
       let skybox = new SkyboxNode({url: '../media/textures/milky-way-4k.png'});
       scene.addNode(skybox);
+
+      // Массив размещенных котов
+      let placedCats = [];
+      const MAX_CATS = 30;
+
+      function addCatAt(matrix) {
+        let newCat = cat.clone();
+        newCat.visible = true;
+        newCat.matrix = matrix;
+        
+        // Добавляем тень под котом
+        let shadow = new DropShadowNode();
+        vec3.set(shadow.scale, 0.15, 0.15, 0.15);
+        newCat.addNode(shadow);
+        
+        scene.addNode(newCat);
+        placedCats.push(newCat);
+
+        if (placedCats.length > MAX_CATS) {
+          let oldCat = placedCats.shift();
+          scene.removeNode(oldCat);
+        }
+      }
 
       function initXR() {
         xrButton = new WebXRButton({
@@ -51,7 +85,6 @@
         document.querySelector('header').appendChild(xrButton.domElement);
 
         if (navigator.xr) {
-          // Проверяем поддержку 'immersive-ar' режима
           navigator.xr.isSessionSupported('immersive-ar').then((supported) => {
             xrButton.enabled = supported;
           });
@@ -61,7 +94,13 @@
       }
 
       function onRequestSession() {
-        return navigator.xr.requestSession('immersive-ar')
+        let sessionInit = {
+          requiredFeatures: ['hit-test'],
+          optionalFeatures: ['dom-overlay'],
+          domOverlay: { root: document.body }
+        };
+
+        return navigator.xr.requestSession('immersive-ar', sessionInit)
             .then((session) => {
               xrButton.setSession(session);
               session.isImmersive = true;
@@ -93,7 +132,6 @@
         session.addEventListener('end', onSessionEnded);
 
         if (session.isImmersive) {
-          // В режиме AR не рисуем фон, чтобы был виден реальный мир
           skybox.visible = false;
         }
 
@@ -108,30 +146,45 @@
 
             xrImmersiveRefSpace.addEventListener('reset', (evt) => {
               if (evt.transform) {
-                // AR должен оставаться привязанным к реальному миру
                 xrImmersiveRefSpace = xrImmersiveRefSpace.getOffsetReferenceSpace(evt.transform);
               }
+            });
+
+            // Инициализируем hit-test
+            session.requestHitTestSource({ space: xrImmersiveRefSpace }).then((source) => {
+              xrHitTestSource = source;
             });
           } else {
             inlineViewerHelper = new InlineViewerHelper(gl.canvas, refSpace);
           }
           session.requestAnimationFrame(onXRFrame);
         });
+
+        // Добавляем обработчик тапов
+        session.addEventListener('select', onSelect);
+      }
+
+      function onSelect(event) {
+        if (reticle.visible) {
+          addCatAt(reticle.matrix);
+        }
       }
 
       function onEndSession(session) {
+        if (xrHitTestSource) {
+          xrHitTestSource.cancel();
+          xrHitTestSource = null;
+        }
         session.end();
       }
 
       function onSessionEnded(event) {
         if (event.session.isImmersive) {
           xrButton.setSession(null);
-          // Возвращаем фон при выходе из AR
           skybox.visible = true;
         }
       }
 
-      // Вызывается каждый раз, когда XRSession запрашивает новый кадр
       function onXRFrame(t, frame) {
         let session = frame.session;
         let refSpace = session.isImmersive ?
@@ -139,12 +192,21 @@
                          inlineViewerHelper.referenceSpace;
         let pose = frame.getViewerPose(refSpace);
 
+        // Обновляем ретикул
+        reticle.visible = false;
+        if (session.isImmersive && xrHitTestSource) {
+          let hitTestResults = frame.getHitTestResults(xrHitTestSource);
+          if (hitTestResults.length > 0) {
+            let hit = hitTestResults[0];
+            let pose = hit.getPose(refSpace);
+            reticle.visible = true;
+            reticle.matrix = pose.transform.matrix;
+          }
+        }
+
         scene.startFrame();
-
         session.requestAnimationFrame(onXRFrame);
-
         scene.drawXRFrame(frame, pose);
-
         scene.endFrame();
       }
 
@@ -158,6 +220,7 @@
         <summary>AR Котики</summary>
         <p>
           Размещайте виртуальных котов в реальном мире с помощью AR.
+          Наведите камеру на поверхность и нажмите на экран, чтобы разместить кота.
           <a class="back" href="../">Назад</a>
         </p>
       </details>
