@@ -27,26 +27,62 @@
       let scene = new Scene();
       scene.enableStats(false);
 
-      let arObject = new Node();
-      arObject.visible = false;
-      scene.addNode(arObject);
+      // Создаем AR сцену
+      class ARCatScene {
+        constructor() {
+          this.arObject = new Node();
+          this.arObject.visible = false;
+          scene.addNode(this.arObject);
 
-      // Загружаем модель кота
-      let cat = new Gltf2Node({url: './Cat.fbx'});
-      arObject.addNode(cat);
+          // Загружаем модель кота
+          this.cat = new Gltf2Node({url: './Cat.fbx'});
+          this.arObject.addNode(this.cat);
 
-      // Добавляем ретикул для указания места размещения
-      let reticle = new Gltf2Node({url: '../media/gltf/reticle/reticle.gltf'});
-      reticle.visible = false;
-      scene.addNode(reticle);
+          // Добавляем ретикул для указания места размещения
+          this.reticle = new Gltf2Node({url: '../media/gltf/reticle/reticle.gltf'});
+          this.reticle.visible = false;
+          scene.addNode(this.reticle);
 
-      // Добавляем тень под котом
-      let shadow = new DropShadowNode();
-      vec3.set(shadow.scale, 0.15, 0.15, 0.15);
-      arObject.addNode(shadow);
+          // Добавляем тень под котом
+          this.shadow = new DropShadowNode();
+          vec3.set(this.shadow.scale, 0.15, 0.15, 0.15);
+          this.arObject.addNode(this.shadow);
 
-      const MAX_CATS = 30;
-      let cats = [];
+          this.MAX_CATS = 30;
+          this.cats = [];
+        }
+
+        addCatAt(matrix) {
+          let newCat = this.arObject.clone();
+          newCat.visible = true;
+          newCat.matrix = matrix;
+          scene.addNode(newCat);
+
+          this.cats.push(newCat);
+
+          if (this.cats.length > this.MAX_CATS) {
+            let oldCat = this.cats.shift();
+            scene.removeNode(oldCat);
+          }
+        }
+
+        update(frame, refSpace) {
+          this.reticle.visible = false;
+
+          if (frame) {
+            let hitTestResults = frame.getHitTestResults(xrHitTestSource);
+            if (hitTestResults.length > 0) {
+              let hit = hitTestResults[0];
+              let pose = hit.getPose(refSpace);
+              this.reticle.visible = true;
+              this.reticle.matrix = pose.transform.matrix;
+            }
+          }
+        }
+      }
+
+      // Создаем экземпляр AR сцены
+      let arScene = new ARCatScene();
 
       // Делаем фон прозрачным для AR
       scene.clear = false;
@@ -115,23 +151,9 @@
         xrButton.setSession(null);
       }
 
-      function addCatAt(matrix) {
-        let newCat = arObject.clone();
-        newCat.visible = true;
-        newCat.matrix = matrix;
-        scene.addNode(newCat);
-
-        cats.push(newCat);
-
-        if (cats.length > MAX_CATS) {
-          let oldCat = cats.shift();
-          scene.removeNode(oldCat);
-        }
-      }
-
       function onSelect(event) {
-        if (reticle.visible) {
-          addCatAt(reticle.matrix);
+        if (arScene.reticle.visible) {
+          arScene.addCatAt(arScene.reticle.matrix);
         }
       }
 
@@ -139,17 +161,8 @@
         let session = frame.session;
         let pose = frame.getViewerPose(xrRefSpace);
 
-        reticle.visible = false;
-
-        if (pose) {
-          let hitTestResults = frame.getHitTestResults(xrHitTestSource);
-          if (hitTestResults.length > 0) {
-            let hit = hitTestResults[0];
-            let pose = hit.getPose(xrRefSpace);
-            reticle.visible = true;
-            reticle.matrix = pose.transform.matrix;
-          }
-        }
+        // Обновляем AR сцену
+        arScene.update(frame, xrRefSpace);
 
         scene.startFrame();
         scene.drawXRFrame(frame, pose);
