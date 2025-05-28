@@ -12,8 +12,6 @@
       import {WebXRButton} from '../js/util/webxr-button.js';
       import {Scene} from '../js/render/scenes/scene.js';
       import {Renderer, createWebGLContext} from '../js/render/core/renderer.js';
-      import {SkyboxNode} from '../js/render/nodes/skybox.js';
-      import {InlineViewerHelper} from '../js/util/inline-viewer-helper.js';
       import {Gltf2Node} from '../js/render/nodes/gltf2.js';
       import {QueryArgs} from '../js/util/query-args.js';
 
@@ -40,10 +38,6 @@
       cat.translation = [0, 0, -1];
       scene.addNode(cat);
 
-      // Добавляем небо для inline view
-      let skybox = new SkyboxNode({url: '../media/textures/milky-way-4k.png'});
-      scene.addNode(skybox);
-
       function initXR() {
         xrButton = new WebXRButton({
           onRequestSession: onRequestSession,
@@ -59,7 +53,10 @@
             xrButton.enabled = supported;
           });
 
-          navigator.xr.requestSession('inline').then(onSessionStarted);
+          // Инициализируем WebGL сразу
+          initGL();
+          // Запускаем анимацию
+          requestAnimationFrame(onFrame);
         }
       }
 
@@ -95,10 +92,6 @@
       function onSessionStarted(session) {
         session.addEventListener('end', onSessionEnded);
 
-        if (session.isImmersive) {
-          skybox.visible = false;
-        }
-
         initGL();
 
         session.updateRenderState({ baseLayer: new XRWebGLLayer(session, gl) });
@@ -127,8 +120,18 @@
       function onSessionEnded(event) {
         if (event.session.isImmersive) {
           xrButton.setSession(null);
-          skybox.visible = true;
         }
+      }
+
+      function onFrame(t) {
+        // Вращаем кота
+        cat.rotation[1] += 0.01;
+
+        scene.startFrame();
+        scene.drawFrame();
+        scene.endFrame();
+
+        requestAnimationFrame(onFrame);
       }
 
       function onXRFrame(t, frame) {
@@ -150,6 +153,17 @@
       // Запускаем XR приложение
       initXR();
     </script>
+    <style>
+      body {
+        margin: 0;
+        background-color: black;
+      }
+      canvas {
+        width: 100vw;
+        height: 100vh;
+        display: block;
+      }
+    </style>
   </head>
   <body>
     <header>
