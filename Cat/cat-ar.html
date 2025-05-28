@@ -104,32 +104,59 @@
           debugElement.id = 'debug';
           document.body.appendChild(debugElement);
           
-          // Пробуем другой способ трансформации
-          cat.scale = [0.05, 0.05, 0.05];
-          cat.translation = [0, 0, -5];
+          // Пробуем разные способы трансформации
+          const scale = 0.001; // Очень маленький масштаб
+          
+          // Способ 1: через scale
+          cat.scale = [scale, scale, scale];
+          
+          // Способ 2: через matrix
+          const matrix = new Float32Array([
+            scale, 0, 0, 0,
+            0, scale, 0, 0,
+            0, 0, scale, 0,
+            0, 0, -5, 1
+          ]);
+          cat.matrix = matrix;
+          
+          // Способ 3: через worldMatrix
+          if (cat.worldMatrix) {
+            cat.worldMatrix.set(matrix);
+          }
           
           // Обновляем отладочную информацию
           debugElement.innerHTML = `
             Кот загружен<br>
-            Масштаб: [${cat.scale.join(', ')}]<br>
-            Позиция: [${cat.translation.join(', ')}]
+            Масштаб: ${scale}<br>
+            Matrix: [${Array.from(cat.matrix).join(', ')}]<br>
+            WorldMatrix: ${cat.worldMatrix ? 'Есть' : 'Нет'}
           `;
+          
+          cat.visible = true;
           
           // Добавляем обработчик для изменения размера
           window.addEventListener('keydown', (e) => {
             if (e.key === '+' || e.key === '=') {
-              cat.scale = cat.scale.map(s => s * 1.1);
+              scale *= 1.1;
             } else if (e.key === '-' || e.key === '_') {
-              cat.scale = cat.scale.map(s => s * 0.9);
+              scale *= 0.9;
             }
+            
+            // Обновляем все трансформации
+            cat.scale = [scale, scale, scale];
+            matrix[0] = matrix[5] = matrix[10] = scale;
+            cat.matrix = matrix;
+            if (cat.worldMatrix) {
+              cat.worldMatrix.set(matrix);
+            }
+            
             debugElement.innerHTML = `
               Кот загружен<br>
-              Масштаб: [${cat.scale.join(', ')}]<br>
-              Позиция: [${cat.translation.join(', ')}]
+              Масштаб: ${scale}<br>
+              Matrix: [${Array.from(cat.matrix).join(', ')}]<br>
+              WorldMatrix: ${cat.worldMatrix ? 'Есть' : 'Нет'}
             `;
           });
-          
-          cat.visible = true;
         },
         onError: (error) => {
           console.error('Ошибка загрузки кота:', error);
