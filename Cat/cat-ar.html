@@ -95,16 +95,18 @@
       };
       scene.addNode(ambientLight);
       
+      // Создаем корневой узел для модели
+      const modelNode = new Node();
+      modelNode.scale = [0.5, 0.5, 0.5];
+      modelNode.translation = [0, 0, -4];
+      scene.addNode(modelNode);
+
       // Создаем модель
       let model = new Gltf2Node({
         url: './Duck.glb',
         onLoad: () => {
-          // Устанавливаем размер и позицию
-          model.scale = [0.5, 0.5, 0.5];
-          model.translation = [0, 0, -4];
-          
-          // Добавляем модель в сцену
-          scene.addNode(model);
+          // Добавляем модель как дочерний элемент
+          modelNode.addNode(model);
         }
       });
       
