@@ -97,29 +97,31 @@
       
       // Создаем модель кота
       let cat = new Gltf2Node({
-        url: './result.gltf',
+        url: './Duck.glb',
         onLoad: () => {
+          console.log('Модель кота загружена');
+          
           // Создаем элемент для отладки
           const debugElement = document.createElement('div');
           debugElement.id = 'debug';
           document.body.appendChild(debugElement);
           
-          // Создаем корневой узел для трансформации
-          const rootNode = new Node();
-          rootNode.scale = [0.5, 0.5, 0.5];
-          rootNode.translation = [0, 0, -6];
+          // Проверяем структуру модели
+          console.log('Структура модели:', cat);
+          console.log('Масштаб:', cat.scale);
+          console.log('Позиция:', cat.translation);
+          console.log('Матрица:', cat.matrix);
           
-          // Добавляем кота как дочерний элемент
-          rootNode.addNode(cat);
-          
-          // Добавляем корневой узел в сцену
-          scene.addNode(rootNode);
+          // Устанавливаем базовые трансформации
+          cat.scale = [0.1, 0.1, 0.1];
+          cat.translation = [0, 0, -2];
           
           // Обновляем отладочную информацию
           debugElement.innerHTML = `
             Кот загружен<br>
-            Масштаб корня: [${rootNode.scale.join(', ')}]<br>
-            Позиция корня: [${rootNode.translation.join(', ')}]
+            Масштаб: [${cat.scale.join(', ')}]<br>
+            Позиция: [${cat.translation.join(', ')}]<br>
+            Матрица: [${Array.from(cat.matrix).join(', ')}]
           `;
           
           cat.visible = true;
@@ -127,15 +129,16 @@
           // Добавляем обработчик для изменения размера
           window.addEventListener('keydown', (e) => {
             if (e.key === '+' || e.key === '=') {
-              rootNode.scale = rootNode.scale.map(s => s * 1.1);
+              cat.scale = cat.scale.map(s => s * 1.1);
             } else if (e.key === '-' || e.key === '_') {
-              rootNode.scale = rootNode.scale.map(s => s * 0.9);
+              cat.scale = cat.scale.map(s => s * 0.9);
             }
             
             debugElement.innerHTML = `
               Кот загружен<br>
-              Масштаб корня: [${rootNode.scale.join(', ')}]<br>
-              Позиция корня: [${rootNode.translation.join(', ')}]
+              Масштаб: [${cat.scale.join(', ')}]<br>
+              Позиция: [${cat.translation.join(', ')}]<br>
+              Матрица: [${Array.from(cat.matrix).join(', ')}]
             `;
           });
         },
@@ -153,6 +156,9 @@
           document.body.appendChild(errorDiv);
         }
       });
+      
+      // Добавляем кота в сцену
+      scene.addNode(cat);
       
       // Добавляем обработку клавиш
       const keys = {
