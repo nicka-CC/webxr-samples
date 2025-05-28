@@ -105,8 +105,8 @@
       let model = new Gltf2Node({
         url: './Duck.glb',
         onLoad: () => {
-          // Добавляем модель как дочерний элемент
-          modelNode.addNode(model);
+          // Добавляем модель в сцену
+          scene.addNode(model);
         }
       });
       
