@@ -45,6 +45,7 @@
       import {Gltf2Node} from '../js/render/nodes/gltf2.js';
       import {QueryArgs} from '../js/util/query-args.js';
       import {InlineViewerHelper} from '../js/util/inline-viewer-helper.js';
+      import {Node} from '../js/render/core/node.js';
 
       // Если требуется, используем полифилл для поддержки мобильных устройств
       import WebXRPolyfill from '../js/third-party/webxr-polyfill/build/webxr-polyfill.module.js';
@@ -63,23 +64,21 @@
       let scene = new Scene();
       
       // Добавляем освещение
-      const directionalLight = {
-        light: {
-          type: 'directional',
-          color: {r: 1, g: 1, b: 1},
-          intensity: 1.0,
-          direction: {x: 0, y: -1, z: 0}
-        }
+      const directionalLight = new Node();
+      directionalLight.light = {
+        type: 'directional',
+        color: {r: 1, g: 1, b: 1},
+        intensity: 1.0,
+        direction: {x: 0, y: -1, z: 0}
       };
       scene.addNode(directionalLight);
 
       // Добавляем фоновое освещение
-      const ambientLight = {
-        light: {
-          type: 'ambient',
-          color: {r: 0.5, g: 0.5, b: 0.5},
-          intensity: 0.5
-        }
+      const ambientLight = new Node();
+      ambientLight.light = {
+        type: 'ambient',
+        color: {r: 0.5, g: 0.5, b: 0.5},
+        intensity: 0.5
       };
       scene.addNode(ambientLight);
       
