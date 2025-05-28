@@ -97,45 +97,39 @@
       
       // Создаем модель кота
       let cat = new Gltf2Node({
-        url: './Cat.glb',
+        url: './Cat.fbx',
         onLoad: () => {
           // Создаем элемент для отладки
           const debugElement = document.createElement('div');
           debugElement.id = 'debug';
           document.body.appendChild(debugElement);
           
-          // Создаем матрицу трансформации
-          const scale = 0.05;
-          const position = [0, 0, -10];
-          
-          // Устанавливаем трансформацию
-          cat.matrix = [
-            scale, 0, 0, 0,
-            0, scale, 0, 0,
-            0, 0, scale, 0,
-            position[0], position[1], position[2], 1
-          ];
+          // Пробуем другой способ трансформации
+          cat.scale = [0.001, 0.001, 0.001];
+          cat.translation = [0, 0, -5];
           
           // Обновляем отладочную информацию
           debugElement.innerHTML = `
             Кот загружен<br>
-            Масштаб: ${scale}<br>
-            Позиция: [${position.join(', ')}]<br>
-            Матрица: [${cat.matrix.join(', ')}]
+            Масштаб: [${cat.scale.join(', ')}]<br>
+            Позиция: [${cat.translation.join(', ')}]
           `;
           
-          cat.visible = true;
+          // Добавляем обработчик для изменения размера
+          window.addEventListener('keydown', (e) => {
+            if (e.key === '+' || e.key === '=') {
+              cat.scale = cat.scale.map(s => s * 1.1);
+            } else if (e.key === '-' || e.key === '_') {
+              cat.scale = cat.scale.map(s => s * 0.9);
+            }
+            debugElement.innerHTML = `
+              Кот загружен<br>
+              Масштаб: [${cat.scale.join(', ')}]<br>
+              Позиция: [${cat.translation.join(', ')}]
+            `;
+          });
           
-          // Добавляем материал для кота
-          if (cat.meshes) {
-            cat.meshes.forEach(mesh => {
-              if (mesh.material) {
-                mesh.material.baseColorFactor = [1, 1, 1, 1]; // Белый цвет
-                mesh.material.metallicFactor = 0.0;
-                mesh.material.roughnessFactor = 0.8;
-              }
-            });
-          }
+          cat.visible = true;
         },
         onError: (error) => {
           console.error('Ошибка загрузки кота:', error);
