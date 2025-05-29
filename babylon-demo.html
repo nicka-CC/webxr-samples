@@ -2,19 +2,54 @@
 <html>
 <head>
     <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
     <title>Babylon.js AR Demo</title>
+    <link rel="stylesheet" href="css/stylesheet.css">
+    <link rel="stylesheet" href="css/pygment_trac.css">
     <style>
-        canvas {
-            width: 100%;
-            height: 100%;
-            touch-action: none;
-        }
-        html, body {
-            overflow: hidden;
-            width: 100%;
-            height: 100%;
+        body {
             margin: 0;
             padding: 0;
+            background-color: black;
+            overflow: hidden;
+        }
+        canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            touch-action: none;
+        }
+        header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            z-index: 2;
+            background-color: rgba(0, 0, 0, 0.7);
+        }
+        header details {
+            color: white;
+        }
+        header a {
+            color: #fff;
+        }
+        #debug {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            z-index: 3;
+            font-size: 12px;
+            text-align: right;
         }
         #arButton {
             position: absolute;
@@ -36,21 +71,20 @@
             background: #cccccc;
             cursor: not-allowed;
         }
-        #debug {
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            background: rgba(0,0,0,0.7);
-            color: white;
-            padding: 10px;
-            font-family: monospace;
-            z-index: 1000;
-        }
     </style>
     <script src="https://cdn.babylonjs.com/babylon.js"></script>
     <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
 </head>
 <body>
+    <header>
+        <details open>
+            <summary>Babylon.js AR Demo</summary>
+            <p>
+                Демонстрация AR с анимированной 3D моделью, которую можно разместить в реальном мире.
+                <a class="back" href="./">Назад</a>
+            </p>
+        </details>
+    </header>
     <canvas id="renderCanvas"></canvas>
     <button id="arButton" disabled>Запустить AR</button>
     <div id="debug"></div>
@@ -65,10 +99,10 @@
             const scene = new BABYLON.Scene(engine);
             
             // Создаем камеру для обычного просмотра
-            const camera = new BABYLON.ArcRotateCamera("camera", 0, Math.PI / 3, 5, BABYLON.Vector3.Zero(), scene);
+            const camera = new BABYLON.ArcRotateCamera("camera", 0, Math.PI / 3, 15, BABYLON.Vector3.Zero(), scene);
             camera.attachControl(canvas, true);
-            camera.lowerRadiusLimit = 2;
-            camera.upperRadiusLimit = 10;
+            camera.lowerRadiusLimit = 5;
+            camera.upperRadiusLimit = 20;
 
             // Создаем свет
             const light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0, 1, 0), scene);
@@ -92,7 +126,8 @@
 
                 // Настраиваем модель
                 result.meshes.forEach(mesh => {
-                    mesh.scaling = new BABYLON.Vector3(0.2, 0.2, 0.2);
+                    mesh.scaling = new BABYLON.Vector3(1, 1, 1);
+                    mesh.position = new BABYLON.Vector3(10, 0, 15);
                 });
 
                 // Проверяем поддержку AR
