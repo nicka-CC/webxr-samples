@@ -65,10 +65,10 @@
             const scene = new BABYLON.Scene(engine);
             
             // Создаем камеру для обычного просмотра
-            const camera = new BABYLON.ArcRotateCamera("camera", 0, Math.PI / 3, 10, BABYLON.Vector3.Zero(), scene);
+            const camera = new BABYLON.ArcRotateCamera("camera", 0, Math.PI / 3, 5, BABYLON.Vector3.Zero(), scene);
             camera.attachControl(canvas, true);
             camera.lowerRadiusLimit = 2;
-            camera.upperRadiusLimit = 20;
+            camera.upperRadiusLimit = 10;
 
             // Создаем свет
             const light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0, 1, 0), scene);
