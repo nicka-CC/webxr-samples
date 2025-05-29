@@ -132,6 +132,10 @@
           keys[e.key] = false;
         }
       });
+      model.onLoad = () => {
+        console.log("Модель загружена:", model);
+        console.log("Материалы:", model.materials);
+      };
 
       function updateCatPosition() {
         const moveSpeed = 0.01;
