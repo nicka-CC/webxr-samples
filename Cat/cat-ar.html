@@ -135,6 +135,10 @@ console.log('model',model)
       model.onLoad = () => {
         console.log("Модель загружена:", model);
         console.log("Материалы:", model.materials);
+        // если есть анимации — запустить первую
+        if (model.animations && model.animations.length > 0) {
+          model.playAnimation(0);
+        }
       };
 
       function updateCatPosition() {
