@@ -28,10 +28,23 @@
             border-radius: 8px;
             font-size: 16px;
             cursor: pointer;
-            display: none;
         }
         #arButton:active {
             background: #0056b3;
+        }
+        #arButton:disabled {
+            background: #cccccc;
+            cursor: not-allowed;
+        }
+        #debug {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 10px;
+            font-family: monospace;
+            z-index: 1000;
         }
     </style>
     <script src="https://cdn.babylonjs.com/babylon.js"></script>
@@ -39,73 +52,75 @@
 </head>
 <body>
     <canvas id="renderCanvas"></canvas>
-    <button id="arButton">Запустить AR</button>
+    <button id="arButton" disabled>Запустить AR</button>
+    <div id="debug"></div>
     <script>
         const canvas = document.getElementById("renderCanvas");
         const arButton = document.getElementById("arButton");
+        const debugDiv = document.getElementById("debug");
         const engine = new BABYLON.Engine(canvas, true);
 
         const createScene = async function() {
+            debugDiv.innerHTML = "Создание сцены...";
             const scene = new BABYLON.Scene(engine);
             
-            // Создаем камеру для AR
-            const xr = await BABYLON.WebXRDefaultExperience.CreateAsync(scene, {
-                uiOptions: {
-                    sessionMode: "immersive-ar"
-                },
-                optionalFeatures: ["hit-test"]
-            });
+            // Создаем камеру для обычного просмотра
+            const camera = new BABYLON.ArcRotateCamera("camera", 0, Math.PI / 3, 10, BABYLON.Vector3.Zero(), scene);
+            camera.attachControl(canvas, true);
+            camera.lowerRadiusLimit = 2;
+            camera.upperRadiusLimit = 20;
 
             // Создаем свет
             const light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0, 1, 0), scene);
+            light.intensity = 0.7;
             
             try {
                 // Загружаем модель
+                debugDiv.innerHTML += "<br>Загрузка модели...";
                 const result = await BABYLON.SceneLoader.ImportMeshAsync(null, "", "untitled.glb", scene);
+                debugDiv.innerHTML += "<br>Модель загружена";
                 
                 // Запускаем все анимации
                 if (result.animationGroups && result.animationGroups.length > 0) {
+                    debugDiv.innerHTML += `<br>Найдено анимаций: ${result.animationGroups.length}`;
                     result.animationGroups.forEach(anim => {
                         anim.play(true);
                     });
+                } else {
+                    debugDiv.innerHTML += "<br>Анимации не найдены";
                 }
 
-                // Настраиваем модель для AR
+                // Настраиваем модель
                 result.meshes.forEach(mesh => {
-                    mesh.scaling = new BABYLON.Vector3(0.1, 0.1, 0.1);
+                    mesh.scaling = new BABYLON.Vector3(1.0, 1.0, 1.0);
                 });
 
-                // Добавляем возможность размещения модели в AR
-                if (xr) {
-                    xr.onStateChangedObservable.add((state) => {
-                        if (state === BABYLON.WebXRState.IN_XR) {
-                            arButton.style.display = "none";
-                            
-                            // Добавляем возможность размещения модели по тапу
-                            xr.onPointerDownObservable.add((evt) => {
-                                if (evt.pickInfo.hit) {
-                                    const hitPoint = evt.pickInfo.pickedPoint;
-                                    result.meshes.forEach(mesh => {
-                                        mesh.position = hitPoint;
-                                    });
-                                }
-                            });
-                        } else if (state === BABYLON.WebXRState.NOT_IN_XR) {
-                            arButton.style.display = "block";
-                        }
-                    });
-                }
-
-                // Показываем кнопку AR, если браузер поддерживает WebXR
+                // Проверяем поддержку AR
+                debugDiv.innerHTML += "<br>Проверка поддержки AR...";
                 if (navigator.xr) {
-                    navigator.xr.isSessionSupported('immersive-ar').then((supported) => {
-                        if (supported) {
-                            arButton.style.display = "block";
-                        }
-                    });
+                    debugDiv.innerHTML += "<br>WebXR API доступен";
+                    navigator.xr.isSessionSupported('immersive-ar')
+                        .then((supported) => {
+                            debugDiv.innerHTML += `<br>AR поддерживается: ${supported}`;
+                            arButton.disabled = !supported;
+                            if (supported) {
+                                debugDiv.innerHTML += "<br>AR доступен";
+                            } else {
+                                debugDiv.innerHTML += "<br>AR не поддерживается на этом устройстве";
+                            }
+                        })
+                        .catch((error) => {
+                            debugDiv.innerHTML += `<br>Ошибка проверки AR: ${error.message}`;
+                            console.error("Ошибка проверки AR:", error);
+                            arButton.disabled = true;
+                        });
+                } else {
+                    debugDiv.innerHTML += "<br>WebXR API не доступен в этом браузере";
+                    arButton.disabled = true;
                 }
 
             } catch (error) {
+                debugDiv.innerHTML += `<br>Ошибка: ${error.message}`;
                 console.error("Ошибка:", error);
             }
             
@@ -114,14 +129,56 @@
 
         // Обработчик нажатия на кнопку AR
         arButton.addEventListener("click", async () => {
-            const scene = await createScene();
-            engine.runRenderLoop(() => {
-                scene.render();
+            if (arButton.disabled) return;
+            
+            const scene = engine.scenes[0];
+            if (!scene) return;
+
+            debugDiv.innerHTML += "<br>Запуск AR...";
+            
+            // Создаем AR опыт
+            const xr = await BABYLON.WebXRDefaultExperience.CreateAsync(scene, {
+                uiOptions: {
+                    sessionMode: "immersive-ar"
+                },
+                optionalFeatures: ["hit-test"]
             });
+
+            if (xr) {
+                xr.onStateChangedObservable.add((state) => {
+                    if (state === BABYLON.WebXRState.IN_XR) {
+                        debugDiv.innerHTML += "<br>AR сессия началась";
+                        arButton.style.display = "none";
+                        
+                        // Добавляем возможность размещения модели по тапу
+                        xr.onPointerDownObservable.add((evt) => {
+                            if (evt.pickInfo.hit) {
+                                const hitPoint = evt.pickInfo.pickedPoint;
+                                scene.meshes.forEach(mesh => {
+                                    if (mesh.name !== "ground") {
+                                        mesh.position = hitPoint;
+                                    }
+                                });
+                                debugDiv.innerHTML += "<br>Модель размещена";
+                            }
+                        });
+                    } else if (state === BABYLON.WebXRState.NOT_IN_XR) {
+                        debugDiv.innerHTML += "<br>AR сессия закончилась";
+                        arButton.style.display = "block";
+                    }
+                });
+            }
         });
 
         window.addEventListener("resize", () => {
             engine.resize();
+        });
+
+        // Запускаем сцену сразу
+        createScene().then(scene => {
+            engine.runRenderLoop(() => {
+                scene.render();
+            });
         });
     </script>
 </body>
