@@ -127,7 +127,8 @@
                 // Настраиваем модель
                 result.meshes.forEach(mesh => {
                     mesh.scaling = new BABYLON.Vector3(1, 1, 1);
-                    mesh.position = new BABYLON.Vector3(10, 0, 15);
+                    // Начальное положение модели
+                    mesh.position = new BABYLON.Vector3(0, 0, -4);
                 });
 
                 // Проверяем поддержку AR
@@ -140,8 +141,10 @@
                             arButton.disabled = !supported;
                             if (supported) {
                                 debugDiv.innerHTML += "<br>AR доступен";
+                                arButton.style.display = "block"; // Показываем кнопку
                             } else {
                                 debugDiv.innerHTML += "<br>AR не поддерживается на этом устройстве";
+                                arButton.style.display = "none";
                             }
                         })
                         .catch((error) => {
@@ -191,7 +194,14 @@
                                 const hitPoint = evt.pickInfo.pickedPoint;
                                 scene.meshes.forEach(mesh => {
                                     if (mesh.name !== "ground") {
-                                        mesh.position = hitPoint;
+                                        // Сохраняем текущую высоту модели
+                                        const currentY = mesh.position.y;
+                                        // Устанавливаем новую позицию, сохраняя высоту
+                                        mesh.position = new BABYLON.Vector3(
+                                            hitPoint.x,
+                                            currentY,
+                                            hitPoint.z
+                                        );
                                     }
                                 });
                                 debugDiv.innerHTML += "<br>Модель размещена";
