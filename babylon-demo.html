@@ -111,9 +111,30 @@
                 result.meshes.forEach(mesh => {
                     mesh.scaling = new BABYLON.Vector3(0.5, 0.5, 0.5);
                     // Начальное положение модели
-                    mesh.position = new BABYLON.Vector3(0, -5, 10);
+                    mesh.position = new BABYLON.Vector3(0, 0, 10);
                 });
 
+                debugDiv.innerHTML += "<br>Загрузка модели...";
+                const result2 = await BABYLON.SceneLoader.ImportMeshAsync(null, "", "conus.glb", scene);
+                debugDiv.innerHTML += "<br>Модель загружена";
+
+                // Запускаем все анимации
+                if (result2.animationGroups && result2.animationGroups.length > 0) {
+                    debugDiv.innerHTML += `<br>Найдено анимаций: ${result2.animationGroups.length}`;
+                    result2.animationGroups.forEach(anim => {
+                        anim.play(true);
+                    });
+                } else {
+                    debugDiv.innerHTML += "<br>Анимации не найдены";
+                }
+
+
+                // Настраиваем модель
+                result2.meshes.forEach(mesh => {
+                    mesh.scaling = new BABYLON.Vector3(0.5, 0.5, 0.5);
+                    // Начальное положение модели
+                    mesh.position = new BABYLON.Vector3(0, 0, 10);
+                });
                 // Проверяем поддержку AR
                 debugDiv.innerHTML += "<br>Проверка поддержки AR...";
                 if (navigator.xr) {
