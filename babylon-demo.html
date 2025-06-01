@@ -131,7 +131,7 @@
 
                 // Настраиваем модель
                 result2.meshes.forEach(mesh => {
-                    mesh.scaling = new BABYLON.Vector3(0.5, 0.5, 0.5);
+                    mesh.scaling = new BABYLON.Vector3(2, 2, 2);
                     // Начальное положение модели
                     mesh.position = new BABYLON.Vector3(0, 0.5, 10);
                 });
@@ -155,7 +155,7 @@
                 result3.meshes.forEach(mesh => {
                     mesh.scaling = new BABYLON.Vector3(0.5, 0.5, 0.5);
                     // Начальное положение модели
-                    mesh.position = new BABYLON.Vector3(0, 0.5, 10);
+                    mesh.position = new BABYLON.Vector3(0, 0, 10);
                 });
                 // Проверяем поддержку AR
                 debugDiv.innerHTML += "<br>Проверка поддержки AR...";
