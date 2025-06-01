@@ -115,7 +115,7 @@
                 });
 
                 debugDiv.innerHTML += "<br>Загрузка модели...";
-                const result2 = await BABYLON.SceneLoader.ImportMeshAsync(null, "", "conus.glb", scene);
+                const result2 = await BABYLON.SceneLoader.ImportMeshAsync(null, "", "head2.glb", scene);
                 debugDiv.innerHTML += "<br>Модель загружена";
 
                 // Запускаем все анимации
@@ -131,6 +131,28 @@
 
                 // Настраиваем модель
                 result2.meshes.forEach(mesh => {
+                    mesh.scaling = new BABYLON.Vector3(0.5, 0.5, 0.5);
+                    // Начальное положение модели
+                    mesh.position = new BABYLON.Vector3(0, 0.5, 10);
+                });
+
+                debugDiv.innerHTML += "<br>Загрузка модели...";
+                const result3 = await BABYLON.SceneLoader.ImportMeshAsync(null, "", "knife3.glb", scene);
+                debugDiv.innerHTML += "<br>Модель загружена";
+
+                // Запускаем все анимации
+                if (result3.animationGroups && result3.animationGroups.length > 0) {
+                    debugDiv.innerHTML += `<br>Найдено анимаций: ${result3.animationGroups.length}`;
+                    result3.animationGroups.forEach(anim => {
+                        anim.play(true);
+                    });
+                } else {
+                    debugDiv.innerHTML += "<br>Анимации не найдены";
+                }
+
+
+                // Настраиваем модель
+                result3.meshes.forEach(mesh => {
                     mesh.scaling = new BABYLON.Vector3(0.5, 0.5, 0.5);
                     // Начальное положение модели
                     mesh.position = new BABYLON.Vector3(0, 0.5, 10);
