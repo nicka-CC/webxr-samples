@@ -77,12 +77,15 @@
     const model = new Gltf2Node({ url: './untitled.glb' });
     model.scale = [20, 20, 20];
     model.translation = [0, 0, -5];
-    model.rotation = [0, 0, 0];
     scene.addNode(model);
 
     model.onLoad = () => {
       console.log("Модель загружена:", model);
-      if (model.animations && model.animations.length > 0) model.playAnimation(0);
+      updateDebugInfo("Модель загружена");
+      if (model.animations && model.animations.length > 0) {
+        model.playAnimation(0);
+        updateDebugInfo("Анимация запущена");
+      }
     };
 
     // XR старт
@@ -162,6 +165,7 @@
     // Вращение по пальцу
     let isTouchRotating = false;
     let lastTouchX = 0, lastTouchY = 0;
+    let rotationSpeed = 0.05;
 
     function setupTouchControls() {
       gl.canvas.addEventListener('touchstart', (e) => {
@@ -169,6 +173,7 @@
           isTouchRotating = true;
           lastTouchX = e.touches[0].clientX;
           lastTouchY = e.touches[0].clientY;
+          updateDebugInfo("Начало вращения");
         }
       });
 
@@ -177,17 +182,24 @@
           const deltaX = e.touches[0].clientX - lastTouchX;
           const deltaY = e.touches[0].clientY - lastTouchY;
 
-          model.rotation[1] += deltaX * 0.01;
-          model.rotation[0] += deltaY * 0.01;
+          // Вращаем модель
+          model.rotation[1] += deltaX * rotationSpeed;
+          model.rotation[0] += deltaY * rotationSpeed;
+
+          // Обновляем матрицу трансформации
+          model.invalidateWorldMatrix();
 
           lastTouchX = e.touches[0].clientX;
           lastTouchY = e.touches[0].clientY;
 
-          updateDebugInfo(`Вращение: ΔX=${deltaX}, ΔY=${deltaY}`);
+          updateDebugInfo(`Вращение: X=${model.rotation[0].toFixed(2)}, Y=${model.rotation[1].toFixed(2)}`);
         }
       });
 
-      gl.canvas.addEventListener('touchend', () => { isTouchRotating = false; });
+      gl.canvas.addEventListener('touchend', () => {
+        isTouchRotating = false;
+        updateDebugInfo("Конец вращения");
+      });
     }
 
     function onXRFrame(t, frame) {
@@ -197,7 +209,21 @@
 
       scene.startFrame();
 
-      if (pose) scene.drawXRFrame(frame, pose);
+      if (pose) {
+        // В AR режиме обновляем позицию модели
+        if (session.isImmersive) {
+          // Позиционируем модель перед камерой
+          const cameraPosition = pose.transform.position;
+          model.translation = [
+            cameraPosition.x,
+            cameraPosition.y - 0.5,
+            cameraPosition.z - 1
+          ];
+          model.invalidateWorldMatrix();
+        }
+        
+        scene.drawXRFrame(frame, pose);
+      }
 
       scene.endFrame();
       session.requestAnimationFrame(onXRFrame);
@@ -205,6 +231,7 @@
 
     initXR();
     window.addEventListener('load', () => setTimeout(setupTouchControls, 500));
+
   </script>
 </head>
 <body>
