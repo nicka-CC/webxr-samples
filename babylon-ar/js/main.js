@@ -131,21 +131,12 @@ arButton.addEventListener("click", async () => {
                 debugDiv.innerHTML += "<br>AR сессия началась";
                 arButton.style.display = "none";
                 
-                // Настраиваем начальное положение модели в AR
-                scene.meshes.forEach(mesh => {
-                    if (mesh.name !== "ground") {
-                        mesh.position = new BABYLON.Vector3(0, 0, -0.5); // Ближе к камере
-                        mesh.scaling = new BABYLON.Vector3(0.1, 0.1, 0.1); // Уменьшаем размер
-                    }
-                });
-
-                // Добавляем обработку вращения и перемещения модели
-                let isDragging = false;
+                // Добавляем обработку вращения модели
+                let isRotating = false;
                 let selectedMesh = null;
                 let lastPointerX = 0;
                 let lastPointerY = 0;
-                let rotationSpeed = 0.05;
-                let scaleSpeed = 0.001;
+                let rotationSpeed = 0.01;
 
                 function updateDebug(message) {
                     const debugText = document.createElement('div');
@@ -168,58 +159,60 @@ arButton.addEventListener("click", async () => {
                     document.body.appendChild(debugText);
                 }
 
+                // Обработка касания для вращения
                 xr.onPointerDownObservable.add((evt) => {
-                    updateDebug("Касание зарегистрировано");
-                    
-                    // Проверяем все меши в сцене
-                    scene.meshes.forEach(mesh => {
-                        if (mesh.name !== "ground") {
-                            const ray = scene.createPickingRay(evt.pointerX, evt.pointerY, BABYLON.Matrix.Identity(), camera);
-                            const hit = scene.pickWithRay(ray);
-                            
-                            if (hit.hit && hit.pickedMesh === mesh) {
-                                updateDebug("Модель выбрана");
-                                isDragging = true;
-                                selectedMesh = mesh;
-                                lastPointerX = evt.pointerX;
-                                lastPointerY = evt.pointerY;
-                            }
-                        }
-                    });
+                    isRotating = true;
+                    lastPointerX = evt.pointerX;
+                    lastPointerY = evt.pointerY;
+                    updateDebug("Начало вращения");
                 });
 
                 xr.onPointerUpObservable.add(() => {
-                    if (selectedMesh) {
-                        updateDebug("Модель отпущена");
-                    }
-                    isDragging = false;
-                    selectedMesh = null;
+                    isRotating = false;
+                    updateDebug("Конец вращения");
                 });
 
                 xr.onPointerMoveObservable.add((evt) => {
-                    if (!selectedMesh || !isDragging) return;
+                    if (!isRotating) return;
 
                     const deltaX = evt.pointerX - lastPointerX;
                     const deltaY = evt.pointerY - lastPointerY;
 
-                    // Вращение модели
-                    selectedMesh.rotation.y += deltaX * rotationSpeed;
-                    selectedMesh.rotation.x += deltaY * rotationSpeed;
+                    // Вращаем все меши, кроме ground
+                    scene.meshes.forEach(mesh => {
+                        if (mesh.name !== "ground") {
+                            // Вращение по горизонтали
+                            mesh.rotation.y += deltaX * rotationSpeed;
+                            // Вращение по вертикали
+                            mesh.rotation.x += deltaY * rotationSpeed;
+                            
+                            // Ограничиваем вертикальное вращение
+                            mesh.rotation.x = Math.max(-Math.PI/2, Math.min(Math.PI/2, mesh.rotation.x));
+                        }
+                    });
 
-                    // Ограничиваем вращение по вертикали
-                    selectedMesh.rotation.x = Math.max(-Math.PI/2, Math.min(Math.PI/2, selectedMesh.rotation.x));
-
-                    // Приближение/отдаление модели
-                    if (evt.pointerId === 1) { // Второй палец
-                        const scale = selectedMesh.scaling.x + deltaY * scaleSpeed;
-                        selectedMesh.scaling = new BABYLON.Vector3(scale, scale, scale);
-                        updateDebug(`Масштаб: ${Math.round(scale * 100)}%`);
-                    } else {
-                        updateDebug(`Вращение: X=${Math.round(selectedMesh.rotation.x * 180 / Math.PI)}°, Y=${Math.round(selectedMesh.rotation.y * 180 / Math.PI)}°`);
-                    }
+                    updateDebug(`Вращение: X=${Math.round(scene.meshes[1].rotation.x * 180 / Math.PI)}°, Y=${Math.round(scene.meshes[1].rotation.y * 180 / Math.PI)}°`);
 
                     lastPointerX = evt.pointerX;
                     lastPointerY = evt.pointerY;
+                });
+
+                // Добавляем возможность размещения модели по тапу
+                xr.onPointerDownObservable.add((evt) => {
+                    if (evt.pickInfo.hit) {
+                        const hitPoint = evt.pickInfo.pickedPoint;
+                        scene.meshes.forEach(mesh => {
+                            if (mesh.name !== "ground") {
+                                const currentY = mesh.position.y;
+                                mesh.position = new BABYLON.Vector3(
+                                    hitPoint.x,
+                                    currentY,
+                                    hitPoint.z
+                                );
+                            }
+                        });
+                        updateDebug("Модель размещена");
+                    }
                 });
             } else if (state === BABYLON.WebXRState.NOT_IN_XR) {
                 debugDiv.innerHTML += "<br>AR сессия закончилась";
