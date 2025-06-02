@@ -131,21 +131,11 @@ arButton.addEventListener("click", async () => {
                 debugDiv.innerHTML += "<br>AR сессия началась";
                 arButton.style.display = "none";
                 
-                // Добавляем возможность размещения модели по тапу
-                xr.onPointerDownObservable.add((evt) => {
-                    if (evt.pickInfo.hit) {
-                        const hitPoint = evt.pickInfo.pickedPoint;
-                        scene.meshes.forEach(mesh => {
-                            if (mesh.name !== "ground") {
-                                const currentY = mesh.position.y;
-                                mesh.position = new BABYLON.Vector3(
-                                    hitPoint.x,
-                                    currentY,
-                                    hitPoint.z
-                                );
-                            }
-                        });
-                        debugDiv.innerHTML += "<br>Модель размещена";
+                // Настраиваем начальное положение модели в AR
+                scene.meshes.forEach(mesh => {
+                    if (mesh.name !== "ground") {
+                        mesh.position = new BABYLON.Vector3(0, 0, -0.5); // Ближе к камере
+                        mesh.scaling = new BABYLON.Vector3(0.1, 0.1, 0.1); // Уменьшаем размер
                     }
                 });
 
@@ -155,6 +145,7 @@ arButton.addEventListener("click", async () => {
                 let lastPointerX = 0;
                 let lastPointerY = 0;
                 let rotationSpeed = 0.05;
+                let scaleSpeed = 0.001;
 
                 function updateDebug(message) {
                     const debugText = document.createElement('div');
@@ -168,7 +159,6 @@ arButton.addEventListener("click", async () => {
                     debugText.style.zIndex = '1000';
                     debugText.textContent = message;
                     
-                    // Удаляем предыдущее сообщение
                     const oldDebug = document.querySelector('.debug-overlay');
                     if (oldDebug) {
                         oldDebug.remove();
@@ -219,7 +209,14 @@ arButton.addEventListener("click", async () => {
                     // Ограничиваем вращение по вертикали
                     selectedMesh.rotation.x = Math.max(-Math.PI/2, Math.min(Math.PI/2, selectedMesh.rotation.x));
 
-                    updateDebug(`Вращение: X=${Math.round(selectedMesh.rotation.x * 180 / Math.PI)}°, Y=${Math.round(selectedMesh.rotation.y * 180 / Math.PI)}°`);
+                    // Приближение/отдаление модели
+                    if (evt.pointerId === 1) { // Второй палец
+                        const scale = selectedMesh.scaling.x + deltaY * scaleSpeed;
+                        selectedMesh.scaling = new BABYLON.Vector3(scale, scale, scale);
+                        updateDebug(`Масштаб: ${Math.round(scale * 100)}%`);
+                    } else {
+                        updateDebug(`Вращение: X=${Math.round(selectedMesh.rotation.x * 180 / Math.PI)}°, Y=${Math.round(selectedMesh.rotation.y * 180 / Math.PI)}°`);
+                    }
 
                     lastPointerX = evt.pointerX;
                     lastPointerY = evt.pointerY;
