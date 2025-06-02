@@ -181,22 +181,21 @@ arButton.addEventListener("click", async () => {
                 xr.onPointerMoveObservable.add((evt) => {
                     if (!selectedMesh) return;
 
-                    // Вращение двумя пальцами
-                    if (evt.pointerId === 1) { // Второй палец
-                        isRotating = true;
-                        isDragging = false;
-                        
-                        const deltaX = evt.pointerX - lastPointerX;
-                        const deltaY = evt.pointerY - lastPointerY;
-                        
-                        selectedMesh.rotation.y += deltaX * rotationSpeed;
-                        selectedMesh.rotation.x += deltaY * rotationSpeed;
-                        
-                        lastPointerX = evt.pointerX;
-                        lastPointerY = evt.pointerY;
-                    }
-                    // Перемещение одним пальцем
-                    else if (isDragging && evt.pickInfo.hit) {
+                    const deltaX = evt.pointerX - lastPointerX;
+                    const deltaY = evt.pointerY - lastPointerY;
+
+                    // Вращение модели
+                    selectedMesh.rotation.y += deltaX * rotationSpeed * 0.01;
+                    selectedMesh.rotation.x += deltaY * rotationSpeed * 0.01;
+
+                    // Ограничиваем вращение по вертикали
+                    selectedMesh.rotation.x = Math.max(-Math.PI/2, Math.min(Math.PI/2, selectedMesh.rotation.x));
+
+                    lastPointerX = evt.pointerX;
+                    lastPointerY = evt.pointerY;
+
+                    // Перемещение модели
+                    if (evt.pickInfo.hit) {
                         const hitPoint = evt.pickInfo.pickedPoint;
                         if (lastHitPoint) {
                             const deltaX = hitPoint.x - lastHitPoint.x;
