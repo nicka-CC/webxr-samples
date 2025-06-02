@@ -159,19 +159,30 @@ arButton.addEventListener("click", async () => {
                 let rotationSpeed = 1;
 
                 xr.onPointerDownObservable.add((evt) => {
-                    if (evt.pickInfo.hit) {
-                        const hitMesh = evt.pickInfo.pickedMesh;
-                        if (hitMesh && hitMesh.name !== "ground") {
-                            isDragging = true;
-                            selectedMesh = hitMesh;
-                            lastHitPoint = evt.pickInfo.pickedPoint;
-                            lastPointerX = evt.pointerX;
-                            lastPointerY = evt.pointerY;
+                    debugDiv.innerHTML += "<br>Касание зарегистрировано";
+                    
+                    // Проверяем все меши в сцене
+                    scene.meshes.forEach(mesh => {
+                        if (mesh.name !== "ground") {
+                            const ray = scene.createPickingRay(evt.pointerX, evt.pointerY, BABYLON.Matrix.Identity(), camera);
+                            const hit = scene.pickWithRay(ray);
+                            
+                            if (hit.hit && hit.pickedMesh === mesh) {
+                                debugDiv.innerHTML += "<br>Модель выбрана";
+                                isDragging = true;
+                                selectedMesh = mesh;
+                                lastHitPoint = hit.pickedPoint;
+                                lastPointerX = evt.pointerX;
+                                lastPointerY = evt.pointerY;
+                            }
                         }
-                    }
+                    });
                 });
 
                 xr.onPointerUpObservable.add(() => {
+                    if (selectedMesh) {
+                        debugDiv.innerHTML += "<br>Модель отпущена";
+                    }
                     isDragging = false;
                     isRotating = false;
                     selectedMesh = null;
@@ -181,6 +192,8 @@ arButton.addEventListener("click", async () => {
                 xr.onPointerMoveObservable.add((evt) => {
                     if (!selectedMesh) return;
 
+                    debugDiv.innerHTML += "<br>Движение пальца";
+                    
                     const deltaX = evt.pointerX - lastPointerX;
                     const deltaY = evt.pointerY - lastPointerY;
 
@@ -195,8 +208,11 @@ arButton.addEventListener("click", async () => {
                     lastPointerY = evt.pointerY;
 
                     // Перемещение модели
-                    if (evt.pickInfo.hit) {
-                        const hitPoint = evt.pickInfo.pickedPoint;
+                    const ray = scene.createPickingRay(evt.pointerX, evt.pointerY, BABYLON.Matrix.Identity(), camera);
+                    const hit = scene.pickWithRay(ray);
+                    
+                    if (hit.hit) {
+                        const hitPoint = hit.pickedPoint;
                         if (lastHitPoint) {
                             const deltaX = hitPoint.x - lastHitPoint.x;
                             const deltaZ = hitPoint.z - lastHitPoint.z;
