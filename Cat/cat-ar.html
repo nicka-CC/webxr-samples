@@ -77,6 +77,7 @@
     const model = new Gltf2Node({ url: './untitled.glb' });
     model.scale = [20, 20, 20];
     model.translation = [0, 0, -5];
+    model.rotation = [0, 0, 0];
     scene.addNode(model);
 
     model.onLoad = () => {
