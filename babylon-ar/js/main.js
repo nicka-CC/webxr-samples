@@ -149,10 +149,14 @@ arButton.addEventListener("click", async () => {
                     }
                 });
 
-                // Добавляем обработку перемещения модели
+                // Добавляем обработку вращения и перемещения модели
                 let isDragging = false;
+                let isRotating = false;
                 let selectedMesh = null;
                 let lastHitPoint = null;
+                let lastPointerX = 0;
+                let lastPointerY = 0;
+                let rotationSpeed = 0.01;
 
                 xr.onPointerDownObservable.add((evt) => {
                     if (evt.pickInfo.hit) {
@@ -161,18 +165,38 @@ arButton.addEventListener("click", async () => {
                             isDragging = true;
                             selectedMesh = hitMesh;
                             lastHitPoint = evt.pickInfo.pickedPoint;
+                            lastPointerX = evt.pointerX;
+                            lastPointerY = evt.pointerY;
                         }
                     }
                 });
 
                 xr.onPointerUpObservable.add(() => {
                     isDragging = false;
+                    isRotating = false;
                     selectedMesh = null;
                     lastHitPoint = null;
                 });
 
                 xr.onPointerMoveObservable.add((evt) => {
-                    if (isDragging && selectedMesh && evt.pickInfo.hit) {
+                    if (!selectedMesh) return;
+
+                    // Вращение двумя пальцами
+                    if (evt.pointerId === 1) { // Второй палец
+                        isRotating = true;
+                        isDragging = false;
+                        
+                        const deltaX = evt.pointerX - lastPointerX;
+                        const deltaY = evt.pointerY - lastPointerY;
+                        
+                        selectedMesh.rotation.y += deltaX * rotationSpeed;
+                        selectedMesh.rotation.x += deltaY * rotationSpeed;
+                        
+                        lastPointerX = evt.pointerX;
+                        lastPointerY = evt.pointerY;
+                    }
+                    // Перемещение одним пальцем
+                    else if (isDragging && evt.pickInfo.hit) {
                         const hitPoint = evt.pickInfo.pickedPoint;
                         if (lastHitPoint) {
                             const deltaX = hitPoint.x - lastHitPoint.x;
