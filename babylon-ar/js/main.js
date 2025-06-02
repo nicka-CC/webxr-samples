@@ -151,15 +151,35 @@ arButton.addEventListener("click", async () => {
 
                 // Добавляем обработку вращения и перемещения модели
                 let isDragging = false;
-                let isRotating = false;
                 let selectedMesh = null;
-                let lastHitPoint = null;
                 let lastPointerX = 0;
                 let lastPointerY = 0;
-                let rotationSpeed = 1;
+                let rotationSpeed = 0.05;
+
+                function updateDebug(message) {
+                    const debugText = document.createElement('div');
+                    debugText.style.position = 'fixed';
+                    debugText.style.top = '10px';
+                    debugText.style.left = '10px';
+                    debugText.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+                    debugText.style.color = 'white';
+                    debugText.style.padding = '10px';
+                    debugText.style.borderRadius = '5px';
+                    debugText.style.zIndex = '1000';
+                    debugText.textContent = message;
+                    
+                    // Удаляем предыдущее сообщение
+                    const oldDebug = document.querySelector('.debug-overlay');
+                    if (oldDebug) {
+                        oldDebug.remove();
+                    }
+                    
+                    debugText.classList.add('debug-overlay');
+                    document.body.appendChild(debugText);
+                }
 
                 xr.onPointerDownObservable.add((evt) => {
-                    debugDiv.innerHTML += "<br>Касание зарегистрировано";
+                    updateDebug("Касание зарегистрировано");
                     
                     // Проверяем все меши в сцене
                     scene.meshes.forEach(mesh => {
@@ -168,10 +188,9 @@ arButton.addEventListener("click", async () => {
                             const hit = scene.pickWithRay(ray);
                             
                             if (hit.hit && hit.pickedMesh === mesh) {
-                                debugDiv.innerHTML += "<br>Модель выбрана";
+                                updateDebug("Модель выбрана");
                                 isDragging = true;
                                 selectedMesh = mesh;
-                                lastHitPoint = hit.pickedPoint;
                                 lastPointerX = evt.pointerX;
                                 lastPointerY = evt.pointerY;
                             }
@@ -181,48 +200,29 @@ arButton.addEventListener("click", async () => {
 
                 xr.onPointerUpObservable.add(() => {
                     if (selectedMesh) {
-                        debugDiv.innerHTML += "<br>Модель отпущена";
+                        updateDebug("Модель отпущена");
                     }
                     isDragging = false;
-                    isRotating = false;
                     selectedMesh = null;
-                    lastHitPoint = null;
                 });
 
                 xr.onPointerMoveObservable.add((evt) => {
-                    if (!selectedMesh) return;
+                    if (!selectedMesh || !isDragging) return;
 
-                    debugDiv.innerHTML += "<br>Движение пальца";
-                    
                     const deltaX = evt.pointerX - lastPointerX;
                     const deltaY = evt.pointerY - lastPointerY;
 
                     // Вращение модели
-                    selectedMesh.rotation.y += deltaX * rotationSpeed * 0.01;
-                    selectedMesh.rotation.x += deltaY * rotationSpeed * 0.01;
+                    selectedMesh.rotation.y += deltaX * rotationSpeed;
+                    selectedMesh.rotation.x += deltaY * rotationSpeed;
 
                     // Ограничиваем вращение по вертикали
                     selectedMesh.rotation.x = Math.max(-Math.PI/2, Math.min(Math.PI/2, selectedMesh.rotation.x));
 
+                    updateDebug(`Вращение: X=${Math.round(selectedMesh.rotation.x * 180 / Math.PI)}°, Y=${Math.round(selectedMesh.rotation.y * 180 / Math.PI)}°`);
+
                     lastPointerX = evt.pointerX;
                     lastPointerY = evt.pointerY;
-
-                    // Перемещение модели
-                    const ray = scene.createPickingRay(evt.pointerX, evt.pointerY, BABYLON.Matrix.Identity(), camera);
-                    const hit = scene.pickWithRay(ray);
-                    
-                    if (hit.hit) {
-                        const hitPoint = hit.pickedPoint;
-                        if (lastHitPoint) {
-                            const deltaX = hitPoint.x - lastHitPoint.x;
-                            const deltaZ = hitPoint.z - lastHitPoint.z;
-                            
-                            selectedMesh.position.x += deltaX;
-                            selectedMesh.position.z += deltaZ;
-                            
-                            lastHitPoint = hitPoint;
-                        }
-                    }
                 });
             } else if (state === BABYLON.WebXRState.NOT_IN_XR) {
                 debugDiv.innerHTML += "<br>AR сессия закончилась";
