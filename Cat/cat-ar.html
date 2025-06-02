@@ -242,6 +242,42 @@ console.log('model',model)
         }
       }
 
+      // Глобальные переменные для отслеживания позиции луча
+      let lastRayPosition = null;
+      let isRotating = false;
+      let lastTouchX = 0;
+      let lastTouchY = 0;
+
+      // Добавляем обработчики касаний
+      window.addEventListener('touchstart', (e) => {
+        if (e.touches.length === 1) {
+          isRotating = true;
+          lastTouchX = e.touches[0].clientX;
+          lastTouchY = e.touches[0].clientY;
+        }
+      });
+
+      window.addEventListener('touchmove', (e) => {
+        if (isRotating && e.touches.length === 1) {
+          const touchX = e.touches[0].clientX;
+          const touchY = e.touches[0].clientY;
+          
+          const deltaX = touchX - lastTouchX;
+          const deltaY = touchY - lastTouchY;
+          
+          // Вращаем модель
+          model.rotation[1] += deltaX * 0.01; // Горизонтальное вращение
+          model.rotation[0] += deltaY * 0.01; // Вертикальное вращение
+          
+          lastTouchX = touchX;
+          lastTouchY = touchY;
+        }
+      });
+
+      window.addEventListener('touchend', () => {
+        isRotating = false;
+      });
+
       function onXRFrame(t, frame) {
         let session = frame.session;
         let refSpace = session.isImmersive ?
@@ -249,70 +285,16 @@ console.log('model',model)
                          inlineViewerHelper.referenceSpace;
         let pose = frame.getViewerPose(refSpace);
 
+        scene.startFrame();
+
         if (pose) {
-          let glLayer = session.renderState.baseLayer;
-          gl.bindFramebuffer(gl.FRAMEBUFFER, glLayer.framebuffer);
-
-          // Обработка вращения в AR режиме
-          if (session.isImmersive) {
-            // Получаем все источники ввода
-            const sources = frame.session.inputSources;
-            
-            sources.forEach((source) => {
-              if (source.gripSpace) {
-                const gripPose = frame.getPose(source.gripSpace, refSpace);
-                if (gripPose) {
-                  // Если есть движение контроллера, вращаем модель
-                  if (source.gamepad) {
-                    const gamepad = source.gamepad;
-                    if (gamepad.buttons[0].pressed) { // Кнопка триггера
-                      const axes = gamepad.axes;
-                      // Вращение по горизонтали
-                      model.rotation[1] += axes[0] * 0.1;
-                      // Вращение по вертикали
-                      model.rotation[0] += axes[1] * 0.1;
-                    }
-                  }
-                }
-              }
-            });
-
-            // Обработка касаний для вращения
-            if (frame.session.inputSources) {
-              frame.session.inputSources.forEach((source) => {
-                if (source.targetRaySpace) {
-                  const targetRayPose = frame.getPose(source.targetRaySpace, refSpace);
-                  if (targetRayPose) {
-                    // Если есть движение луча, вращаем модель
-                    const movementX = targetRayPose.transform.position.x - (lastRayPosition?.x || 0);
-                    const movementY = targetRayPose.transform.position.y - (lastRayPosition?.y || 0);
-                    
-                    if (lastRayPosition) {
-                      model.rotation[1] += movementX * 2;
-                      model.rotation[0] += movementY * 2;
-                    }
-                    
-                    lastRayPosition = targetRayPose.transform.position;
-                  }
-                }
-              });
-            }
-          }
-
-          // Очищаем экран
-          gl.clearColor(0, 0, 0, 0);
-          gl.clearDepth(1);
-          gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-
           // Рендерим сцену
           scene.drawXRFrame(frame, pose);
         }
 
+        scene.endFrame();
         session.requestAnimationFrame(onXRFrame);
       }
-
-      // Глобальные переменные для отслеживания позиции луча
-      let lastRayPosition = null;
 
       // Запускаем XR приложение
       initXR();
