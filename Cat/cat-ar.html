@@ -1,240 +1,334 @@
 <!DOCTYPE html>
 <html>
-<head>
-  <meta charset='utf-8'>
-  <meta name='viewport' content='width=device-width, initial-scale=1'>
-  <title>AR Котики</title>
-  <style>
-    body {
-      margin: 0;
-      padding: 0;
-      background-color: black;
-      overflow: hidden;
-    }
-    canvas {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      z-index: 1;
-    }
-    header {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      z-index: 2;
-      background-color: rgba(0, 0, 0, 0.7);
-      color: white;
-      padding: 5px;
-    }
-    #debug {
-      position: fixed;
-      top: 10px;
-      right: 10px;
-      background-color: rgba(0, 0, 0, 0.7);
-      color: white;
-      padding: 10px;
-      border-radius: 5px;
-      font-family: monospace;
-      z-index: 3;
-      font-size: 12px;
-      text-align: right;
-    }
-  </style>
-  <script type="module">
-    import {WebXRButton} from '../js/util/webxr-button.js';
-    import {Scene} from '../js/render/scenes/scene.js';
-    import {Renderer, createWebGLContext} from '../js/render/core/renderer.js';
-    import {Gltf2Node} from '../js/render/nodes/gltf2.js';
-    import {QueryArgs} from '../js/util/query-args.js';
-    import {InlineViewerHelper} from '../js/util/inline-viewer-helper.js';
-    import {Node} from '../js/render/core/node.js';
-    import WebXRPolyfill from '../js/third-party/webxr-polyfill/build/webxr-polyfill.module.js';
-
-    if (QueryArgs.getBool('usePolyfill', true)) {
-      new WebXRPolyfill();
-    }
-
-    let xrButton = null;
-    let xrImmersiveRefSpace = null;
-    let inlineViewerHelper = null;
-    let gl = null;
-    let renderer = null;
-    let scene = new Scene();
-
-    // Свет
-    const directionalLight = new Node();
-    directionalLight.light = { type: 'directional', color: {r: 1, g: 1, b: 1}, intensity: 2.0, direction: {x: 0, y: -1, z: 0} };
-    scene.addNode(directionalLight);
-
-    const ambientLight = new Node();
-    ambientLight.light = { type: 'ambient', color: {r: 0.5, g: 0.5, b: 0.5}, intensity: 1.5 };
-    scene.addNode(ambientLight);
-
-    // Модель
-    const model = new Gltf2Node({ url: './untitled.glb' });
-    model.scale = [10, 10, 10];
-    model.translation = [0, 0, -5];
-    scene.addNode(model);
-
-    model.onLoad = () => {
-      console.log("Модель загружена:", model);
-      updateDebugInfo("Модель загружена");
-      if (model.animations && model.animations.length > 0) {
-        model.playAnimation(0);
-        updateDebugInfo("Анимация запущена");
+  <head>
+    <meta charset='utf-8'>
+    <meta name='viewport' content='width=device-width, initial-scale=1'>
+    <meta name='mobile-web-app-capable' content='yes'>
+    <meta name='apple-mobile-web-app-capable' content='yes'>
+    <title>AR Котики</title>
+    <link rel='stylesheet' href='../css/stylesheet.css'>
+    <link rel='stylesheet' href='../css/pygment_trac.css'>
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        background-color: black;
+        overflow: hidden;
       }
-    };
+      canvas {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 1;
+      }
+      header {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        z-index: 2;
+        background-color: rgba(0, 0, 0, 0.7);
+      }
+      header details {
+        color: white;
+      }
+      header a {
+        color: #fff;
+      }
+      #debug {
+        position: fixed;
+        top: 10px;
+        right: 10px;
+        background-color: rgba(0, 0, 0, 0.7);
+        color: white;
+        padding: 10px;
+        border-radius: 5px;
+        font-family: monospace;
+        z-index: 3;
+        font-size: 12px;
+        text-align: right;
+      }
+    </style>
+    <script type="module">
+      import {WebXRButton} from '../js/util/webxr-button.js';
+      import {Scene} from '../js/render/scenes/scene.js';
+      import {Renderer, createWebGLContext} from '../js/render/core/renderer.js';
+      import {Gltf2Node} from '../js/render/nodes/gltf2.js';
+      import {QueryArgs} from '../js/util/query-args.js';
+      import {InlineViewerHelper} from '../js/util/inline-viewer-helper.js';
+      import {Node} from '../js/render/core/node.js';
 
-    // XR старт
-    function initXR() {
-      xrButton = new WebXRButton({
-        onRequestSession: onRequestSession,
-        onEndSession: onEndSession,
-        textEnterXRTitle: "START AR",
-        textXRNotFoundTitle: "AR NOT FOUND",
-        textExitXRTitle: "EXIT AR",
+      // Если требуется, используем полифилл для поддержки мобильных устройств
+      import WebXRPolyfill from '../js/third-party/webxr-polyfill/build/webxr-polyfill.module.js';
+      if (QueryArgs.getBool('usePolyfill', true)) {
+        let polyfill = new WebXRPolyfill();
+      }
+
+      // XR глобальные переменные
+      let xrButton = null;
+      let xrImmersiveRefSpace = null;
+      let inlineViewerHelper = null;
+
+      // WebGL глобальные переменные
+      let gl = null;
+      let renderer = null;
+      let scene = new Scene();
+      
+      // Добавляем освещение
+      const directionalLight = new Node();
+      directionalLight.light = {
+        type: 'directional',
+        color: {r: 1, g: 1, b: 1},
+        intensity: 2.0,
+        direction: {x: 0, y: -1, z: 0}
+      };
+      scene.addNode(directionalLight);
+
+      // Добавляем фоновое освещение
+      const ambientLight = new Node();
+      ambientLight.light = {
+        type: 'ambient',
+        color: {r: 0.5, g: 0.5, b: 0.5},
+        intensity: 1.5
+      };
+      scene.addNode(ambientLight);
+      
+      // Создаем корневой узел для модели
+      const modelNode = new Node();
+      modelNode.scale = [0.5, 0.5, 0.5];
+      modelNode.translation = [0, 0, -4];
+      scene.addNode(modelNode);
+
+      // Создаем модель
+      let model = new Gltf2Node({
+        url: './untitled.glb'
       });
-      document.querySelector('header').appendChild(xrButton.domElement);
+      model.scale = [20, 20, 20];
+      model.translation = [0, 0, -5];
+      scene.addNode(model);
+console.log('model',model)
+      // Добавляем обработку клавиш
+      const keys = {
+        ArrowUp: false,
+        ArrowDown: false,
+        ArrowLeft: false,
+        ArrowRight: false,
+        w: false,
+        s: false,
+        a: false,
+        d: false
+      };
 
-      if (navigator.xr) {
-        navigator.xr.isSessionSupported('immersive-ar').then(supported => xrButton.enabled = supported);
+      window.addEventListener('keydown', (e) => {
+        if (keys.hasOwnProperty(e.key)) {
+          keys[e.key] = true;
+        }
+      });
+
+      window.addEventListener('keyup', (e) => {
+        if (keys.hasOwnProperty(e.key)) {
+          keys[e.key] = false;
+        }
+      });
+      model.onLoad = () => {
+        console.log("Модель загружена:", model);
+        console.log("Материалы:", model.materials);
+        // если есть анимации — запустить первую
+        if (model.animations && model.animations.length > 0) {
+          model.playAnimation(0);
+        }
+      };
+
+      function updateCatPosition() {
+        const moveSpeed = 0.01;
+        if (keys.ArrowUp || keys.w) {
+          model.translation[2] -= moveSpeed;
+        }
+        if (keys.ArrowDown || keys.s) {
+          model.translation[2] += moveSpeed;
+        }
+        if (keys.ArrowLeft || keys.a) {
+          model.translation[0] -= moveSpeed;
+        }
+        if (keys.ArrowRight || keys.d) {
+          model.translation[0] += moveSpeed;
+        }
+      }
+
+      function initXR() {
+        xrButton = new WebXRButton({
+          onRequestSession: onRequestSession,
+          onEndSession: onEndSession,
+          textEnterXRTitle: "START AR",
+          textXRNotFoundTitle: "AR NOT FOUND",
+          textExitXRTitle: "EXIT AR",
+        });
+        document.querySelector('header').appendChild(xrButton.domElement);
+
+        if (navigator.xr) {
+          navigator.xr.isSessionSupported('immersive-ar').then((supported) => {
+            xrButton.enabled = supported;
+          });
+
+          // Инициализируем WebGL сразу
+          initGL();
+          // Запускаем inline сессию
+          navigator.xr.requestSession('inline').then(onSessionStarted);
+        }
+      }
+
+      function onRequestSession() {
+        return navigator.xr.requestSession('immersive-ar')
+            .then((session) => {
+              xrButton.setSession(session);
+              session.isImmersive = true;
+              onSessionStarted(session);
+            });
+      }
+
+      function initGL() {
+        if (gl)
+          return;
+
+        gl = createWebGLContext({
+          xrCompatible: true
+        });
+        document.body.appendChild(gl.canvas);
+
+        function onResize() {
+          gl.canvas.width = gl.canvas.clientWidth * window.devicePixelRatio;
+          gl.canvas.height = gl.canvas.clientHeight * window.devicePixelRatio;
+        }
+        window.addEventListener('resize', onResize);
+        onResize();
+
+        renderer = new Renderer(gl);
+        scene.setRenderer(renderer);
+      }
+
+      // Глобальные переменные для отслеживания позиции луча
+      let lastRayPosition = null;
+      let isRotating = false;
+      let lastTouchX = 0;
+      let lastTouchY = 0;
+
+      // Добавляем отладочную информацию
+      const debugInfo = document.createElement('div');
+      debugInfo.id = 'debug';
+      document.body.appendChild(debugInfo);
+
+      function updateDebugInfo(message) {
+        debugInfo.textContent = message;
+      }
+
+      function onSessionStarted(session) {
+        session.addEventListener('end', onSessionEnded);
+
         initGL();
-        navigator.xr.requestSession('inline').then(onSessionStarted);
+
+        session.updateRenderState({ baseLayer: new XRWebGLLayer(session, gl) });
+
+        let refSpaceType = session.isImmersive ? 'local' : 'viewer';
+        session.requestReferenceSpace(refSpaceType).then((refSpace) => {
+          if (session.isImmersive) {
+            xrImmersiveRefSpace = refSpace;
+            updateDebugInfo('AR сессия запущена');
+
+            // Добавляем обработчики для AR сессии
+            session.addEventListener('select', (event) => {
+              updateDebugInfo('Выбрано: ' + JSON.stringify(event.inputSource));
+            });
+
+            session.addEventListener('selectstart', (event) => {
+              isRotating = true;
+              updateDebugInfo('Начало вращения');
+            });
+
+            session.addEventListener('selectend', (event) => {
+              isRotating = false;
+              updateDebugInfo('Конец вращения');
+            });
+
+            xrImmersiveRefSpace.addEventListener('reset', (evt) => {
+              if (evt.transform) {
+                xrImmersiveRefSpace = xrImmersiveRefSpace.getOffsetReferenceSpace(evt.transform);
+              }
+            });
+          } else {
+            inlineViewerHelper = new InlineViewerHelper(gl.canvas, refSpace);
+          }
+          session.requestAnimationFrame(onXRFrame);
+        });
       }
-    }
 
-    function onRequestSession() {
-      return navigator.xr.requestSession('immersive-ar').then(session => {
-        xrButton.setSession(session);
-        session.isImmersive = true;
-        onSessionStarted(session);
-      });
-    }
+      function onEndSession(session) {
+        session.end();
+      }
 
-    function initGL() {
-      if (gl) return;
-      gl = createWebGLContext({ xrCompatible: true });
-      document.body.appendChild(gl.canvas);
-      window.addEventListener('resize', () => {
-        gl.canvas.width = gl.canvas.clientWidth * window.devicePixelRatio;
-        gl.canvas.height = gl.canvas.clientHeight * window.devicePixelRatio;
-      });
-      gl.canvas.width = gl.canvas.clientWidth * window.devicePixelRatio;
-      gl.canvas.height = gl.canvas.clientHeight * window.devicePixelRatio;
-
-      renderer = new Renderer(gl);
-      scene.setRenderer(renderer);
-    }
-
-    const debugInfo = document.createElement('div');
-    debugInfo.id = 'debug';
-    document.body.appendChild(debugInfo);
-
-    function updateDebugInfo(message) {
-      debugInfo.textContent = message;
-    }
-
-    function onSessionStarted(session) {
-      session.addEventListener('end', onSessionEnded);
-      initGL();
-      session.updateRenderState({ baseLayer: new XRWebGLLayer(session, gl) });
-
-      let refSpaceType = session.isImmersive ? 'local' : 'viewer';
-      session.requestReferenceSpace(refSpaceType).then(refSpace => {
-        if (session.isImmersive) {
-          xrImmersiveRefSpace = refSpace;
-          updateDebugInfo('AR сессия запущена');
-        } else {
-          inlineViewerHelper = new InlineViewerHelper(gl.canvas, refSpace);
+      function onSessionEnded(event) {
+        if (event.session.isImmersive) {
+          xrButton.setSession(null);
         }
+      }
+
+      function onXRFrame(t, frame) {
+        let session = frame.session;
+        let refSpace = session.isImmersive ?
+                         xrImmersiveRefSpace :
+                         inlineViewerHelper.referenceSpace;
+        let pose = frame.getViewerPose(refSpace);
+
+        scene.startFrame();
+
+        if (pose) {
+          // Обработка вращения в AR режиме
+          if (session.isImmersive && isRotating) {
+            const inputSources = frame.session.inputSources;
+            inputSources.forEach((source) => {
+              if (source.targetRaySpace) {
+                const targetRayPose = frame.getPose(source.targetRaySpace, refSpace);
+                if (targetRayPose) {
+                  const position = targetRayPose.transform.position;
+                  
+                  if (lastRayPosition) {
+                    const deltaX = position.x - lastRayPosition.x;
+                    const deltaY = position.y - lastRayPosition.y;
+                    
+                    model.rotation[1] += deltaX * 5; // Горизонтальное вращение
+                    model.rotation[0] += deltaY * 5; // Вертикальное вращение
+                    
+                    updateDebugInfo(`Вращение: X=${deltaX.toFixed(2)}, Y=${deltaY.toFixed(2)}`);
+                  }
+                  
+                  lastRayPosition = position;
+                }
+              }
+            });
+          }
+
+          // Рендерим сцену
+          scene.drawXRFrame(frame, pose);
+        }
+
+        scene.endFrame();
         session.requestAnimationFrame(onXRFrame);
-      });
-    }
-
-    function onEndSession(session) {
-      session.end();
-    }
-
-    function onSessionEnded(event) {
-      if (event.session.isImmersive) xrButton.setSession(null);
-    }
-
-    // Вращение по пальцу
-    let isTouchRotating = false;
-    let lastTouchX = 0, lastTouchY = 0;
-    let rotationSpeed = 0.05;
-
-    function setupTouchControls() {
-      gl.canvas.addEventListener('touchstart', (e) => {
-        if (e.touches.length === 1) {
-          isTouchRotating = true;
-          lastTouchX = e.touches[0].clientX;
-          lastTouchY = e.touches[0].clientY;
-          updateDebugInfo("Начало вращения");
-        }
-      });
-
-      gl.canvas.addEventListener('touchmove', (e) => {
-        if (isTouchRotating && e.touches.length === 1) {
-          const deltaX = e.touches[0].clientX - lastTouchX;
-          const deltaY = e.touches[0].clientY - lastTouchY;
-
-          // Вращаем модель
-          model.rotation[1] += deltaX * rotationSpeed;
-          model.rotation[0] += deltaY * rotationSpeed;
-
-          // Обновляем матрицу трансформации
-          model.invalidateWorldMatrix();
-
-          lastTouchX = e.touches[0].clientX;
-          lastTouchY = e.touches[0].clientY;
-
-          updateDebugInfo(`Вращение: X=${model.rotation[0].toFixed(2)}, Y=${model.rotation[1].toFixed(2)}`);
-        }
-      });
-
-      gl.canvas.addEventListener('touchend', () => {
-        isTouchRotating = false;
-        updateDebugInfo("Конец вращения");
-      });
-    }
-
-    function onXRFrame(t, frame) {
-      const session = frame.session;
-      const refSpace = session.isImmersive ? xrImmersiveRefSpace : inlineViewerHelper.referenceSpace;
-      const pose = frame.getViewerPose(refSpace);
-
-      scene.startFrame();
-
-      if (pose) {
-        // В AR режиме обновляем позицию модели
-        if (session.isImmersive) {
-          // Позиционируем модель перед камерой
-          const cameraPosition = pose.transform.position;
-          model.translation = [
-            cameraPosition.x,
-            cameraPosition.y - 0.5,
-            cameraPosition.z - 1
-          ];
-          model.invalidateWorldMatrix();
-        }
-        
-        scene.drawXRFrame(frame, pose);
       }
 
-      scene.endFrame();
-      session.requestAnimationFrame(onXRFrame);
-    }
-
-    initXR();
-    window.addEventListener('load', () => setTimeout(setupTouchControls, 500));
-
-  </script>
-</head>
-<body>
-<header><strong>AR Котики</strong></header>
-</body>
-</html>
+      // Запускаем XR приложение
+      initXR();
+    </script>
+  </head>
+  <body>
+    <header>
+      <details open>
+        <summary>AR Котики</summary>
+        <p>
+          Летающий кот в AR.
+          <a class="back" href="../">Назад</a>
+        </p>
+      </details>
+    </header>
+  </body>
+</html> 
