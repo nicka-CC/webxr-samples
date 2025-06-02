@@ -38,42 +38,42 @@ const createScene = async function() {
             mesh.scaling = new BABYLON.Vector3(0.5, 0.5, 0.5);
             mesh.position = new BABYLON.Vector3(0, 0, 10);
         });
-
-        debugDiv.innerHTML += "<br>Загрузка модели...";
-        const result2 = await BABYLON.SceneLoader.ImportMeshAsync(null, "assets/models/", "head2.glb", scene);
-        debugDiv.innerHTML += "<br>Модель загружена";
-
-        if (result2.animationGroups && result2.animationGroups.length > 0) {
-            debugDiv.innerHTML += `<br>Найдено анимаций: ${result2.animationGroups.length}`;
-            result2.animationGroups.forEach(anim => {
-                anim.play(true);
-            });
-        } else {
-            debugDiv.innerHTML += "<br>Анимации не найдены";
-        }
-
-        result2.meshes.forEach(mesh => {
-            mesh.scaling = new BABYLON.Vector3(1.1, 1.1, 1.1);
-            mesh.position = new BABYLON.Vector3(-2.2, 2, 2.60);
-        });
-
-        debugDiv.innerHTML += "<br>Загрузка модели...";
-        const result3 = await BABYLON.SceneLoader.ImportMeshAsync(null, "assets/models/", "knife3.glb", scene);
-        debugDiv.innerHTML += "<br>Модель загружена";
-
-        if (result3.animationGroups && result3.animationGroups.length > 0) {
-            debugDiv.innerHTML += `<br>Найдено анимаций: ${result3.animationGroups.length}`;
-            result3.animationGroups.forEach(anim => {
-                anim.play(true);
-            });
-        } else {
-            debugDiv.innerHTML += "<br>Анимации не найдены";
-        }
-
-        result3.meshes.forEach(mesh => {
-            mesh.scaling = new BABYLON.Vector3(0.9, 0.9, 0.9);
-            mesh.position = new BABYLON.Vector3(-7.5, -0.15, 50);
-        });
+        //
+        // debugDiv.innerHTML += "<br>Загрузка модели...";
+        // const result2 = await BABYLON.SceneLoader.ImportMeshAsync(null, "assets/models/", "head2.glb", scene);
+        // debugDiv.innerHTML += "<br>Модель загружена";
+        //
+        // if (result2.animationGroups && result2.animationGroups.length > 0) {
+        //     debugDiv.innerHTML += `<br>Найдено анимаций: ${result2.animationGroups.length}`;
+        //     result2.animationGroups.forEach(anim => {
+        //         anim.play(true);
+        //     });
+        // } else {
+        //     debugDiv.innerHTML += "<br>Анимации не найдены";
+        // }
+        //
+        // result2.meshes.forEach(mesh => {
+        //     mesh.scaling = new BABYLON.Vector3(1.1, 1.1, 1.1);
+        //     mesh.position = new BABYLON.Vector3(-2.2, 2, 2.60);
+        // });
+        //
+        // debugDiv.innerHTML += "<br>Загрузка модели...";
+        // const result3 = await BABYLON.SceneLoader.ImportMeshAsync(null, "assets/models/", "knife3.glb", scene);
+        // debugDiv.innerHTML += "<br>Модель загружена";
+        //
+        // if (result3.animationGroups && result3.animationGroups.length > 0) {
+        //     debugDiv.innerHTML += `<br>Найдено анимаций: ${result3.animationGroups.length}`;
+        //     result3.animationGroups.forEach(anim => {
+        //         anim.play(true);
+        //     });
+        // } else {
+        //     debugDiv.innerHTML += "<br>Анимации не найдены";
+        // }
+        //
+        // result3.meshes.forEach(mesh => {
+        //     mesh.scaling = new BABYLON.Vector3(0.9, 0.9, 0.9);
+        //     mesh.position = new BABYLON.Vector3(-7.5, -0.15, 50);
+        // });
 
         // Проверяем поддержку AR
         debugDiv.innerHTML += "<br>Проверка поддержки AR...";
