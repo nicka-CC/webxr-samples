@@ -130,33 +130,46 @@ arButton.addEventListener("click", async () => {
             if (state === BABYLON.WebXRState.IN_XR) {
                 debugDiv.innerHTML += "<br>AR сессия началась";
                 arButton.style.display = "none";
+
+                // Создаем прямоугольник с отладочной информацией
+                const debugPlane = BABYLON.MeshBuilder.CreatePlane("debugPlane", {
+                    width: 0.5,
+                    height: 0.3
+                }, scene);
+                
+                // Создаем материал для прямоугольника
+                const debugMaterial = new BABYLON.StandardMaterial("debugMaterial", scene);
+                debugMaterial.diffuseColor = new BABYLON.Color3(0, 0, 0);
+                debugMaterial.alpha = 0.7;
+                debugPlane.material = debugMaterial;
+
+                // Создаем динамическую текстуру для отображения текста
+                const debugTexture = new BABYLON.DynamicTexture("debugTexture", {
+                    width: 512,
+                    height: 256
+                }, scene);
+                debugMaterial.diffuseTexture = debugTexture;
+                debugMaterial.emissiveTexture = debugTexture;
+                debugMaterial.diffuseTexture.hasAlpha = true;
+
+                // Функция обновления отладочной информации
+                function updateDebug(message) {
+                    // Обновляем текстуру
+                    debugTexture.clear();
+                    debugTexture.drawText(message, null, 40, "bold 24px Arial", "white", "transparent", true);
+                    
+                    // Позиционируем прямоугольник перед камерой
+                    const cameraPosition = xr.baseExperience.camera.position;
+                    const cameraDirection = xr.baseExperience.camera.getDirection(new BABYLON.Vector3(0, 0, 1));
+                    debugPlane.position = cameraPosition.add(cameraDirection.scale(0.5));
+                    debugPlane.lookAt(cameraPosition);
+                }
                 
                 // Добавляем обработку вращения модели в AR
                 let isRotating = false;
                 let lastPointerX = 0;
                 let lastPointerY = 0;
                 let rotationSpeed = 0.01;
-
-                function updateDebug(message) {
-                    const debugText = document.createElement('div');
-                    debugText.style.position = 'fixed';
-                    debugText.style.top = '10px';
-                    debugText.style.left = '10px';
-                    debugText.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
-                    debugText.style.color = 'white';
-                    debugText.style.padding = '10px';
-                    debugText.style.borderRadius = '5px';
-                    debugText.style.zIndex = '1000';
-                    debugText.textContent = message;
-                    
-                    const oldDebug = document.querySelector('.debug-overlay');
-                    if (oldDebug) {
-                        oldDebug.remove();
-                    }
-                    
-                    debugText.classList.add('debug-overlay');
-                    document.body.appendChild(debugText);
-                }
 
                 // Обработка касания для вращения в AR
                 xr.onPointerDownObservable.add((evt) => {
@@ -177,9 +190,9 @@ arButton.addEventListener("click", async () => {
                     const deltaX = evt.pointerX - lastPointerX;
                     const deltaY = evt.pointerY - lastPointerY;
 
-                    // Вращаем все меши, кроме ground
+                    // Вращаем все меши, кроме ground и debugPlane
                     scene.meshes.forEach(mesh => {
-                        if (mesh.name !== "ground") {
+                        if (mesh.name !== "ground" && mesh.name !== "debugPlane") {
                             // Создаем матрицу вращения
                             const rotationMatrix = BABYLON.Matrix.RotationY(deltaX * rotationSpeed)
                                 .multiply(BABYLON.Matrix.RotationX(deltaY * rotationSpeed));
@@ -214,7 +227,7 @@ arButton.addEventListener("click", async () => {
                     if (evt.pickInfo.hit) {
                         const hitPoint = evt.pickInfo.pickedPoint;
                         scene.meshes.forEach(mesh => {
-                            if (mesh.name !== "ground") {
+                            if (mesh.name !== "ground" && mesh.name !== "debugPlane") {
                                 const currentY = mesh.position.y;
                                 mesh.position = new BABYLON.Vector3(
                                     hitPoint.x,
