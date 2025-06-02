@@ -156,7 +156,7 @@ arButton.addEventListener("click", async () => {
                 let lastHitPoint = null;
                 let lastPointerX = 0;
                 let lastPointerY = 0;
-                let rotationSpeed = 0.01;
+                let rotationSpeed = 1;
 
                 xr.onPointerDownObservable.add((evt) => {
                     if (evt.pickInfo.hit) {
