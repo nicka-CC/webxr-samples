@@ -149,29 +149,40 @@ arButton.addEventListener("click", async () => {
                     }
                 });
 
-                // Добавляем обработку вращения модели
-                let isRotating = false;
-                let lastPointerX = 0;
-                let rotationSpeed = 0.01;
+                // Добавляем обработку перемещения модели
+                let isDragging = false;
+                let selectedMesh = null;
+                let lastHitPoint = null;
 
                 xr.onPointerDownObservable.add((evt) => {
-                    isRotating = true;
-                    lastPointerX = evt.pointerX;
+                    if (evt.pickInfo.hit) {
+                        const hitMesh = evt.pickInfo.pickedMesh;
+                        if (hitMesh && hitMesh.name !== "ground") {
+                            isDragging = true;
+                            selectedMesh = hitMesh;
+                            lastHitPoint = evt.pickInfo.pickedPoint;
+                        }
+                    }
                 });
 
                 xr.onPointerUpObservable.add(() => {
-                    isRotating = false;
+                    isDragging = false;
+                    selectedMesh = null;
+                    lastHitPoint = null;
                 });
 
                 xr.onPointerMoveObservable.add((evt) => {
-                    if (isRotating) {
-                        const deltaX = evt.pointerX - lastPointerX;
-                        scene.meshes.forEach(mesh => {
-                            if (mesh.name !== "ground") {
-                                mesh.rotation.y += deltaX * rotationSpeed;
-                            }
-                        });
-                        lastPointerX = evt.pointerX;
+                    if (isDragging && selectedMesh && evt.pickInfo.hit) {
+                        const hitPoint = evt.pickInfo.pickedPoint;
+                        if (lastHitPoint) {
+                            const deltaX = hitPoint.x - lastHitPoint.x;
+                            const deltaZ = hitPoint.z - lastHitPoint.z;
+                            
+                            selectedMesh.position.x += deltaX;
+                            selectedMesh.position.z += deltaZ;
+                            
+                            lastHitPoint = hitPoint;
+                        }
                     }
                 });
             } else if (state === BABYLON.WebXRState.NOT_IN_XR) {
