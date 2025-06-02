@@ -148,6 +148,32 @@ arButton.addEventListener("click", async () => {
                         debugDiv.innerHTML += "<br>Модель размещена";
                     }
                 });
+
+                // Добавляем обработку вращения модели
+                let isRotating = false;
+                let lastPointerX = 0;
+                let rotationSpeed = 0.01;
+
+                xr.onPointerDownObservable.add((evt) => {
+                    isRotating = true;
+                    lastPointerX = evt.pointerX;
+                });
+
+                xr.onPointerUpObservable.add(() => {
+                    isRotating = false;
+                });
+
+                xr.onPointerMoveObservable.add((evt) => {
+                    if (isRotating) {
+                        const deltaX = evt.pointerX - lastPointerX;
+                        scene.meshes.forEach(mesh => {
+                            if (mesh.name !== "ground") {
+                                mesh.rotation.y += deltaX * rotationSpeed;
+                            }
+                        });
+                        lastPointerX = evt.pointerX;
+                    }
+                });
             } else if (state === BABYLON.WebXRState.NOT_IN_XR) {
                 debugDiv.innerHTML += "<br>AR сессия закончилась";
                 arButton.style.display = "block";
