@@ -74,7 +74,6 @@ const createScene = async function() {
         //     mesh.scaling = new BABYLON.Vector3(0.9, 0.9, 0.9);
         //     mesh.position = new BABYLON.Vector3(-7.5, -0.15, 50);
         // });
-
         // Проверяем поддержку AR
         debugDiv.innerHTML += "<br>Проверка поддержки AR...";
         if (navigator.xr) {
