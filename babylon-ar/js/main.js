@@ -131,9 +131,8 @@ arButton.addEventListener("click", async () => {
                 debugDiv.innerHTML += "<br>AR сессия началась";
                 arButton.style.display = "none";
                 
-                // Добавляем обработку вращения модели
+                // Добавляем обработку вращения модели в AR
                 let isRotating = false;
-                let selectedMesh = null;
                 let lastPointerX = 0;
                 let lastPointerY = 0;
                 let rotationSpeed = 0.01;
@@ -159,7 +158,7 @@ arButton.addEventListener("click", async () => {
                     document.body.appendChild(debugText);
                 }
 
-                // Обработка касания для вращения
+                // Обработка касания для вращения в AR
                 xr.onPointerDownObservable.add((evt) => {
                     isRotating = true;
                     lastPointerX = evt.pointerX;
@@ -181,13 +180,26 @@ arButton.addEventListener("click", async () => {
                     // Вращаем все меши, кроме ground
                     scene.meshes.forEach(mesh => {
                         if (mesh.name !== "ground") {
-                            // Вращение по горизонтали
-                            mesh.rotation.y += deltaX * rotationSpeed;
-                            // Вращение по вертикали
-                            mesh.rotation.x += deltaY * rotationSpeed;
+                            // Создаем матрицу вращения
+                            const rotationMatrix = BABYLON.Matrix.RotationY(deltaX * rotationSpeed)
+                                .multiply(BABYLON.Matrix.RotationX(deltaY * rotationSpeed));
                             
-                            // Ограничиваем вертикальное вращение
-                            mesh.rotation.x = Math.max(-Math.PI/2, Math.min(Math.PI/2, mesh.rotation.x));
+                            // Применяем вращение к текущей позиции
+                            const currentPosition = mesh.position.clone();
+                            const currentRotation = mesh.rotation.clone();
+                            
+                            // Вращаем вокруг текущей позиции
+                            const rotatedPosition = BABYLON.Vector3.TransformCoordinates(
+                                currentPosition,
+                                rotationMatrix
+                            );
+                            
+                            mesh.position = rotatedPosition;
+                            mesh.rotation = currentRotation.add(new BABYLON.Vector3(
+                                deltaY * rotationSpeed,
+                                deltaX * rotationSpeed,
+                                0
+                            ));
                         }
                     });
 
