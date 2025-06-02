@@ -208,6 +208,21 @@ console.log('model',model)
         scene.setRenderer(renderer);
       }
 
+      // Глобальные переменные для отслеживания позиции луча
+      let lastRayPosition = null;
+      let isRotating = false;
+      let lastTouchX = 0;
+      let lastTouchY = 0;
+
+      // Добавляем отладочную информацию
+      const debugInfo = document.createElement('div');
+      debugInfo.id = 'debug';
+      document.body.appendChild(debugInfo);
+
+      function updateDebugInfo(message) {
+        debugInfo.textContent = message;
+      }
+
       function onSessionStarted(session) {
         session.addEventListener('end', onSessionEnded);
 
@@ -219,6 +234,22 @@ console.log('model',model)
         session.requestReferenceSpace(refSpaceType).then((refSpace) => {
           if (session.isImmersive) {
             xrImmersiveRefSpace = refSpace;
+            updateDebugInfo('AR сессия запущена');
+
+            // Добавляем обработчики для AR сессии
+            session.addEventListener('select', (event) => {
+              updateDebugInfo('Выбрано: ' + JSON.stringify(event.inputSource));
+            });
+
+            session.addEventListener('selectstart', (event) => {
+              isRotating = true;
+              updateDebugInfo('Начало вращения');
+            });
+
+            session.addEventListener('selectend', (event) => {
+              isRotating = false;
+              updateDebugInfo('Конец вращения');
+            });
 
             xrImmersiveRefSpace.addEventListener('reset', (evt) => {
               if (evt.transform) {
@@ -242,42 +273,6 @@ console.log('model',model)
         }
       }
 
-      // Глобальные переменные для отслеживания позиции луча
-      let lastRayPosition = null;
-      let isRotating = false;
-      let lastTouchX = 0;
-      let lastTouchY = 0;
-
-      // Добавляем обработчики касаний
-      window.addEventListener('touchstart', (e) => {
-        if (e.touches.length === 1) {
-          isRotating = true;
-          lastTouchX = e.touches[0].clientX;
-          lastTouchY = e.touches[0].clientY;
-        }
-      });
-
-      window.addEventListener('touchmove', (e) => {
-        if (isRotating && e.touches.length === 1) {
-          const touchX = e.touches[0].clientX;
-          const touchY = e.touches[0].clientY;
-          
-          const deltaX = touchX - lastTouchX;
-          const deltaY = touchY - lastTouchY;
-          
-          // Вращаем модель
-          model.rotation[1] += deltaX * 0.01; // Горизонтальное вращение
-          model.rotation[0] += deltaY * 0.01; // Вертикальное вращение
-          
-          lastTouchX = touchX;
-          lastTouchY = touchY;
-        }
-      });
-
-      window.addEventListener('touchend', () => {
-        isRotating = false;
-      });
-
       function onXRFrame(t, frame) {
         let session = frame.session;
         let refSpace = session.isImmersive ?
@@ -288,6 +283,31 @@ console.log('model',model)
         scene.startFrame();
 
         if (pose) {
+          // Обработка вращения в AR режиме
+          if (session.isImmersive && isRotating) {
+            const inputSources = frame.session.inputSources;
+            inputSources.forEach((source) => {
+              if (source.targetRaySpace) {
+                const targetRayPose = frame.getPose(source.targetRaySpace, refSpace);
+                if (targetRayPose) {
+                  const position = targetRayPose.transform.position;
+                  
+                  if (lastRayPosition) {
+                    const deltaX = position.x - lastRayPosition.x;
+                    const deltaY = position.y - lastRayPosition.y;
+                    
+                    model.rotation[1] += deltaX * 5; // Горизонтальное вращение
+                    model.rotation[0] += deltaY * 5; // Вертикальное вращение
+                    
+                    updateDebugInfo(`Вращение: X=${deltaX.toFixed(2)}, Y=${deltaY.toFixed(2)}`);
+                  }
+                  
+                  lastRayPosition = position;
+                }
+              }
+            });
+          }
+
           // Рендерим сцену
           scene.drawXRFrame(frame, pose);
         }
