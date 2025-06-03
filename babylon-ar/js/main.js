@@ -122,36 +122,44 @@ arButton.addEventListener("click", async () => {
         }
     });
 
-    // Обработка вращения в AR режиме
+    // Создаем контроллер для управления моделью
+    const modelController = new BABYLON.TransformNode("modelController", scene);
+    modelRoot.parent = modelController;
+
+    // Добавляем возможность вращения через контроллер
+    const rotationController = new BABYLON.ArcRotateCamera("rotationCamera", 0, Math.PI / 2, 1, modelController.position, scene);
+    rotationController.attachControl(canvas, true);
+    rotationController.lowerRadiusLimit = 0.1;
+    rotationController.upperRadiusLimit = 2;
+    rotationController.inputs.attached.pointers.detachControl(canvas);
+
+    // Обработка вращения в AR
     let isRotating = false;
     let lastXRotation = 0;
     let lastYRotation = 0;
-    const rotationSpeed = 0.01;
 
-    // Добавляем обработку жестов в AR
     xr.baseExperience.onPointerDownObservable.add((evt) => {
         if (evt.pickInfo?.hit) {
             isRotating = true;
-            lastXRotation = modelRoot.rotation.x;
-            lastYRotation = modelRoot.rotation.y;
+            lastXRotation = modelController.rotation.x;
+            lastYRotation = modelController.rotation.y;
             debugDiv.innerHTML += "<br>Начало вращения в AR";
         }
     });
 
     xr.baseExperience.onPointerMoveObservable.add((evt) => {
-        if (isRotating && modelRoot) {
-            // Используем движение указателя для вращения
-            const deltaX = evt.movementX * rotationSpeed;
-            const deltaY = evt.movementY * rotationSpeed;
+        if (isRotating && modelController) {
+            const deltaX = evt.movementX * 0.01;
+            const deltaY = evt.movementY * 0.01;
 
-            modelRoot.rotation.y = lastYRotation + deltaX;
-            modelRoot.rotation.x = lastXRotation + deltaY;
+            modelController.rotation.y = lastYRotation + deltaX;
+            modelController.rotation.x = lastXRotation + deltaY;
 
             // Ограничиваем вращение по X
-            modelRoot.rotation.x = Math.max(-Math.PI/2, Math.min(Math.PI/2, modelRoot.rotation.x));
+            modelController.rotation.x = Math.max(-Math.PI/2, Math.min(Math.PI/2, modelController.rotation.x));
 
-            const angleX = Math.round(modelRoot.rotation.x * 180 / Math.PI);
-            const angleY = Math.round(modelRoot.rotation.y * 180 / Math.PI);
+            const angleX = Math.round(modelController.rotation.x * 180 / Math.PI);
+            const angleY = Math.round(modelController.rotation.y * 180 / Math.PI);
             debugDiv.innerHTML = `Вращение в AR: X=${angleX}°, Y=${angleY}°`;
         }
     });
@@ -159,6 +167,32 @@ arButton.addEventListener("click", async () => {
     xr.baseExperience.onPointerUpObservable.add(() => {
         isRotating = false;
         debugDiv.innerHTML += "<br>Конец вращения в AR";
+    });
+
+    // Добавляем обработку жестов масштабирования
+    let initialDistance = 0;
+    let initialScale = 1;
+
+    xr.baseExperience.onPointerDownObservable.add((evt) => {
+        if (evt.pickInfo?.hit && evt.pointerEvent.touches?.length === 2) {
+            initialDistance = Math.hypot(
+                evt.pointerEvent.touches[0].clientX - evt.pointerEvent.touches[1].clientX,
+                evt.pointerEvent.touches[0].clientY - evt.pointerEvent.touches[1].clientY
+            );
+            initialScale = modelRoot.scaling.x;
+        }
+    });
+
+    xr.baseExperience.onPointerMoveObservable.add((evt) => {
+        if (evt.pointerEvent.touches?.length === 2) {
+            const currentDistance = Math.hypot(
+                evt.pointerEvent.touches[0].clientX - evt.pointerEvent.touches[1].clientX,
+                evt.pointerEvent.touches[0].clientY - evt.pointerEvent.touches[1].clientY
+            );
+            const scale = initialScale * (currentDistance / initialDistance);
+            
+            modelRoot.scaling = new BABYLON.Vector3(scale, scale, scale);
+        }
     });
 
     xr.onStateChangedObservable.add(state => {
