@@ -66,9 +66,9 @@
     let clock = new THREE.Clock();
     let currentAnimation = null;
     let animations = [];
-    let isDragging = false;
-    let previousTouchPosition = { x: 0, y: 0 };
-    let rotationSpeed = 0.01;
+    let isRotating = false;
+    let lastRayPosition = null;
+    let rotationSpeed = 5;
 
     init();
     animate();
@@ -144,7 +144,35 @@
 
           renderer.xr.addEventListener('sessionend', function() {
             console.log('AR сессия закончилась');
-            isDragging = false;
+            isRotating = false;
+            lastRayPosition = null;
+          });
+
+          // Обработка жестов в AR
+          renderer.xr.addEventListener('selectstart', function() {
+            isRotating = true;
+            console.log('Начало вращения');
+          });
+
+          renderer.xr.addEventListener('selectend', function() {
+            isRotating = false;
+            lastRayPosition = null;
+            console.log('Конец вращения');
+          });
+
+          // Обработка движения в AR
+          renderer.xr.addEventListener('inputsourceschange', function(event) {
+            event.added.forEach((inputSource) => {
+              inputSource.addEventListener('selectstart', () => {
+                isRotating = true;
+                console.log('Начало вращения');
+              });
+              inputSource.addEventListener('selectend', () => {
+                isRotating = false;
+                lastRayPosition = null;
+                console.log('Конец вращения');
+              });
+            });
           });
         },
         function (xhr) {
@@ -199,8 +227,8 @@
 
     function onTouchStart(event) {
       event.preventDefault();
-      isDragging = true;
-      previousTouchPosition = {
+      isRotating = true;
+      lastRayPosition = {
         x: event.touches[0].clientX,
         y: event.touches[0].clientY
       };
@@ -208,11 +236,11 @@
 
     function onTouchMove(event) {
       event.preventDefault();
-      if (!isDragging || !model) return;
+      if (!isRotating || !model) return;
 
       const touch = event.touches[0];
-      const deltaX = touch.clientX - previousTouchPosition.x;
-      const deltaY = touch.clientY - previousTouchPosition.y;
+      const deltaX = touch.clientX - lastRayPosition.x;
+      const deltaY = touch.clientY - lastRayPosition.y;
 
       model.rotation.y += deltaX * rotationSpeed;
       model.rotation.x += deltaY * rotationSpeed;
@@ -220,7 +248,7 @@
       // Ограничиваем вращение по X
       model.rotation.x = Math.max(-Math.PI/2, Math.min(Math.PI/2, model.rotation.x));
 
-      previousTouchPosition = {
+      lastRayPosition = {
         x: touch.clientX,
         y: touch.clientY
       };
@@ -228,7 +256,7 @@
 
     function onTouchEnd(event) {
       event.preventDefault();
-      isDragging = false;
+      isRotating = false;
     }
 
     function animate() {
@@ -236,6 +264,38 @@
         if (mixer) {
           mixer.update(clock.getDelta());
         }
+
+        // Обработка вращения в AR
+        if (isRotating && model && renderer.xr.isPresenting) {
+          const session = renderer.xr.getSession();
+          if (session) {
+            const inputSources = session.inputSources;
+            inputSources.forEach((source) => {
+              if (source.targetRaySpace) {
+                const targetRayPose = renderer.xr.getReferenceSpace().getPose(source.targetRaySpace);
+                if (targetRayPose) {
+                  const position = targetRayPose.transform.position;
+                  
+                  if (lastRayPosition) {
+                    const deltaX = position.x - lastRayPosition.x;
+                    const deltaY = position.y - lastRayPosition.y;
+                    
+                    model.rotation.y += deltaX * rotationSpeed;
+                    model.rotation.x += deltaY * rotationSpeed;
+                    
+                    // Ограничиваем вращение по X
+                    model.rotation.x = Math.max(-Math.PI/2, Math.min(Math.PI/2, model.rotation.x));
+                    
+                    console.log(`Вращение: X=${deltaX.toFixed(2)}, Y=${deltaY.toFixed(2)}`);
+                  }
+                  
+                  lastRayPosition = position;
+                }
+              }
+            });
+          }
+        }
+
         renderer.render(scene, camera);
       });
     }
