@@ -123,9 +123,12 @@ arButton.addEventListener("click", async () => {
     });
 
     let isRotating = false;
+    let isDragging = false;
     let lastX = 0;
     let lastY = 0;
+    let lastTouchDistance = 0;
     const rotationSpeed = 0.003;
+    const dragSpeed = 0.01;
 
     // Отключаем камеру Babylon.js при AR
     xr.baseExperience.camera.detachControl(canvas);
@@ -133,22 +136,34 @@ arButton.addEventListener("click", async () => {
     // Предотвращаем стандартные действия браузера
     canvas.addEventListener("touchstart", (evt) => {
         evt.preventDefault();
+        
         if (evt.touches.length === 1) {
             isRotating = true;
             lastX = evt.touches[0].clientX;
             lastY = evt.touches[0].clientY;
             debugDiv.innerHTML += "<br>Начало вращения";
+        } else if (evt.touches.length === 2) {
+            isDragging = true;
+            lastX = (evt.touches[0].clientX + evt.touches[1].clientX) / 2;
+            lastY = (evt.touches[0].clientY + evt.touches[1].clientY) / 2;
+            lastTouchDistance = Math.hypot(
+                evt.touches[0].clientX - evt.touches[1].clientX,
+                evt.touches[0].clientY - evt.touches[1].clientY
+            );
+            debugDiv.innerHTML += "<br>Начало перемещения";
         }
     }, { passive: false });
 
     canvas.addEventListener("touchend", (evt) => {
         evt.preventDefault();
         isRotating = false;
-        debugDiv.innerHTML += "<br>Конец вращения";
+        isDragging = false;
+        debugDiv.innerHTML += "<br>Конец взаимодействия";
     }, { passive: false });
 
     canvas.addEventListener("touchmove", (evt) => {
         evt.preventDefault();
+        
         if (isRotating && evt.touches.length === 1) {
             const deltaX = evt.touches[0].clientX - lastX;
             const deltaY = evt.touches[0].clientY - lastY;
@@ -156,7 +171,7 @@ arButton.addEventListener("click", async () => {
             lastY = evt.touches[0].clientY;
 
             scene.meshes.forEach(mesh => {
-                if (mesh.name !== "ground" && mesh.name !== "debugPlane") {
+                if (mesh.name !== "ground" && mesh.name !== "debugPlane" && mesh.name !== "hitTestIndicator") {
                     mesh.rotation.y += deltaX * rotationSpeed;
                     mesh.rotation.x += deltaY * rotationSpeed;
                 }
@@ -165,40 +180,40 @@ arButton.addEventListener("click", async () => {
             const angleX = Math.round(scene.meshes[1].rotation.x * 180 / Math.PI);
             const angleY = Math.round(scene.meshes[1].rotation.y * 180 / Math.PI);
             debugDiv.innerHTML = `Вращение: X=${angleX}°, Y=${angleY}°`;
-        }
-    }, { passive: false });
+        } else if (isDragging && evt.touches.length === 2) {
+            const currentX = (evt.touches[0].clientX + evt.touches[1].clientX) / 2;
+            const currentY = (evt.touches[0].clientY + evt.touches[1].clientY) / 2;
+            
+            const deltaX = currentX - lastX;
+            const deltaY = currentY - lastY;
+            
+            lastX = currentX;
+            lastY = currentY;
 
-    // Добавляем обработку жестов масштабирования
-    let initialDistance = 0;
-    let initialScale = 1;
-
-    canvas.addEventListener("touchstart", (evt) => {
-        if (evt.touches.length === 2) {
-            initialDistance = Math.hypot(
-                evt.touches[0].clientX - evt.touches[1].clientX,
-                evt.touches[0].clientY - evt.touches[1].clientY
-            );
             scene.meshes.forEach(mesh => {
-                if (mesh.name !== "ground" && mesh.name !== "debugPlane") {
-                    initialScale = mesh.scaling.x;
+                if (mesh.name !== "ground" && mesh.name !== "debugPlane" && mesh.name !== "hitTestIndicator") {
+                    mesh.position.x += deltaX * dragSpeed;
+                    mesh.position.z += deltaY * dragSpeed;
                 }
             });
-        }
-    }, { passive: false });
 
-    canvas.addEventListener("touchmove", (evt) => {
-        if (evt.touches.length === 2) {
+            // Масштабирование при изменении расстояния между пальцами
             const currentDistance = Math.hypot(
                 evt.touches[0].clientX - evt.touches[1].clientX,
                 evt.touches[0].clientY - evt.touches[1].clientY
             );
-            const scale = initialScale * (currentDistance / initialDistance);
-            
+            const scale = currentDistance / lastTouchDistance;
+            lastTouchDistance = currentDistance;
+
             scene.meshes.forEach(mesh => {
-                if (mesh.name !== "ground" && mesh.name !== "debugPlane") {
-                    mesh.scaling = new BABYLON.Vector3(scale, scale, scale);
+                if (mesh.name !== "ground" && mesh.name !== "debugPlane" && mesh.name !== "hitTestIndicator") {
+                    mesh.scaling.x *= scale;
+                    mesh.scaling.y *= scale;
+                    mesh.scaling.z *= scale;
                 }
             });
+
+            debugDiv.innerHTML = `Перемещение: X=${Math.round(mesh.position.x * 100) / 100}, Z=${Math.round(mesh.position.z * 100) / 100}`;
         }
     }, { passive: false });
 
