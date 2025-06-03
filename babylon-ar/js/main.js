@@ -35,12 +35,12 @@ async function createScene() {
 
         // Создаем родительский узел для модели
         modelRoot = new BABYLON.TransformNode("modelRoot", scene);
-
+        modelRoot.position = new BABYLON.Vector3(0, 0, 10);
         // Помещаем все меши под этот узел и настраиваем масштаб и позицию
         result.meshes.forEach(mesh => {
             mesh.parent = modelRoot;
             mesh.scaling = new BABYLON.Vector3(0.5, 0.5, 0.5);
-            mesh.position = new BABYLON.Vector3(0, 0, 10);
+            mesh.position = new BABYLON.Vector3.Zero();;
         });
 
         debugDiv.innerHTML += "<br>Модель обернута в TransformNode 'modelRoot'";
