@@ -122,45 +122,44 @@ arButton.addEventListener("click", async () => {
         }
     });
 
-    // Обработка вращения пальцем
-    let isTouchRotating = false;
-    let lastTouchX = 0;
-    let lastTouchY = 0;
-    const rotationSpeed = 0.005;
+    // Обработка вращения в AR режиме
+    let isRotating = false;
+    let lastXRotation = 0;
+    let lastYRotation = 0;
+    const rotationSpeed = 0.01;
 
-    canvas.addEventListener("touchstart", (evt) => {
-        evt.preventDefault();
-        if (evt.touches.length === 1) {
-            isTouchRotating = true;
-            lastTouchX = evt.touches[0].clientX;
-            lastTouchY = evt.touches[0].clientY;
-            debugDiv.innerHTML += "<br>Начало вращения";
+    // Добавляем обработку жестов в AR
+    xr.baseExperience.onPointerDownObservable.add((evt) => {
+        if (evt.pickInfo?.hit) {
+            isRotating = true;
+            lastXRotation = modelRoot.rotation.x;
+            lastYRotation = modelRoot.rotation.y;
+            debugDiv.innerHTML += "<br>Начало вращения в AR";
         }
-    }, { passive: false });
+    });
 
-    canvas.addEventListener("touchmove", (evt) => {
-        evt.preventDefault();
-        if (isTouchRotating && evt.touches.length === 1 && modelRoot) {
-            const deltaX = evt.touches[0].clientX - lastTouchX;
-            const deltaY = evt.touches[0].clientY - lastTouchY;
+    xr.baseExperience.onPointerMoveObservable.add((evt) => {
+        if (isRotating && modelRoot) {
+            // Используем движение указателя для вращения
+            const deltaX = evt.movementX * rotationSpeed;
+            const deltaY = evt.movementY * rotationSpeed;
 
-            modelRoot.rotation.y += deltaX * rotationSpeed;
-            modelRoot.rotation.x += deltaY * rotationSpeed;
+            modelRoot.rotation.y = lastYRotation + deltaX;
+            modelRoot.rotation.x = lastXRotation + deltaY;
+
+            // Ограничиваем вращение по X
+            modelRoot.rotation.x = Math.max(-Math.PI/2, Math.min(Math.PI/2, modelRoot.rotation.x));
 
             const angleX = Math.round(modelRoot.rotation.x * 180 / Math.PI);
             const angleY = Math.round(modelRoot.rotation.y * 180 / Math.PI);
-            debugDiv.innerHTML = `Вращение: X=${angleX}°, Y=${angleY}°`;
-
-            lastTouchX = evt.touches[0].clientX;
-            lastTouchY = evt.touches[0].clientY;
+            debugDiv.innerHTML = `Вращение в AR: X=${angleX}°, Y=${angleY}°`;
         }
-    }, { passive: false });
+    });
 
-    canvas.addEventListener("touchend", (evt) => {
-        evt.preventDefault();
-        isTouchRotating = false;
-        debugDiv.innerHTML += "<br>Конец вращения";
-    }, { passive: false });
+    xr.baseExperience.onPointerUpObservable.add(() => {
+        isRotating = false;
+        debugDiv.innerHTML += "<br>Конец вращения в AR";
+    });
 
     xr.onStateChangedObservable.add(state => {
         if (state === BABYLON.WebXRState.IN_XR) {
