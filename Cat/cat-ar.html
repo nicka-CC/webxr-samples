@@ -52,8 +52,7 @@
     {
       "imports": {
         "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
-        "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/",
-        "three-mesh-touch-controls": "https://unpkg.com/three-mesh-touch-controls@1.0.0/dist/three-mesh-touch-controls.js"
+        "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
       }
     }
   </script>
@@ -62,17 +61,13 @@
     import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
     import { ARButton } from 'three/addons/webxr/ARButton.js';
     import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-    import { TouchControls } from 'three-mesh-touch-controls';
 
     let camera, scene, renderer;
     let model, mixer;
     let clock = new THREE.Clock();
     let currentAnimation = null;
     let animations = [];
-    let isRotating = false;
-    let lastRayPosition = null;
-    let rotationSpeed = 5;
-    let touchControls;
+    let controls;
 
     init();
     animate();
@@ -137,15 +132,15 @@
           }
 
           // Инициализируем контролы для модели
-          touchControls = new TouchControls(model, {
-            domElement: renderer.domElement,
-            enableRotate: true,
-            enablePan: false,
-            enableZoom: false,
-            rotateSpeed: 0.5,
-            minPolarAngle: 0,
-            maxPolarAngle: Math.PI / 2
-          });
+          controls = new OrbitControls(model, camera);
+          controls.enableDamping = true;
+          controls.dampingFactor = 0.05;
+          controls.screenSpacePanning = false;
+          controls.minDistance = 1;
+          controls.maxDistance = 10;
+          controls.maxPolarAngle = Math.PI / 2;
+          controls.enableZoom = false;
+          controls.enablePan = false;
         },
         function (xhr) {
           document.getElementById('status').textContent = `Загрузка: ${(xhr.loaded / xhr.total * 100).toFixed(0)}%`;
@@ -158,44 +153,6 @@
 
       // Добавляем кнопку AR
       document.body.appendChild(ARButton.createButton(renderer));
-
-      // Настраиваем WebXR
-      renderer.xr.addEventListener('sessionstart', function() {
-        console.log('AR сессия началась');
-      });
-
-      renderer.xr.addEventListener('sessionend', function() {
-        console.log('AR сессия закончилась');
-        isRotating = false;
-        lastRayPosition = null;
-      });
-
-      // Обработка жестов в AR
-      renderer.xr.addEventListener('selectstart', function() {
-        isRotating = true;
-        console.log('Начало вращения');
-      });
-
-      renderer.xr.addEventListener('selectend', function() {
-        isRotating = false;
-        lastRayPosition = null;
-        console.log('Конец вращения');
-      });
-
-      // Обработка движения в AR
-      renderer.xr.addEventListener('inputsourceschange', function(event) {
-        event.added.forEach((inputSource) => {
-          inputSource.addEventListener('selectstart', () => {
-            isRotating = true;
-            console.log('Начало вращения');
-          });
-          inputSource.addEventListener('selectend', () => {
-            isRotating = false;
-            lastRayPosition = null;
-            console.log('Конец вращения');
-          });
-        });
-      });
 
       // Обработка жестов для анимаций
       let lastTapTime = 0;
@@ -240,41 +197,9 @@
         if (mixer) {
           mixer.update(clock.getDelta());
         }
-        if (touchControls) {
-          touchControls.update();
+        if (controls) {
+          controls.update();
         }
-
-        // Обработка вращения в AR
-        if (isRotating && model && renderer.xr.isPresenting) {
-          const session = renderer.xr.getSession();
-          if (session) {
-            const inputSources = session.inputSources;
-            inputSources.forEach((source) => {
-              if (source.targetRaySpace) {
-                const targetRayPose = renderer.xr.getReferenceSpace().getPose(source.targetRaySpace);
-                if (targetRayPose) {
-                  const position = targetRayPose.transform.position;
-                  
-                  if (lastRayPosition) {
-                    const deltaX = position.x - lastRayPosition.x;
-                    const deltaY = position.y - lastRayPosition.y;
-                    
-                    model.rotation.y += deltaX * rotationSpeed;
-                    model.rotation.x += deltaY * rotationSpeed;
-                    
-                    // Ограничиваем вращение по X
-                    model.rotation.x = Math.max(-Math.PI/2, Math.min(Math.PI/2, model.rotation.x));
-                    
-                    console.log(`Вращение: X=${deltaX.toFixed(2)}, Y=${deltaY.toFixed(2)}`);
-                  }
-                  
-                  lastRayPosition = position;
-                }
-              }
-            });
-          }
-        }
-
         renderer.render(scene, camera);
       });
     }
