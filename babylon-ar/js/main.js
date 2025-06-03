@@ -4,6 +4,7 @@ const debugDiv = document.getElementById("debug");
 const engine = new BABYLON.Engine(canvas, true);
 
 let scene;
+let modelRoot = null;  // Родительский узел для модели
 
 async function createScene() {
     debugDiv.innerHTML = "Создание сцены...";
@@ -32,14 +33,18 @@ async function createScene() {
             debugDiv.innerHTML += "<br>Анимаций нет";
         }
 
-        // Масштабирование и позиционирование модели
+        // Создаем родительский узел для модели
+        modelRoot = new BABYLON.TransformNode("modelRoot", scene);
+
+        // Помещаем все меши под этот узел и настраиваем масштаб и позицию
         result.meshes.forEach(mesh => {
+            mesh.parent = modelRoot;
             mesh.scaling = new BABYLON.Vector3(0.5, 0.5, 0.5);
             mesh.position = new BABYLON.Vector3(0, 0, 10);
-            // Добавляем имя для идентификации модели
-            mesh.name = "arModel";
-            debugDiv.innerHTML += `<br>Модель ${mesh.name} создана`;
         });
+
+        debugDiv.innerHTML += "<br>Модель обернута в TransformNode 'modelRoot'";
+
     } catch (error) {
         debugDiv.innerHTML += `<br>Ошибка загрузки модели: ${error.message}`;
         console.error(error);
@@ -82,54 +87,46 @@ arButton.addEventListener("click", async () => {
         optionalFeatures: ["hit-test"]
     });
 
-    // Добавляем обработку hit-test для размещения модели
-    xr.baseExperience.featuresManager.enableFeature(BABYLON.WebXRHitTest, "latest", {
+    // Включаем hit-test для определения поверхности
+    const hitTestFeature = xr.baseExperience.featuresManager.enableFeature(BABYLON.WebXRHitTest, "latest", {
         xrController: xr.baseExperience.camera
     });
 
-    // Создаем индикатор для отображения точки размещения
-    const hitTestIndicator = BABYLON.MeshBuilder.CreateSphere("hitTestIndicator", {
-        diameter: 0.05
-    }, scene);
+    // Индикатор точки касания (для отладки)
+    const hitTestIndicator = BABYLON.MeshBuilder.CreateSphere("hitTestIndicator", { diameter: 0.05 }, scene);
     hitTestIndicator.isVisible = false;
     hitTestIndicator.material = new BABYLON.StandardMaterial("hitTestMaterial", scene);
     hitTestIndicator.material.emissiveColor = new BABYLON.Color3(1, 0, 0);
 
     // Обработка результатов hit-test
-    xr.baseExperience.featuresManager.getFeature(BABYLON.WebXRHitTest).onHitTestResultObservable.add((results) => {
+    hitTestFeature.onHitTestResultObservable.add((results) => {
         if (results.length) {
             const hit = results[0];
             hitTestIndicator.isVisible = true;
             hitTestIndicator.position = hit.transformationMatrix.getTranslation();
-            
-            // Размещаем модель при тапе
-            xr.baseExperience.onPointerDownObservable.add((evt) => {
-                if (evt.pickInfo.hit) {
-                    scene.meshes.forEach(mesh => {
-                        if (mesh.name !== "ground" && mesh.name !== "debugPlane" && mesh.name !== "hitTestIndicator") {
-                            // Сохраняем текущую высоту модели
-                            const currentY = mesh.position.y;
-                            // Устанавливаем новую позицию, сохраняя высоту
-                            mesh.position = new BABYLON.Vector3(
-                                hit.transformationMatrix.getTranslation().x,
-                                currentY,
-                                hit.transformationMatrix.getTranslation().z
-                            );
-                        }
-                    });
-                    debugDiv.innerHTML += "<br>Модель размещена на поверхности";
-                }
-            });
         } else {
             hitTestIndicator.isVisible = false;
         }
     });
 
-    // Настройка вращения
+    // Размещение модели по тапу
+    xr.baseExperience.onPointerDownObservable.add((evt) => {
+        if (!modelRoot) return;
+        if (evt.pickInfo?.hit) {
+            // Позиция точки на поверхности
+            const pos = hitTestIndicator.position;
+            // Сохраняем высоту модели, чтобы не зарывать в пол
+            const currentY = modelRoot.position.y;
+            modelRoot.position = new BABYLON.Vector3(pos.x, currentY, pos.z);
+            debugDiv.innerHTML += "<br>Модель размещена на поверхности";
+        }
+    });
+
+    // Обработка вращения пальцем
     let isTouchRotating = false;
     let lastTouchX = 0;
     let lastTouchY = 0;
-    const rotationSpeed = 0.05;
+    const rotationSpeed = 0.005;
 
     canvas.addEventListener("touchstart", (evt) => {
         evt.preventDefault();
@@ -138,34 +135,21 @@ arButton.addEventListener("click", async () => {
             lastTouchX = evt.touches[0].clientX;
             lastTouchY = evt.touches[0].clientY;
             debugDiv.innerHTML += "<br>Начало вращения";
-            
-            // Проверяем наличие модели
-            const modelMesh = scene.getMeshByName("arModel");
-            if (modelMesh) {
-                debugDiv.innerHTML += "<br>Модель найдена для вращения";
-            } else {
-                debugDiv.innerHTML += "<br>Модель не найдена!";
-            }
         }
     }, { passive: false });
 
     canvas.addEventListener("touchmove", (evt) => {
         evt.preventDefault();
-        if (isTouchRotating && evt.touches.length === 1) {
+        if (isTouchRotating && evt.touches.length === 1 && modelRoot) {
             const deltaX = evt.touches[0].clientX - lastTouchX;
             const deltaY = evt.touches[0].clientY - lastTouchY;
 
-            const modelMesh = scene.getMeshByName("arModel");
-            if (modelMesh) {
-                modelMesh.rotation.y += deltaX * rotationSpeed;
-                modelMesh.rotation.x += deltaY * rotationSpeed;
-                
-                const angleX = Math.round(modelMesh.rotation.x * 180 / Math.PI);
-                const angleY = Math.round(modelMesh.rotation.y * 180 / Math.PI);
-                debugDiv.innerHTML = `Вращение: X=${angleX}°, Y=${angleY}°`;
-            } else {
-                debugDiv.innerHTML = "Модель не найдена для вращения!";
-            }
+            modelRoot.rotation.y += deltaX * rotationSpeed;
+            modelRoot.rotation.x += deltaY * rotationSpeed;
+
+            const angleX = Math.round(modelRoot.rotation.x * 180 / Math.PI);
+            const angleY = Math.round(modelRoot.rotation.y * 180 / Math.PI);
+            debugDiv.innerHTML = `Вращение: X=${angleX}°, Y=${angleY}°`;
 
             lastTouchX = evt.touches[0].clientX;
             lastTouchY = evt.touches[0].clientY;
