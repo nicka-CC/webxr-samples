@@ -127,7 +127,7 @@ arButton.addEventListener("click", async () => {
     let lastX = 0;
     let lastY = 0;
     let lastTouchDistance = 0;
-    const rotationSpeed = 0.003;
+    const rotationSpeed = 0.01;
     const dragSpeed = 0.01;
 
     // Отключаем камеру Babylon.js при AR
@@ -170,16 +170,25 @@ arButton.addEventListener("click", async () => {
             lastX = evt.touches[0].clientX;
             lastY = evt.touches[0].clientY;
 
-            scene.meshes.forEach(mesh => {
-                if (mesh.name !== "ground" && mesh.name !== "debugPlane" && mesh.name !== "hitTestIndicator") {
-                    mesh.rotation.y += deltaX * rotationSpeed;
-                    mesh.rotation.x += deltaY * rotationSpeed;
-                }
-            });
+            // Находим модель для вращения
+            const modelMesh = scene.meshes.find(mesh => 
+                mesh.name !== "ground" && 
+                mesh.name !== "debugPlane" && 
+                mesh.name !== "hitTestIndicator"
+            );
 
-            const angleX = Math.round(scene.meshes[1].rotation.x * 180 / Math.PI);
-            const angleY = Math.round(scene.meshes[1].rotation.y * 180 / Math.PI);
-            debugDiv.innerHTML = `Вращение: X=${angleX}°, Y=${angleY}°`;
+            if (modelMesh) {
+                // Вращаем модель
+                modelMesh.rotation.y += deltaX * rotationSpeed;
+                modelMesh.rotation.x += deltaY * rotationSpeed;
+
+                // Ограничиваем вращение по X
+                modelMesh.rotation.x = Math.max(-Math.PI/2, Math.min(Math.PI/2, modelMesh.rotation.x));
+
+                const angleX = Math.round(modelMesh.rotation.x * 180 / Math.PI);
+                const angleY = Math.round(modelMesh.rotation.y * 180 / Math.PI);
+                debugDiv.innerHTML = `Вращение: X=${angleX}°, Y=${angleY}°`;
+            }
         } else if (isDragging && evt.touches.length === 2) {
             const currentX = (evt.touches[0].clientX + evt.touches[1].clientX) / 2;
             const currentY = (evt.touches[0].clientY + evt.touches[1].clientY) / 2;
@@ -190,30 +199,31 @@ arButton.addEventListener("click", async () => {
             lastX = currentX;
             lastY = currentY;
 
-            scene.meshes.forEach(mesh => {
-                if (mesh.name !== "ground" && mesh.name !== "debugPlane" && mesh.name !== "hitTestIndicator") {
-                    mesh.position.x += deltaX * dragSpeed;
-                    mesh.position.z += deltaY * dragSpeed;
-                }
-            });
-
-            // Масштабирование при изменении расстояния между пальцами
-            const currentDistance = Math.hypot(
-                evt.touches[0].clientX - evt.touches[1].clientX,
-                evt.touches[0].clientY - evt.touches[1].clientY
+            // Находим модель для перемещения
+            const modelMesh = scene.meshes.find(mesh => 
+                mesh.name !== "ground" && 
+                mesh.name !== "debugPlane" && 
+                mesh.name !== "hitTestIndicator"
             );
-            const scale = currentDistance / lastTouchDistance;
-            lastTouchDistance = currentDistance;
 
-            scene.meshes.forEach(mesh => {
-                if (mesh.name !== "ground" && mesh.name !== "debugPlane" && mesh.name !== "hitTestIndicator") {
-                    mesh.scaling.x *= scale;
-                    mesh.scaling.y *= scale;
-                    mesh.scaling.z *= scale;
-                }
-            });
+            if (modelMesh) {
+                modelMesh.position.x += deltaX * dragSpeed;
+                modelMesh.position.z += deltaY * dragSpeed;
 
-            debugDiv.innerHTML = `Перемещение: X=${Math.round(mesh.position.x * 100) / 100}, Z=${Math.round(mesh.position.z * 100) / 100}`;
+                // Масштабирование при изменении расстояния между пальцами
+                const currentDistance = Math.hypot(
+                    evt.touches[0].clientX - evt.touches[1].clientX,
+                    evt.touches[0].clientY - evt.touches[1].clientY
+                );
+                const scale = currentDistance / lastTouchDistance;
+                lastTouchDistance = currentDistance;
+
+                modelMesh.scaling.x *= scale;
+                modelMesh.scaling.y *= scale;
+                modelMesh.scaling.z *= scale;
+
+                debugDiv.innerHTML = `Перемещение: X=${Math.round(modelMesh.position.x * 100) / 100}, Z=${Math.round(modelMesh.position.z * 100) / 100}`;
+            }
         }
     }, { passive: false });
 
