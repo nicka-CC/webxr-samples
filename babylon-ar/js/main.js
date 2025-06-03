@@ -81,7 +81,8 @@ arButton.addEventListener("click", async () => {
 
     let isRotating = false;
     let lastX = 0;
-    const rotationSpeed = 0.005;
+    let lastY = 0;
+    const rotationSpeed = 0.003;
 
     // Отключаем камеру Babylon.js при AR
     xr.baseExperience.camera.detachControl(canvas);
@@ -90,6 +91,7 @@ arButton.addEventListener("click", async () => {
         if (evt.touches.length === 1) {
             isRotating = true;
             lastX = evt.touches[0].clientX;
+            lastY = evt.touches[0].clientY;
             debugDiv.innerHTML += "<br>Начало вращения";
         }
     }, false);
@@ -102,16 +104,20 @@ arButton.addEventListener("click", async () => {
     canvas.addEventListener("touchmove", (evt) => {
         if (isRotating && evt.touches.length === 1) {
             const deltaX = evt.touches[0].clientX - lastX;
+            const deltaY = evt.touches[0].clientY - lastY;
             lastX = evt.touches[0].clientX;
+            lastY = evt.touches[0].clientY;
 
             scene.meshes.forEach(mesh => {
                 if (mesh.name !== "ground" && mesh.name !== "debugPlane") {
                     mesh.rotation.y += deltaX * rotationSpeed;
+                    mesh.rotation.x += deltaY * rotationSpeed;
                 }
             });
 
-            const angleDeg = Math.round(scene.meshes[1].rotation.y * 180 / Math.PI);
-            debugDiv.innerHTML = `Вращение: ${angleDeg}°`;
+            const angleX = Math.round(scene.meshes[1].rotation.x * 180 / Math.PI);
+            const angleY = Math.round(scene.meshes[1].rotation.y * 180 / Math.PI);
+            debugDiv.innerHTML = `Вращение: X=${angleX}°, Y=${angleY}°`;
         }
     }, false);
 
