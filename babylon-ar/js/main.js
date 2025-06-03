@@ -5,6 +5,17 @@ const engine = new BABYLON.Engine(canvas, true);
 
 let scene;
 let modelRoot = null;  // Родительский узел для модели
+let isRotating = false;
+let lastX = 0;
+let lastY = 0;
+let rotationSpeed = 0.01;
+let currentRotationX = 0;
+let currentRotationY = 0;
+
+// Добавляем поддержку анимаций
+let animations = [];
+let animationMixer = null;
+let currentAnimation = null;
 
 async function createScene() {
     debugDiv.innerHTML = "Создание сцены...";
@@ -28,23 +39,50 @@ async function createScene() {
         // Запуск анимаций, если есть
         if (result.animationGroups && result.animationGroups.length > 0) {
             debugDiv.innerHTML += `<br>Анимаций найдено: ${result.animationGroups.length}`;
-            result.animationGroups.forEach(anim => anim.play(true));
+            result.animationGroups.forEach(anim => {
+                anim.play(true);
+                debugDiv.innerHTML += `<br>Запущена анимация: ${anim.name}`;
+            });
         } else {
             debugDiv.innerHTML += "<br>Анимаций нет";
         }
 
-
         // Создаем родительский узел для модели
         modelRoot = new BABYLON.TransformNode("modelRoot", scene);
         modelRoot.position = new BABYLON.Vector3(0, 0, 10);
+        
         // Помещаем все меши под этот узел и настраиваем масштаб и позицию
         result.meshes.forEach(mesh => {
             mesh.parent = modelRoot;
             mesh.scaling = new BABYLON.Vector3(0.5, 0.5, 0.5);
-            mesh.position = new BABYLON.Vector3.Zero();;
+            mesh.position = new BABYLON.Vector3.Zero();
         });
 
+        // Устанавливаем начальное положение
+        modelRoot.position = new BABYLON.Vector3(0, 0, -0.5);
+        modelRoot.scaling = new BABYLON.Vector3(0.1, 0.1, 0.1);
+
         debugDiv.innerHTML += "<br>Модель обернута в TransformNode 'modelRoot'";
+
+        // Проверяем все анимации в сцене
+        if (scene.animationGroups && scene.animationGroups.length > 0) {
+            debugDiv.innerHTML += `<br>Найдены анимации в сцене: ${scene.animationGroups.length}`;
+            scene.animationGroups.forEach(anim => {
+                anim.play(true);
+                debugDiv.innerHTML += `<br>Запущена анимация из сцены: ${anim.name}`;
+            });
+        }
+
+        // Проверяем все меши на наличие анимаций
+        result.meshes.forEach(mesh => {
+            if (mesh.animations && mesh.animations.length > 0) {
+                debugDiv.innerHTML += `<br>Найдены анимации в меше ${mesh.name}: ${mesh.animations.length}`;
+                mesh.animations.forEach(anim => {
+                    scene.beginAnimation(mesh, 0, 100, true);
+                    debugDiv.innerHTML += `<br>Запущена анимация в меше: ${anim.name}`;
+                });
+            }
+        });
 
     } catch (error) {
         debugDiv.innerHTML += `<br>Ошибка загрузки модели: ${error.message}`;
@@ -135,39 +173,52 @@ arButton.addEventListener("click", async () => {
     rotationController.inputs.attached.pointers.detachControl(canvas);
 
     // Обработка вращения в AR
-    let isRotating = false;
-    let lastXRotation = 0;
-    let lastYRotation = 0;
-
-    xr.baseExperience.onPointerDownObservable.add((evt) => {
-        if (evt.pickInfo?.hit) {
+    xr.baseExperience.onPointerDownObservable.add((pointerInfo) => {
+        if (pointerInfo.type === BABYLON.PointerEventTypes.POINTERDOWN) {
             isRotating = true;
-            lastXRotation = modelController.rotation.x;
-            lastYRotation = modelController.rotation.y;
-            debugDiv.innerHTML += "<br>Начало вращения в AR";
+            lastX = pointerInfo.event.clientX;
+            lastY = pointerInfo.event.clientY;
+            
+            // Останавливаем текущую анимацию при начале вращения
+            if (currentAnimation) {
+                currentAnimation.stop();
+            }
+            
+            console.log("Начало вращения");
         }
     });
 
-    xr.baseExperience.onPointerMoveObservable.add((evt) => {
-        if (isRotating && modelController) {
-            const deltaX = evt.movementX * 0.01;
-            const deltaY = evt.movementY * 0.01;
-
-            modelController.rotation.y = lastYRotation + deltaX;
-            modelController.rotation.x = lastXRotation + deltaY;
-
+    xr.baseExperience.onPointerMoveObservable.add((pointerInfo) => {
+        if (isRotating && modelRoot) {
+            const deltaX = pointerInfo.event.clientX - lastX;
+            const deltaY = pointerInfo.event.clientY - lastY;
+            
+            currentRotationY += deltaX * rotationSpeed;
+            currentRotationX += deltaY * rotationSpeed;
+            
             // Ограничиваем вращение по X
-            modelController.rotation.x = Math.max(-Math.PI/2, Math.min(Math.PI/2, modelController.rotation.x));
-
-            const angleX = Math.round(modelController.rotation.x * 180 / Math.PI);
-            const angleY = Math.round(modelController.rotation.y * 180 / Math.PI);
-            debugDiv.innerHTML = `Вращение в AR: X=${angleX}°, Y=${angleY}°`;
+            currentRotationX = Math.max(-Math.PI/2, Math.min(Math.PI/2, currentRotationX));
+            
+            modelRoot.rotation = new BABYLON.Vector3(currentRotationX, currentRotationY, 0);
+            
+            lastX = pointerInfo.event.clientX;
+            lastY = pointerInfo.event.clientY;
+            
+            console.log(`Вращение: X=${currentRotationX.toFixed(2)}, Y=${currentRotationY.toFixed(2)}`);
         }
     });
 
-    xr.baseExperience.onPointerUpObservable.add(() => {
-        isRotating = false;
-        debugDiv.innerHTML += "<br>Конец вращения в AR";
+    xr.baseExperience.onPointerUpObservable.add((pointerInfo) => {
+        if (pointerInfo.type === BABYLON.PointerEventTypes.POINTERUP) {
+            isRotating = false;
+            
+            // Возобновляем анимацию после вращения
+            if (currentAnimation) {
+                currentAnimation.start(true);
+            }
+            
+            console.log("Конец вращения");
+        }
     });
 
     // Добавляем обработку жестов масштабирования

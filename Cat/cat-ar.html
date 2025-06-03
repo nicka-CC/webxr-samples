@@ -50,6 +50,32 @@
       font-size: 12px;
       text-align: right;
     }
+    #modelInfo {
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      background-color: rgba(0, 0, 0, 0.7);
+      color: white;
+      padding: 10px;
+      border-radius: 5px;
+      font-family: monospace;
+      z-index: 3;
+      font-size: 12px;
+      max-width: 300px;
+    }
+    #modelInfo h3 {
+      margin: 0 0 10px 0;
+      color: #4CAF50;
+    }
+    #modelInfo p {
+      margin: 5px 0;
+    }
+    #modelInfo .status {
+      color: #4CAF50;
+    }
+    #modelInfo .error {
+      color: #f44336;
+    }
   </style>
   <script type="module">
     import {WebXRButton} from '../js/util/webxr-button.js';
@@ -109,7 +135,101 @@
     model.translation = [0, 0, -5];
     scene.addNode(model);
     console.log('model',model)
-    // Добавляем обработку клавиш
+
+    // Функция для управления анимациями
+    let currentAnimationIndex = 0;
+    let isPlaying = true;
+    let lastTapTime = 0;
+    let animationGroups = [];
+
+    // Создаем информационное окно
+    const modelInfoDiv = document.createElement('div');
+    modelInfoDiv.id = 'modelInfo';
+    modelInfoDiv.innerHTML = `
+      <h3>Информация о модели</h3>
+      <p>Статус загрузки: <span id="loadStatus">Ожидание...</span></p>
+      <p>Анимации: <span id="animationsStatus">Проверка...</span></p>
+      <p>Текущая анимация: <span id="currentAnimation">-</span></p>
+      <p>Состояние: <span id="animationState">-</span></p>
+      <p>Управление:</p>
+      <p>- Пробел: Пауза/Воспроизведение</p>
+      <p>- N: Следующая анимация</p>
+      <p>- В AR: Тап для смены анимации</p>
+    `;
+    document.body.appendChild(modelInfoDiv);
+
+    function updateModelInfo(type, message, isError = false) {
+      const element = document.getElementById(type);
+      if (element) {
+        element.textContent = message;
+        element.className = isError ? 'error' : 'status';
+      }
+    }
+
+    // Обработчик загрузки модели
+    model.onLoad = () => {
+      console.log("Модель загружена:", model);
+      
+      // Получаем все анимации из модели
+      if (model.animations) {
+        animationGroups = model.animations;
+        console.log("Анимации:", animationGroups);
+        
+        updateModelInfo('loadStatus', 'Загружена');
+        updateModelInfo('animationsStatus', `Найдено: ${animationGroups.length}`);
+        
+        if (animationGroups.length > 0) {
+          // Запускаем первую анимацию
+          animationGroups[0].play(true);
+          updateModelInfo('currentAnimation', '1');
+          updateModelInfo('animationState', 'Воспроизводится');
+        } else {
+          updateModelInfo('animationsStatus', 'Не найдено', true);
+          updateModelInfo('currentAnimation', '-');
+          updateModelInfo('animationState', 'Нет анимаций', true);
+        }
+      }
+    };
+
+    function playNextAnimation() {
+      if (animationGroups.length > 0) {
+        // Останавливаем текущую анимацию
+        if (animationGroups[currentAnimationIndex]) {
+          animationGroups[currentAnimationIndex].stop();
+        }
+        
+        // Переключаемся на следующую
+        currentAnimationIndex = (currentAnimationIndex + 1) % animationGroups.length;
+        animationGroups[currentAnimationIndex].play(true);
+        
+        updateModelInfo('currentAnimation', `${currentAnimationIndex + 1}/${animationGroups.length}`);
+        updateModelInfo('animationState', 'Воспроизводится');
+      }
+    }
+
+    function toggleAnimation() {
+      if (animationGroups.length > 0) {
+        if (isPlaying) {
+          animationGroups[currentAnimationIndex].stop();
+          updateModelInfo('animationState', 'На паузе');
+        } else {
+          animationGroups[currentAnimationIndex].play(true);
+          updateModelInfo('animationState', 'Воспроизводится');
+        }
+        isPlaying = !isPlaying;
+      }
+    }
+
+    // Добавляем обработку клавиш для управления анимациями
+    window.addEventListener('keydown', (e) => {
+      if (e.key === ' ') { // Пробел для паузы/воспроизведения
+        toggleAnimation();
+      } else if (e.key === 'n') { // N для следующей анимации
+        playNextAnimation();
+      }
+    });
+
+    // Добавляем обработку клавиш для движения
     const keys = {
       ArrowUp: false,
       ArrowDown: false,
@@ -132,14 +252,6 @@
         keys[e.key] = false;
       }
     });
-    model.onLoad = () => {
-      console.log("Модель загружена:", model);
-      console.log("Материалы:", model.materials);
-      // если есть анимации — запустить первую
-      if (model.animations && model.animations.length > 0) {
-        model.playAnimation(0);
-      }
-    };
 
     function updateCatPosition() {
       const moveSpeed = 0.01;
@@ -220,7 +332,10 @@
     document.body.appendChild(debugInfo);
 
     function updateDebugInfo(message) {
-      debugInfo.textContent = message;
+      const debugDiv = document.getElementById('debug');
+      if (debugDiv) {
+        debugDiv.innerHTML = message;
+      }
     }
 
     function onSessionStarted(session) {
@@ -238,7 +353,9 @@
 
           // Добавляем обработчики для AR сессии
           session.addEventListener('select', (event) => {
-            updateDebugInfo('Выбрано: ' + JSON.stringify(event.inputSource));
+            if (animationGroups.length > 0) {
+              playNextAnimation();
+            }
           });
 
           session.addEventListener('selectstart', (event) => {
@@ -249,6 +366,17 @@
           session.addEventListener('selectend', (event) => {
             isRotating = false;
             updateDebugInfo('Конец вращения');
+          });
+
+          // Добавляем обработку жестов для управления анимациями
+          session.addEventListener('inputsourceschange', (event) => {
+            event.added.forEach((inputSource) => {
+              inputSource.addEventListener('selectstart', () => {
+                if (animationGroups.length > 0) {
+                  toggleAnimation();
+                }
+              });
+            });
           });
 
           xrImmersiveRefSpace.addEventListener('reset', (evt) => {
