@@ -60,14 +60,15 @@
     import * as THREE from 'three';
     import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
     import { ARButton } from 'three/addons/webxr/ARButton.js';
-    import { TouchControls } from 'three/addons/controls/TouchControls.js';
 
     let camera, scene, renderer;
     let model, mixer;
     let clock = new THREE.Clock();
     let currentAnimation = null;
     let animations = [];
-    let touchControls;
+    let isDragging = false;
+    let previousTouchPosition = { x: 0, y: 0 };
+    let rotationSpeed = 0.01;
 
     init();
     animate();
@@ -131,31 +132,19 @@
             document.getElementById('status').textContent = 'Нет анимаций';
           }
 
-          // Инициализируем контролы для модели
-          touchControls = new TouchControls(camera, renderer.domElement);
-          touchControls.addEventListener('move', function(event) {
-            if (model) {
-              model.rotation.y += event.deltaX * 0.01;
-              model.rotation.x += event.deltaY * 0.01;
-              
-              // Ограничиваем вращение по X
-              model.rotation.x = Math.max(-Math.PI/2, Math.min(Math.PI/2, model.rotation.x));
-            }
-          });
+          // Инициализируем обработчики тач-событий
+          renderer.domElement.addEventListener('touchstart', onTouchStart, false);
+          renderer.domElement.addEventListener('touchmove', onTouchMove, false);
+          renderer.domElement.addEventListener('touchend', onTouchEnd, false);
 
           // Добавляем обработчики для AR
           renderer.xr.addEventListener('sessionstart', function() {
             console.log('AR сессия началась');
-            if (touchControls) {
-              touchControls.enabled = true;
-            }
           });
 
           renderer.xr.addEventListener('sessionend', function() {
             console.log('AR сессия закончилась');
-            if (touchControls) {
-              touchControls.enabled = false;
-            }
+            isDragging = false;
           });
         },
         function (xhr) {
@@ -208,13 +197,44 @@
       renderer.setSize(window.innerWidth, window.innerHeight);
     }
 
+    function onTouchStart(event) {
+      event.preventDefault();
+      isDragging = true;
+      previousTouchPosition = {
+        x: event.touches[0].clientX,
+        y: event.touches[0].clientY
+      };
+    }
+
+    function onTouchMove(event) {
+      event.preventDefault();
+      if (!isDragging || !model) return;
+
+      const touch = event.touches[0];
+      const deltaX = touch.clientX - previousTouchPosition.x;
+      const deltaY = touch.clientY - previousTouchPosition.y;
+
+      model.rotation.y += deltaX * rotationSpeed;
+      model.rotation.x += deltaY * rotationSpeed;
+
+      // Ограничиваем вращение по X
+      model.rotation.x = Math.max(-Math.PI/2, Math.min(Math.PI/2, model.rotation.x));
+
+      previousTouchPosition = {
+        x: touch.clientX,
+        y: touch.clientY
+      };
+    }
+
+    function onTouchEnd(event) {
+      event.preventDefault();
+      isDragging = false;
+    }
+
     function animate() {
       renderer.setAnimationLoop(function() {
         if (mixer) {
           mixer.update(clock.getDelta());
-        }
-        if (touchControls) {
-          touchControls.update();
         }
         renderer.render(scene, camera);
       });
