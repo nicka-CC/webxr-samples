@@ -6,8 +6,6 @@
   <meta name='mobile-web-app-capable' content='yes'>
   <meta name='apple-mobile-web-app-capable' content='yes'>
   <title>AR Котики</title>
-  <link rel='stylesheet' href='../css/stylesheet.css'>
-  <link rel='stylesheet' href='../css/pygment_trac.css'>
   <style>
     body {
       margin: 0;
@@ -23,34 +21,7 @@
       height: 100%;
       z-index: 1;
     }
-    header {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      z-index: 2;
-      background-color: rgba(0, 0, 0, 0.7);
-    }
-    header details {
-      color: white;
-    }
-    header a {
-      color: #fff;
-    }
-    #debug {
-      position: fixed;
-      top: 10px;
-      right: 10px;
-      background-color: rgba(0, 0, 0, 0.7);
-      color: white;
-      padding: 10px;
-      border-radius: 5px;
-      font-family: monospace;
-      z-index: 3;
-      font-size: 12px;
-      text-align: right;
-    }
-    #modelInfo {
+    #info {
       position: fixed;
       top: 10px;
       left: 10px;
@@ -63,400 +34,162 @@
       font-size: 12px;
       max-width: 300px;
     }
-    #modelInfo h3 {
+    #info h3 {
       margin: 0 0 10px 0;
       color: #4CAF50;
     }
-    #modelInfo p {
+    #info p {
       margin: 5px 0;
     }
-    #modelInfo .status {
+    #info .status {
       color: #4CAF50;
     }
-    #modelInfo .error {
+    #info .error {
       color: #f44336;
     }
   </style>
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+      }
+    }
+  </script>
   <script type="module">
-    import {WebXRButton} from '../js/util/webxr-button.js';
-    import {Scene} from '../js/render/scenes/scene.js';
-    import {Renderer, createWebGLContext} from '../js/render/core/renderer.js';
-    import {Gltf2Node} from '../js/render/nodes/gltf2.js';
-    import {QueryArgs} from '../js/util/query-args.js';
-    import {InlineViewerHelper} from '../js/util/inline-viewer-helper.js';
-    import {Node} from '../js/render/core/node.js';
+    import * as THREE from 'three';
+    import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+    import { ARButton } from 'three/addons/webxr/ARButton.js';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
-    // Если требуется, используем полифилл для поддержки мобильных устройств
-    import WebXRPolyfill from '../js/third-party/webxr-polyfill/build/webxr-polyfill.module.js';
-    if (QueryArgs.getBool('usePolyfill', true)) {
-      let polyfill = new WebXRPolyfill();
-    }
+    let camera, scene, renderer;
+    let model, mixer;
+    let clock = new THREE.Clock();
+    let currentAnimation = null;
+    let animations = [];
 
-    // XR глобальные переменные
-    let xrButton = null;
-    let xrImmersiveRefSpace = null;
-    let inlineViewerHelper = null;
+    init();
+    animate();
 
-    // WebGL глобальные переменные
-    let gl = null;
-    let renderer = null;
-    let scene = new Scene();
+    function init() {
+      // Создаем сцену
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x000000);
 
-    // Добавляем освещение
-    const directionalLight = new Node();
-    directionalLight.light = {
-      type: 'directional',
-      color: {r: 1, g: 1, b: 1},
-      intensity: 2.0,
-      direction: {x: 0, y: -1, z: 0}
-    };
-    scene.addNode(directionalLight);
+      // Создаем камеру
+      camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 20);
+      camera.position.set(0, 1.6, 3);
 
-    // Добавляем фоновое освещение
-    const ambientLight = new Node();
-    ambientLight.light = {
-      type: 'ambient',
-      color: {r: 0.5, g: 0.5, b: 0.5},
-      intensity: 1.5
-    };
-    scene.addNode(ambientLight);
+      // Создаем рендерер
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      renderer.setPixelRatio(window.devicePixelRatio);
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.xr.enabled = true;
+      document.body.appendChild(renderer.domElement);
 
-    // Создаем корневой узел для модели
-    const modelNode = new Node();
-    modelNode.scale = [0.5, 0.5, 0.5];
-    modelNode.translation = [0, 0, -4];
-    scene.addNode(modelNode);
+      // Добавляем освещение
+      const light = new THREE.HemisphereLight(0xffffff, 0xbbbbff, 1);
+      light.position.set(0.5, 1, 0.25);
+      scene.add(light);
 
-    // Создаем модель
-    let model = new Gltf2Node({
-      url: './untitled.glb'
-    });
-    model.scale = [20, 20, 20];
-    model.translation = [0, 0, -5];
-    scene.addNode(model);
-    console.log('model',model)
+      // Создаем информационное окно
+      const infoDiv = document.createElement('div');
+      infoDiv.id = 'info';
+      infoDiv.innerHTML = `
+        <h3>AR Котики</h3>
+        <p>Статус: <span id="status">Загрузка...</span></p>
+        <p>Анимации: <span id="animations">Проверка...</span></p>
+        <p>Управление:</p>
+        <p>- Тап: Сменить анимацию</p>
+        <p>- Двойной тап: Пауза/Воспроизведение</p>
+      `;
+      document.body.appendChild(infoDiv);
 
-    // Функция для управления анимациями
-    let currentAnimationIndex = 0;
-    let isPlaying = true;
-    let lastTapTime = 0;
-    let animationGroups = [];
+      // Загружаем модель
+      const loader = new GLTFLoader();
+      loader.load(
+        './untitled.glb',
+        function (gltf) {
+          model = gltf.scene;
+          model.scale.set(0.1, 0.1, 0.1);
+          scene.add(model);
 
-    // Создаем информационное окно
-    const modelInfoDiv = document.createElement('div');
-    modelInfoDiv.id = 'modelInfo';
-    modelInfoDiv.innerHTML = `
-      <h3>Информация о модели</h3>
-      <p>Статус загрузки: <span id="loadStatus">Ожидание...</span></p>
-      <p>Анимации: <span id="animationsStatus">Проверка...</span></p>
-      <p>Текущая анимация: <span id="currentAnimation">-</span></p>
-      <p>Состояние: <span id="animationState">-</span></p>
-      <p>Управление:</p>
-      <p>- Пробел: Пауза/Воспроизведение</p>
-      <p>- N: Следующая анимация</p>
-      <p>- В AR: Тап для смены анимации</p>
-    `;
-    document.body.appendChild(modelInfoDiv);
-
-    function updateModelInfo(type, message, isError = false) {
-      const element = document.getElementById(type);
-      if (element) {
-        element.textContent = message;
-        element.className = isError ? 'error' : 'status';
-      }
-    }
-
-    // Обработчик загрузки модели
-    model.onLoad = () => {
-      console.log("Модель загружена:", model);
-      
-      // Получаем все анимации из модели
-      if (model.animations) {
-        animationGroups = model.animations;
-        console.log("Анимации:", animationGroups);
-        
-        updateModelInfo('loadStatus', 'Загружена');
-        updateModelInfo('animationsStatus', `Найдено: ${animationGroups.length}`);
-        
-        if (animationGroups.length > 0) {
-          // Запускаем первую анимацию
-          animationGroups[0].play(true);
-          updateModelInfo('currentAnimation', '1');
-          updateModelInfo('animationState', 'Воспроизводится');
-        } else {
-          updateModelInfo('animationsStatus', 'Не найдено', true);
-          updateModelInfo('currentAnimation', '-');
-          updateModelInfo('animationState', 'Нет анимаций', true);
+          // Настраиваем анимации
+          mixer = new THREE.AnimationMixer(model);
+          animations = gltf.animations;
+          
+          if (animations && animations.length > 0) {
+            document.getElementById('animations').textContent = `Найдено: ${animations.length}`;
+            document.getElementById('status').textContent = 'Готово';
+            
+            // Запускаем первую анимацию
+            currentAnimation = mixer.clipAction(animations[0]);
+            currentAnimation.play();
+          } else {
+            document.getElementById('animations').textContent = 'Не найдено';
+            document.getElementById('status').textContent = 'Нет анимаций';
+          }
+        },
+        function (xhr) {
+          document.getElementById('status').textContent = `Загрузка: ${(xhr.loaded / xhr.total * 100).toFixed(0)}%`;
+        },
+        function (error) {
+          document.getElementById('status').textContent = 'Ошибка загрузки';
+          console.error(error);
         }
-      }
-    };
+      );
 
-    function playNextAnimation() {
-      if (animationGroups.length > 0) {
-        // Останавливаем текущую анимацию
-        if (animationGroups[currentAnimationIndex]) {
-          animationGroups[currentAnimationIndex].stop();
-        }
+      // Добавляем кнопку AR
+      document.body.appendChild(ARButton.createButton(renderer));
+
+      // Обработка жестов
+      let lastTapTime = 0;
+      renderer.domElement.addEventListener('click', function(event) {
+        const currentTime = new Date().getTime();
+        const tapLength = currentTime - lastTapTime;
         
-        // Переключаемся на следующую
-        currentAnimationIndex = (currentAnimationIndex + 1) % animationGroups.length;
-        animationGroups[currentAnimationIndex].play(true);
-        
-        updateModelInfo('currentAnimation', `${currentAnimationIndex + 1}/${animationGroups.length}`);
-        updateModelInfo('animationState', 'Воспроизводится');
-      }
-    }
-
-    function toggleAnimation() {
-      if (animationGroups.length > 0) {
-        if (isPlaying) {
-          animationGroups[currentAnimationIndex].stop();
-          updateModelInfo('animationState', 'На паузе');
-        } else {
-          animationGroups[currentAnimationIndex].play(true);
-          updateModelInfo('animationState', 'Воспроизводится');
-        }
-        isPlaying = !isPlaying;
-      }
-    }
-
-    // Добавляем обработку клавиш для управления анимациями
-    window.addEventListener('keydown', (e) => {
-      if (e.key === ' ') { // Пробел для паузы/воспроизведения
-        toggleAnimation();
-      } else if (e.key === 'n') { // N для следующей анимации
-        playNextAnimation();
-      }
-    });
-
-    // Добавляем обработку клавиш для движения
-    const keys = {
-      ArrowUp: false,
-      ArrowDown: false,
-      ArrowLeft: false,
-      ArrowRight: false,
-      w: false,
-      s: false,
-      a: false,
-      d: false
-    };
-
-    window.addEventListener('keydown', (e) => {
-      if (keys.hasOwnProperty(e.key)) {
-        keys[e.key] = true;
-      }
-    });
-
-    window.addEventListener('keyup', (e) => {
-      if (keys.hasOwnProperty(e.key)) {
-        keys[e.key] = false;
-      }
-    });
-
-    function updateCatPosition() {
-      const moveSpeed = 0.01;
-      if (keys.ArrowUp || keys.w) {
-        model.translation[2] -= moveSpeed;
-      }
-      if (keys.ArrowDown || keys.s) {
-        model.translation[2] += moveSpeed;
-      }
-      if (keys.ArrowLeft || keys.a) {
-        model.translation[0] -= moveSpeed;
-      }
-      if (keys.ArrowRight || keys.d) {
-        model.translation[0] += moveSpeed;
-      }
-    }
-
-    function initXR() {
-      xrButton = new WebXRButton({
-        onRequestSession: onRequestSession,
-        onEndSession: onEndSession,
-        textEnterXRTitle: "START AR",
-        textXRNotFoundTitle: "AR NOT FOUND",
-        textExitXRTitle: "EXIT AR",
-      });
-      document.querySelector('header').appendChild(xrButton.domElement);
-
-      if (navigator.xr) {
-        navigator.xr.isSessionSupported('immersive-ar').then((supported) => {
-          xrButton.enabled = supported;
-        });
-
-        // Инициализируем WebGL сразу
-        initGL();
-        // Запускаем inline сессию
-        navigator.xr.requestSession('inline').then(onSessionStarted);
-      }
-    }
-
-    function onRequestSession() {
-      return navigator.xr.requestSession('immersive-ar')
-              .then((session) => {
-                xrButton.setSession(session);
-                session.isImmersive = true;
-                onSessionStarted(session);
-              });
-    }
-
-    function initGL() {
-      if (gl)
-        return;
-
-      gl = createWebGLContext({
-        xrCompatible: true
-      });
-      document.body.appendChild(gl.canvas);
-
-      function onResize() {
-        gl.canvas.width = gl.canvas.clientWidth * window.devicePixelRatio;
-        gl.canvas.height = gl.canvas.clientHeight * window.devicePixelRatio;
-      }
-      window.addEventListener('resize', onResize);
-      onResize();
-
-      renderer = new Renderer(gl);
-      scene.setRenderer(renderer);
-    }
-
-    // Глобальные переменные для отслеживания позиции луча
-    let lastRayPosition = null;
-    let isRotating = false;
-    let lastTouchX = 0;
-    let lastTouchY = 0;
-
-    // Добавляем отладочную информацию
-    const debugInfo = document.createElement('div');
-    debugInfo.id = 'debug';
-    document.body.appendChild(debugInfo);
-
-    function updateDebugInfo(message) {
-      const debugDiv = document.getElementById('debug');
-      if (debugDiv) {
-        debugDiv.innerHTML = message;
-      }
-    }
-
-    function onSessionStarted(session) {
-      session.addEventListener('end', onSessionEnded);
-
-      initGL();
-
-      session.updateRenderState({ baseLayer: new XRWebGLLayer(session, gl) });
-
-      let refSpaceType = session.isImmersive ? 'local' : 'viewer';
-      session.requestReferenceSpace(refSpaceType).then((refSpace) => {
-        if (session.isImmersive) {
-          xrImmersiveRefSpace = refSpace;
-          updateDebugInfo('AR сессия запущена');
-
-          // Добавляем обработчики для AR сессии
-          session.addEventListener('select', (event) => {
-            if (animationGroups.length > 0) {
-              playNextAnimation();
+        if (tapLength < 300 && tapLength > 0) {
+          // Двойной тап - пауза/воспроизведение
+          if (currentAnimation) {
+            if (currentAnimation.isRunning()) {
+              currentAnimation.stop();
+            } else {
+              currentAnimation.play();
             }
-          });
-
-          session.addEventListener('selectstart', (event) => {
-            isRotating = true;
-            updateDebugInfo('Начало вращения');
-          });
-
-          session.addEventListener('selectend', (event) => {
-            isRotating = false;
-            updateDebugInfo('Конец вращения');
-          });
-
-          // Добавляем обработку жестов для управления анимациями
-          session.addEventListener('inputsourceschange', (event) => {
-            event.added.forEach((inputSource) => {
-              inputSource.addEventListener('selectstart', () => {
-                if (animationGroups.length > 0) {
-                  toggleAnimation();
-                }
-              });
-            });
-          });
-
-          xrImmersiveRefSpace.addEventListener('reset', (evt) => {
-            if (evt.transform) {
-              xrImmersiveRefSpace = xrImmersiveRefSpace.getOffsetReferenceSpace(evt.transform);
-            }
-          });
+          }
         } else {
-          inlineViewerHelper = new InlineViewerHelper(gl.canvas, refSpace);
+          // Одинарный тап - следующая анимация
+          if (animations && animations.length > 0) {
+            const currentIndex = animations.indexOf(currentAnimation.getClip());
+            const nextIndex = (currentIndex + 1) % animations.length;
+            currentAnimation = mixer.clipAction(animations[nextIndex]);
+            currentAnimation.play();
+          }
         }
-        session.requestAnimationFrame(onXRFrame);
+        
+        lastTapTime = currentTime;
+      });
+
+      // Обработка изменения размера окна
+      window.addEventListener('resize', onWindowResize);
+    }
+
+    function onWindowResize() {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    function animate() {
+      renderer.setAnimationLoop(function() {
+        if (mixer) {
+          mixer.update(clock.getDelta());
+        }
+        renderer.render(scene, camera);
       });
     }
-
-    function onEndSession(session) {
-      session.end();
-    }
-
-    function onSessionEnded(event) {
-      if (event.session.isImmersive) {
-        xrButton.setSession(null);
-      }
-    }
-
-    function onXRFrame(t, frame) {
-      let session = frame.session;
-      let refSpace = session.isImmersive ?
-              xrImmersiveRefSpace :
-              inlineViewerHelper.referenceSpace;
-      let pose = frame.getViewerPose(refSpace);
-
-      scene.startFrame();
-
-      if (pose) {
-        // Обработка вращения в AR режиме
-        if (session.isImmersive && isRotating) {
-          const inputSources = frame.session.inputSources;
-          inputSources.forEach((source) => {
-            if (source.targetRaySpace) {
-              const targetRayPose = frame.getPose(source.targetRaySpace, refSpace);
-              if (targetRayPose) {
-                const position = targetRayPose.transform.position;
-
-                if (lastRayPosition) {
-                  const deltaX = position.x - lastRayPosition.x;
-                  const deltaY = position.y - lastRayPosition.y;
-
-                  model.rotation[1] += deltaX * 5; // Горизонтальное вращение
-                  model.rotation[0] += deltaY * 5; // Вертикальное вращение
-
-                  updateDebugInfo(`Вращение: X=${deltaX.toFixed(2)}, Y=${deltaY.toFixed(2)}`);
-                }
-
-                lastRayPosition = position;
-              }
-            }
-          });
-        }
-
-        // Рендерим сцену
-        scene.drawXRFrame(frame, pose);
-      }
-
-      scene.endFrame();
-      session.requestAnimationFrame(onXRFrame);
-    }
-
-    // Запускаем XR приложение
-    initXR();
   </script>
 </head>
 <body>
-<header>
-  <details open>
-    <summary>AR Котики</summary>
-    <p>
-      Летающий кот в AR.
-      <a class="back" href="../">Назад</a>
-    </p>
-  </details>
-</header>
 </body>
 </html>
