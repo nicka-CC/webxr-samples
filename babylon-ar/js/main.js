@@ -149,42 +149,33 @@ arButton.addEventListener("click", async () => {
                     updateDebug("Конец вращения");
                 });
 
-                xr.onPointerMoveObservable.add((evt) => {
-                    if (!isRotating) return;
+                scene.onPointerObservable.add((pointerInfo) => {
+                    switch (pointerInfo.type) {
+                        case BABYLON.PointerEventTypes.POINTERDOWN:
+                            isRotating = true;
+                            lastPointerX = pointerInfo.event.clientX;
+                            updateDebug("Начало вращения");
+                            break;
+                        case BABYLON.PointerEventTypes.POINTERUP:
+                            isRotating = false;
+                            updateDebug("Конец вращения");
+                            break;
+                        case BABYLON.PointerEventTypes.POINTERMOVE:
+                            if (isRotating) {
+                                const deltaX = pointerInfo.event.clientX - lastPointerX;
+                                lastPointerX = pointerInfo.event.clientX;
 
-                    const deltaX = evt.pointerX - lastPointerX;
-                    const deltaY = evt.pointerY - lastPointerY;
+                                // Вращаем все меши кроме ground и debugPlane
+                                scene.meshes.forEach(mesh => {
+                                    if (mesh.name !== "ground" && mesh.name !== "debugPlane") {
+                                        mesh.rotation.y += deltaX * rotationSpeed;
+                                    }
+                                });
 
-                    // Вращаем все меши, кроме ground и debugPlane
-                    scene.meshes.forEach(mesh => {
-                        if (mesh.name !== "ground" && mesh.name !== "debugPlane") {
-                            // Создаем матрицу вращения
-                            const rotationMatrix = BABYLON.Matrix.RotationY(deltaX * rotationSpeed)
-                                .multiply(BABYLON.Matrix.RotationX(deltaY * rotationSpeed));
-                            
-                            // Применяем вращение к текущей позиции
-                            const currentPosition = mesh.position.clone();
-                            const currentRotation = mesh.rotation.clone();
-                            
-                            // Вращаем вокруг текущей позиции
-                            const rotatedPosition = BABYLON.Vector3.TransformCoordinates(
-                                currentPosition,
-                                rotationMatrix
-                            );
-                            
-                            mesh.position = rotatedPosition;
-                            mesh.rotation = currentRotation.add(new BABYLON.Vector3(
-                                deltaY * rotationSpeed,
-                                deltaX * rotationSpeed,
-                                0
-                            ));
-                        }
-                    });
-
-                    updateDebug(`Вращение: X=${Math.round(scene.meshes[1].rotation.x * 180 / Math.PI)}°, Y=${Math.round(scene.meshes[1].rotation.y * 180 / Math.PI)}°`);
-
-                    lastPointerX = evt.pointerX;
-                    lastPointerY = evt.pointerY;
+                                updateDebug(`Вращение: ${Math.round(scene.meshes[1].rotation.y * 180 / Math.PI)}°`);
+                            }
+                            break;
+                    }
                 });
 
                 // Добавляем возможность размещения модели по тапу
