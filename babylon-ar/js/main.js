@@ -33,6 +33,7 @@ async function createScene() {
             debugDiv.innerHTML += "<br>Анимаций нет";
         }
 
+
         // Создаем родительский узел для модели
         modelRoot = new BABYLON.TransformNode("modelRoot", scene);
         modelRoot.position = new BABYLON.Vector3(0, 0, 10);
