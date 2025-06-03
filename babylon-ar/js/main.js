@@ -93,95 +93,48 @@ arButton.addEventListener("click", async () => {
     if (xr) {
         xr.onStateChangedObservable.add((state) => {
             if (state === BABYLON.WebXRState.IN_XR) {
-                debugDiv.innerHTML += "<br>AR сессия началась";
-                arButton.style.display = "none";
+                debugDiv.innerHTML += "<br>Добавляем обработчики касаний для AR";
 
-                // Создаем прямоугольник с отладочной информацией
-                const debugPlane = BABYLON.MeshBuilder.CreatePlane("debugPlane", {
-                    width: 0.5,
-                    height: 0.3
-                }, scene);
-                
-                // Создаем материал для прямоугольника
-                const debugMaterial = new BABYLON.StandardMaterial("debugMaterial", scene);
-                debugMaterial.diffuseColor = new BABYLON.Color3(0, 0, 0);
-                debugMaterial.alpha = 0.7;
-                debugPlane.material = debugMaterial;
-
-                // Создаем динамическую текстуру для отображения текста
-                const debugTexture = new BABYLON.DynamicTexture("debugTexture", {
-                    width: 512,
-                    height: 256
-                }, scene);
-                debugMaterial.diffuseTexture = debugTexture;
-                debugMaterial.emissiveTexture = debugTexture;
-                debugMaterial.diffuseTexture.hasAlpha = true;
-
-                // Функция обновления отладочной информации
-                function updateDebug(message) {
-                    // Обновляем текстуру
-                    debugTexture.clear();
-                    debugTexture.drawText(message, null, 40, "bold 24px Arial", "white", "transparent", true);
-                    
-                    // Позиционируем прямоугольник перед камерой
-                    const cameraPosition = xr.baseExperience.camera.position;
-                    const cameraDirection = xr.baseExperience.camera.getDirection(new BABYLON.Vector3(0, 0, 1));
-                    debugPlane.position = cameraPosition.add(cameraDirection.scale(0.5));
-                    debugPlane.lookAt(cameraPosition);
-                }
-                
-                // Добавляем обработку вращения модели в AR
                 let isRotating = false;
-                let lastPointerX = 0;
-                let lastPointerY = 0;
-                let rotationSpeed = 0.01;
+                let lastX = 0;
+                const rotationSpeed = 0.005;
 
-                // Обработка касания для вращения в AR
-                xr.onPointerDownObservable.add((evt) => {
-                    isRotating = true;
-                    lastPointerX = evt.pointerX;
-                    lastPointerY = evt.pointerY;
-                    updateDebug("Начало вращения");
-                });
+// Вращение по свайпу
+                canvas.addEventListener("touchstart", (evt) => {
+                    if (evt.touches.length === 1) {
+                        isRotating = true;
+                        lastX = evt.touches[0].clientX;
+                        updateDebug("Начало вращения");
+                    }
+                }, false);
 
-                xr.onPointerUpObservable.add(() => {
+                canvas.addEventListener("touchend", () => {
                     isRotating = false;
                     updateDebug("Конец вращения");
-                });
+                }, false);
 
-                scene.onPointerObservable.add((pointerInfo) => {
-                    switch (pointerInfo.type) {
-                        case BABYLON.PointerEventTypes.POINTERDOWN:
-                            isRotating = true;
-                            lastPointerX = pointerInfo.event.clientX;
-                            updateDebug("Начало вращения");
-                            break;
-                        case BABYLON.PointerEventTypes.POINTERUP:
-                            isRotating = false;
-                            updateDebug("Конец вращения");
-                            break;
-                        case BABYLON.PointerEventTypes.POINTERMOVE:
-                            if (isRotating) {
-                                const deltaX = pointerInfo.event.clientX - lastPointerX;
-                                lastPointerX = pointerInfo.event.clientX;
+                canvas.addEventListener("touchmove", (evt) => {
+                    if (isRotating && evt.touches.length === 1) {
+                        const deltaX = evt.touches[0].clientX - lastX;
+                        lastX = evt.touches[0].clientX;
 
-                                // Вращаем все меши кроме ground и debugPlane
-                                scene.meshes.forEach(mesh => {
-                                    if (mesh.name !== "ground" && mesh.name !== "debugPlane") {
-                                        mesh.rotation.y += deltaX * rotationSpeed;
-                                    }
-                                });
-
-                                updateDebug(`Вращение: ${Math.round(scene.meshes[1].rotation.y * 180 / Math.PI)}°`);
+                        // Вращаем все меши кроме ground и debugPlane
+                        scene.meshes.forEach(mesh => {
+                            if (mesh.name !== "ground" && mesh.name !== "debugPlane") {
+                                mesh.rotation.y += deltaX * rotationSpeed;
                             }
-                            break;
-                    }
-                });
+                        });
 
-                // Добавляем возможность размещения модели по тапу
-                xr.onPointerDownObservable.add((evt) => {
-                    if (evt.pickInfo.hit) {
-                        const hitPoint = evt.pickInfo.pickedPoint;
+                        const angleDeg = Math.round(scene.meshes[1].rotation.y * 180 / Math.PI);
+                        updateDebug(`Вращение: ${angleDeg}°`);
+                    }
+                }, false);
+
+// Размещение модели по тапу в AR (оставим как было)
+                xr.pointerSelection.onButtonDownObservable.add((evt) => {
+                    const pickInfo = scene.pick(evt.pointerX, evt.pointerY);
+                    if (pickInfo.hit) {
+                        const hitPoint = pickInfo.pickedPoint;
                         scene.meshes.forEach(mesh => {
                             if (mesh.name !== "ground" && mesh.name !== "debugPlane") {
                                 const currentY = mesh.position.y;
@@ -195,6 +148,7 @@ arButton.addEventListener("click", async () => {
                         updateDebug("Модель размещена");
                     }
                 });
+
             } else if (state === BABYLON.WebXRState.NOT_IN_XR) {
                 debugDiv.innerHTML += "<br>AR сессия закончилась";
                 arButton.style.display = "block";
