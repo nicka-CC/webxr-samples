@@ -20,7 +20,7 @@ const createScene = async function() {
     try {
         // Загружаем модель
         debugDiv.innerHTML += "<br>Загрузка модели...";
-        const result = await BABYLON.SceneLoader.ImportMeshAsync(null, "../", "Cat.glb", scene);
+        const result = await BABYLON.SceneLoader.ImportMeshAsync(null, "../", "untitled.glb", scene);
         debugDiv.innerHTML += "<br>Модель загружена";
         
         // Запускаем все анимации
