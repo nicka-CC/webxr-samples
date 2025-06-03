@@ -34,10 +34,20 @@ const createScene = async function() {
         }
 
         // Настраиваем модель
+        // Создаем контейнер для модели
+        const modelContainer = new BABYLON.TransformNode("modelContainer", scene);
+
+// Добавляем все меши в контейнер
         result.meshes.forEach(mesh => {
-            mesh.scaling = new BABYLON.Vector3(0.5, 0.5, 0.5);
-            mesh.position = new BABYLON.Vector3(0, 0, 10);
+            if (mesh !== scene.meshes[0]) { // пропускаем root-узел сцены
+                mesh.parent = modelContainer;
+            }
         });
+
+// Настраиваем контейнер
+        modelContainer.scaling = new BABYLON.Vector3(0.5, 0.5, 0.5);
+        modelContainer.position = new BABYLON.Vector3(0, 0, 10);
+
 
         // Проверяем поддержку AR
         debugDiv.innerHTML += "<br>Проверка поддержки AR...";
