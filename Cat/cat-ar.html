@@ -66,8 +66,10 @@
     let clock = new THREE.Clock();
     let currentAnimation = null;
     let animations = [];
+    let hitTestSource = null;
+    let hitTestSourceRequested = false;
     let isRotating = false;
-    let lastRayPosition = null;
+    let lastHitPosition = null;
     let rotationSpeed = 5;
 
     init();
@@ -140,12 +142,22 @@
           // Добавляем обработчики для AR
           renderer.xr.addEventListener('sessionstart', function() {
             console.log('AR сессия началась');
+            // Запрашиваем hit test source
+            const session = renderer.xr.getSession();
+            session.requestReferenceSpace('viewer').then((referenceSpace) => {
+              session.requestHitTestSource({ space: referenceSpace }).then((source) => {
+                hitTestSource = source;
+              });
+            });
+            hitTestSourceRequested = true;
           });
 
           renderer.xr.addEventListener('sessionend', function() {
             console.log('AR сессия закончилась');
+            hitTestSource = null;
+            hitTestSourceRequested = false;
             isRotating = false;
-            lastRayPosition = null;
+            lastHitPosition = null;
           });
 
           // Обработка жестов в AR
@@ -156,7 +168,7 @@
 
           renderer.xr.addEventListener('selectend', function() {
             isRotating = false;
-            lastRayPosition = null;
+            lastHitPosition = null;
             console.log('Конец вращения');
           });
 
@@ -169,7 +181,7 @@
               });
               inputSource.addEventListener('selectend', () => {
                 isRotating = false;
-                lastRayPosition = null;
+                lastHitPosition = null;
                 console.log('Конец вращения');
               });
             });
@@ -228,7 +240,7 @@
     function onTouchStart(event) {
       event.preventDefault();
       isRotating = true;
-      lastRayPosition = {
+      lastHitPosition = {
         x: event.touches[0].clientX,
         y: event.touches[0].clientY
       };
@@ -239,8 +251,8 @@
       if (!isRotating || !model) return;
 
       const touch = event.touches[0];
-      const deltaX = touch.clientX - lastRayPosition.x;
-      const deltaY = touch.clientY - lastRayPosition.y;
+      const deltaX = touch.clientX - lastHitPosition.x;
+      const deltaY = touch.clientY - lastHitPosition.y;
 
       model.rotation.y += deltaX * rotationSpeed;
       model.rotation.x += deltaY * rotationSpeed;
@@ -248,7 +260,7 @@
       // Ограничиваем вращение по X
       model.rotation.x = Math.max(-Math.PI/2, Math.min(Math.PI/2, model.rotation.x));
 
-      lastRayPosition = {
+      lastHitPosition = {
         x: touch.clientX,
         y: touch.clientY
       };
@@ -268,31 +280,29 @@
         // Обработка вращения в AR
         if (isRotating && model && renderer.xr.isPresenting) {
           const session = renderer.xr.getSession();
-          if (session) {
-            const inputSources = session.inputSources;
-            inputSources.forEach((source) => {
-              if (source.targetRaySpace) {
-                const targetRayPose = renderer.xr.getReferenceSpace().getPose(source.targetRaySpace);
-                if (targetRayPose) {
-                  const position = targetRayPose.transform.position;
-                  
-                  if (lastRayPosition) {
-                    const deltaX = position.x - lastRayPosition.x;
-                    const deltaY = position.y - lastRayPosition.y;
-                    
-                    model.rotation.y += deltaX * rotationSpeed;
-                    model.rotation.x += deltaY * rotationSpeed;
-                    
-                    // Ограничиваем вращение по X
-                    model.rotation.x = Math.max(-Math.PI/2, Math.min(Math.PI/2, model.rotation.x));
-                    
-                    console.log(`Вращение: X=${deltaX.toFixed(2)}, Y=${deltaY.toFixed(2)}`);
-                  }
-                  
-                  lastRayPosition = position;
-                }
+          if (session && hitTestSource) {
+            const frame = session.requestAnimationFrame();
+            const hitTestResults = frame.getHitTestResults(hitTestSource);
+            
+            if (hitTestResults.length > 0) {
+              const hit = hitTestResults[0];
+              const position = hit.getPose(renderer.xr.getReferenceSpace()).transform.position;
+              
+              if (lastHitPosition) {
+                const deltaX = position.x - lastHitPosition.x;
+                const deltaY = position.y - lastHitPosition.y;
+                
+                model.rotation.y += deltaX * rotationSpeed;
+                model.rotation.x += deltaY * rotationSpeed;
+                
+                // Ограничиваем вращение по X
+                model.rotation.x = Math.max(-Math.PI/2, Math.min(Math.PI/2, model.rotation.x));
+                
+                console.log(`Вращение: X=${deltaX.toFixed(2)}, Y=${deltaY.toFixed(2)}`);
               }
-            });
+              
+              lastHitPosition = position;
+            }
           }
         }
 
