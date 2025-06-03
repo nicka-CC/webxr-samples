@@ -67,6 +67,10 @@
     let clock = new THREE.Clock();
     let currentAnimation = null;
     let animations = [];
+    let isRotating = false;
+    let lastTouchX = 0;
+    let lastTouchY = 0;
+    let rotationSpeed = 0.01;
 
     init();
     animate();
@@ -142,7 +146,34 @@
       // Добавляем кнопку AR
       document.body.appendChild(ARButton.createButton(renderer));
 
-      // Обработка жестов
+      // Обработка жестов для вращения
+      renderer.domElement.addEventListener('pointerdown', function(event) {
+        isRotating = true;
+        lastTouchX = event.clientX;
+        lastTouchY = event.clientY;
+      });
+
+      renderer.domElement.addEventListener('pointermove', function(event) {
+        if (isRotating && model) {
+          const deltaX = event.clientX - lastTouchX;
+          const deltaY = event.clientY - lastTouchY;
+          
+          model.rotation.y += deltaX * rotationSpeed;
+          model.rotation.x += deltaY * rotationSpeed;
+          
+          // Ограничиваем вращение по X
+          model.rotation.x = Math.max(-Math.PI/2, Math.min(Math.PI/2, model.rotation.x));
+          
+          lastTouchX = event.clientX;
+          lastTouchY = event.clientY;
+        }
+      });
+
+      renderer.domElement.addEventListener('pointerup', function() {
+        isRotating = false;
+      });
+
+      // Обработка жестов для анимаций
       let lastTapTime = 0;
       renderer.domElement.addEventListener('click', function(event) {
         const currentTime = new Date().getTime();
