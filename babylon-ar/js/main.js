@@ -36,6 +36,9 @@ async function createScene() {
         result.meshes.forEach(mesh => {
             mesh.scaling = new BABYLON.Vector3(0.5, 0.5, 0.5);
             mesh.position = new BABYLON.Vector3(0, 0, 10);
+            // Добавляем имя для идентификации модели
+            mesh.name = "arModel";
+            debugDiv.innerHTML += `<br>Модель ${mesh.name} создана`;
         });
     } catch (error) {
         debugDiv.innerHTML += `<br>Ошибка загрузки модели: ${error.message}`;
@@ -135,6 +138,14 @@ arButton.addEventListener("click", async () => {
             lastTouchX = evt.touches[0].clientX;
             lastTouchY = evt.touches[0].clientY;
             debugDiv.innerHTML += "<br>Начало вращения";
+            
+            // Проверяем наличие модели
+            const modelMesh = scene.getMeshByName("arModel");
+            if (modelMesh) {
+                debugDiv.innerHTML += "<br>Модель найдена для вращения";
+            } else {
+                debugDiv.innerHTML += "<br>Модель не найдена!";
+            }
         }
     }, { passive: false });
 
@@ -144,19 +155,20 @@ arButton.addEventListener("click", async () => {
             const deltaX = evt.touches[0].clientX - lastTouchX;
             const deltaY = evt.touches[0].clientY - lastTouchY;
 
-            scene.meshes.forEach(mesh => {
-                if (mesh.name !== "ground" && mesh.name !== "debugPlane" && mesh.name !== "hitTestIndicator") {
-                    mesh.rotation.y += deltaX * rotationSpeed;
-                    mesh.rotation.x += deltaY * rotationSpeed;
-                }
-            });
+            const modelMesh = scene.getMeshByName("arModel");
+            if (modelMesh) {
+                modelMesh.rotation.y += deltaX * rotationSpeed;
+                modelMesh.rotation.x += deltaY * rotationSpeed;
+                
+                const angleX = Math.round(modelMesh.rotation.x * 180 / Math.PI);
+                const angleY = Math.round(modelMesh.rotation.y * 180 / Math.PI);
+                debugDiv.innerHTML = `Вращение: X=${angleX}°, Y=${angleY}°`;
+            } else {
+                debugDiv.innerHTML = "Модель не найдена для вращения!";
+            }
 
             lastTouchX = evt.touches[0].clientX;
             lastTouchY = evt.touches[0].clientY;
-
-            const angleX = Math.round(scene.meshes[1].rotation.x * 180 / Math.PI);
-            const angleY = Math.round(scene.meshes[1].rotation.y * 180 / Math.PI);
-            debugDiv.innerHTML = `Вращение: X=${angleX}°, Y=${angleY}°`;
         }
     }, { passive: false });
 
