@@ -163,14 +163,10 @@
           // Добавляем обработчики для AR
           renderer.xr.addEventListener('sessionstart', function() {
             console.log('AR сессия началась');
-            // Запрашиваем hit test source
-            const session = renderer.xr.getSession();
-            session.requestReferenceSpace('viewer').then((referenceSpace) => {
-              session.requestHitTestSource({ space: referenceSpace }).then((source) => {
-                hitTestSource = source;
-              });
-            });
-            hitTestSourceRequested = true;
+            // Скрываем модель до размещения
+            if (model) {
+              model.visible = false;
+            }
           });
 
           renderer.xr.addEventListener('sessionend', function() {
@@ -179,6 +175,9 @@
             hitTestSourceRequested = false;
             isRotating = false;
             lastHitPosition = null;
+            if (model) {
+              model.visible = true;
+            }
           });
 
           // Обработка жестов в AR
@@ -295,6 +294,38 @@
 
       if (mixer) {
         mixer.update(clock.getDelta());
+      }
+
+      // Обработка hit-test для AR
+      if (hitTestSourceRequested === false) {
+        const session = renderer.xr.getSession();
+        if (session) {
+          session.requestReferenceSpace('viewer').then((referenceSpace) => {
+            session.requestHitTestSource({ space: referenceSpace }).then((source) => {
+              hitTestSource = source;
+            });
+          });
+          hitTestSourceRequested = true;
+        }
+      }
+
+      if (hitTestSource) {
+        const session = renderer.xr.getSession();
+        const frame = session.requestAnimationFrame((time, frame) => {
+          const hitTestResults = frame.getHitTestResults(hitTestSource);
+          if (hitTestResults.length > 0) {
+            const hit = hitTestResults[0];
+            const pose = hit.getPose(referenceSpace);
+            
+            if (pose && model) {
+              // Если модель еще не размещена, размещаем её
+              if (!model.position.y) {
+                model.position.set(pose.transform.position.x, pose.transform.position.y, pose.transform.position.z);
+                model.visible = true;
+              }
+            }
+          }
+        });
       }
 
       renderer.render(scene, camera);
