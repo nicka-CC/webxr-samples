@@ -68,9 +68,8 @@
     let currentAnimation = null;
     let animations = [];
     let isRotating = false;
-    let lastTouchX = 0;
-    let lastTouchY = 0;
-    let rotationSpeed = 0.01;
+    let lastRayPosition = null;
+    let rotationSpeed = 5;
 
     init();
     animate();
@@ -146,31 +145,42 @@
       // Добавляем кнопку AR
       document.body.appendChild(ARButton.createButton(renderer));
 
-      // Обработка жестов для вращения
-      renderer.domElement.addEventListener('pointerdown', function(event) {
-        isRotating = true;
-        lastTouchX = event.clientX;
-        lastTouchY = event.clientY;
+      // Настраиваем WebXR
+      renderer.xr.addEventListener('sessionstart', function() {
+        console.log('AR сессия началась');
       });
 
-      renderer.domElement.addEventListener('pointermove', function(event) {
-        if (isRotating && model) {
-          const deltaX = event.clientX - lastTouchX;
-          const deltaY = event.clientY - lastTouchY;
-          
-          model.rotation.y += deltaX * rotationSpeed;
-          model.rotation.x += deltaY * rotationSpeed;
-          
-          // Ограничиваем вращение по X
-          model.rotation.x = Math.max(-Math.PI/2, Math.min(Math.PI/2, model.rotation.x));
-          
-          lastTouchX = event.clientX;
-          lastTouchY = event.clientY;
-        }
-      });
-
-      renderer.domElement.addEventListener('pointerup', function() {
+      renderer.xr.addEventListener('sessionend', function() {
+        console.log('AR сессия закончилась');
         isRotating = false;
+        lastRayPosition = null;
+      });
+
+      // Обработка жестов в AR
+      renderer.xr.addEventListener('selectstart', function() {
+        isRotating = true;
+        console.log('Начало вращения');
+      });
+
+      renderer.xr.addEventListener('selectend', function() {
+        isRotating = false;
+        lastRayPosition = null;
+        console.log('Конец вращения');
+      });
+
+      // Обработка движения в AR
+      renderer.xr.addEventListener('inputsourceschange', function(event) {
+        event.added.forEach((inputSource) => {
+          inputSource.addEventListener('selectstart', () => {
+            isRotating = true;
+            console.log('Начало вращения');
+          });
+          inputSource.addEventListener('selectend', () => {
+            isRotating = false;
+            lastRayPosition = null;
+            console.log('Конец вращения');
+          });
+        });
       });
 
       // Обработка жестов для анимаций
@@ -216,6 +226,38 @@
         if (mixer) {
           mixer.update(clock.getDelta());
         }
+
+        // Обработка вращения в AR
+        if (isRotating && model && renderer.xr.isPresenting) {
+          const session = renderer.xr.getSession();
+          if (session) {
+            const inputSources = session.inputSources;
+            inputSources.forEach((source) => {
+              if (source.targetRaySpace) {
+                const targetRayPose = renderer.xr.getReferenceSpace().getPose(source.targetRaySpace);
+                if (targetRayPose) {
+                  const position = targetRayPose.transform.position;
+                  
+                  if (lastRayPosition) {
+                    const deltaX = position.x - lastRayPosition.x;
+                    const deltaY = position.y - lastRayPosition.y;
+                    
+                    model.rotation.y += deltaX * rotationSpeed;
+                    model.rotation.x += deltaY * rotationSpeed;
+                    
+                    // Ограничиваем вращение по X
+                    model.rotation.x = Math.max(-Math.PI/2, Math.min(Math.PI/2, model.rotation.x));
+                    
+                    console.log(`Вращение: X=${deltaX.toFixed(2)}, Y=${deltaY.toFixed(2)}`);
+                  }
+                  
+                  lastRayPosition = position;
+                }
+              }
+            });
+          }
+        }
+
         renderer.render(scene, camera);
       });
     }
