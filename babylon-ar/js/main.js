@@ -122,109 +122,48 @@ arButton.addEventListener("click", async () => {
         }
     });
 
-    let isRotating = false;
-    let isDragging = false;
-    let lastX = 0;
-    let lastY = 0;
-    let lastTouchDistance = 0;
-    const rotationSpeed = 0.01;
-    const dragSpeed = 0.01;
+    // Настройка вращения
+    let isTouchRotating = false;
+    let lastTouchX = 0;
+    let lastTouchY = 0;
+    const rotationSpeed = 0.05;
 
-    // Отключаем камеру Babylon.js при AR
-    xr.baseExperience.camera.detachControl(canvas);
-
-    // Предотвращаем стандартные действия браузера
     canvas.addEventListener("touchstart", (evt) => {
         evt.preventDefault();
-        
         if (evt.touches.length === 1) {
-            isRotating = true;
-            lastX = evt.touches[0].clientX;
-            lastY = evt.touches[0].clientY;
+            isTouchRotating = true;
+            lastTouchX = evt.touches[0].clientX;
+            lastTouchY = evt.touches[0].clientY;
             debugDiv.innerHTML += "<br>Начало вращения";
-        } else if (evt.touches.length === 2) {
-            isDragging = true;
-            lastX = (evt.touches[0].clientX + evt.touches[1].clientX) / 2;
-            lastY = (evt.touches[0].clientY + evt.touches[1].clientY) / 2;
-            lastTouchDistance = Math.hypot(
-                evt.touches[0].clientX - evt.touches[1].clientX,
-                evt.touches[0].clientY - evt.touches[1].clientY
-            );
-            debugDiv.innerHTML += "<br>Начало перемещения";
+        }
+    }, { passive: false });
+
+    canvas.addEventListener("touchmove", (evt) => {
+        evt.preventDefault();
+        if (isTouchRotating && evt.touches.length === 1) {
+            const deltaX = evt.touches[0].clientX - lastTouchX;
+            const deltaY = evt.touches[0].clientY - lastTouchY;
+
+            scene.meshes.forEach(mesh => {
+                if (mesh.name !== "ground" && mesh.name !== "debugPlane" && mesh.name !== "hitTestIndicator") {
+                    mesh.rotation.y += deltaX * rotationSpeed;
+                    mesh.rotation.x += deltaY * rotationSpeed;
+                }
+            });
+
+            lastTouchX = evt.touches[0].clientX;
+            lastTouchY = evt.touches[0].clientY;
+
+            const angleX = Math.round(scene.meshes[1].rotation.x * 180 / Math.PI);
+            const angleY = Math.round(scene.meshes[1].rotation.y * 180 / Math.PI);
+            debugDiv.innerHTML = `Вращение: X=${angleX}°, Y=${angleY}°`;
         }
     }, { passive: false });
 
     canvas.addEventListener("touchend", (evt) => {
         evt.preventDefault();
-        isRotating = false;
-        isDragging = false;
-        debugDiv.innerHTML += "<br>Конец взаимодействия";
-    }, { passive: false });
-
-    canvas.addEventListener("touchmove", (evt) => {
-        evt.preventDefault();
-        
-        if (isRotating && evt.touches.length === 1) {
-            const deltaX = evt.touches[0].clientX - lastX;
-            const deltaY = evt.touches[0].clientY - lastY;
-            lastX = evt.touches[0].clientX;
-            lastY = evt.touches[0].clientY;
-
-            // Находим модель для вращения
-            const modelMesh = scene.meshes.find(mesh => 
-                mesh.name !== "ground" && 
-                mesh.name !== "debugPlane" && 
-                mesh.name !== "hitTestIndicator"
-            );
-
-            if (modelMesh) {
-                // Вращаем модель
-                modelMesh.rotation.y += deltaX * rotationSpeed;
-                modelMesh.rotation.x += deltaY * rotationSpeed;
-
-                // Ограничиваем вращение по X
-                modelMesh.rotation.x = Math.max(-Math.PI/2, Math.min(Math.PI/2, modelMesh.rotation.x));
-
-                const angleX = Math.round(modelMesh.rotation.x * 180 / Math.PI);
-                const angleY = Math.round(modelMesh.rotation.y * 180 / Math.PI);
-                debugDiv.innerHTML = `Вращение: X=${angleX}°, Y=${angleY}°`;
-            }
-        } else if (isDragging && evt.touches.length === 2) {
-            const currentX = (evt.touches[0].clientX + evt.touches[1].clientX) / 2;
-            const currentY = (evt.touches[0].clientY + evt.touches[1].clientY) / 2;
-            
-            const deltaX = currentX - lastX;
-            const deltaY = currentY - lastY;
-            
-            lastX = currentX;
-            lastY = currentY;
-
-            // Находим модель для перемещения
-            const modelMesh = scene.meshes.find(mesh => 
-                mesh.name !== "ground" && 
-                mesh.name !== "debugPlane" && 
-                mesh.name !== "hitTestIndicator"
-            );
-
-            if (modelMesh) {
-                modelMesh.position.x += deltaX * dragSpeed;
-                modelMesh.position.z += deltaY * dragSpeed;
-
-                // Масштабирование при изменении расстояния между пальцами
-                const currentDistance = Math.hypot(
-                    evt.touches[0].clientX - evt.touches[1].clientX,
-                    evt.touches[0].clientY - evt.touches[1].clientY
-                );
-                const scale = currentDistance / lastTouchDistance;
-                lastTouchDistance = currentDistance;
-
-                modelMesh.scaling.x *= scale;
-                modelMesh.scaling.y *= scale;
-                modelMesh.scaling.z *= scale;
-
-                debugDiv.innerHTML = `Перемещение: X=${Math.round(modelMesh.position.x * 100) / 100}, Z=${Math.round(modelMesh.position.z * 100) / 100}`;
-            }
-        }
+        isTouchRotating = false;
+        debugDiv.innerHTML += "<br>Конец вращения";
     }, { passive: false });
 
     xr.onStateChangedObservable.add(state => {
