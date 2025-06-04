@@ -334,15 +334,21 @@
           // Двигаем модель вперед
           model.position.z += moveSpeed;
         } else if (model && elapsedTime >= 3 && !model.userData.modelChanged) {
+          console.log('Начинаем загрузку новой модели...');
           // Загружаем новую модель без остановки анимации
           const loader = new GLTFLoader();
           loader.load(
-            './speak_base.glb',
+            './tell2.glb',
             function (gltf) {
+              console.log('Новая модель загружена');
               const newModel = gltf.scene;
               newModel.scale.set(0.1, 0.1, 0.1);
               newModel.position.copy(model.position);
               newModel.rotation.copy(model.rotation);
+              
+              // Сохраняем текущую анимацию
+              const currentMixer = mixer;
+              const currentAnimations = animations;
               
               scene.remove(model);
               model = newModel;
@@ -354,11 +360,20 @@
               animations = gltf.animations;
               
               if (animations && animations.length > 0) {
+                console.log('Запускаем анимацию новой модели');
                 currentAnimation = mixer.clipAction(animations[0]);
                 currentAnimation.setLoop(THREE.LoopRepeat);
                 currentAnimation.clampWhenFinished = false;
                 currentAnimation.play();
+              } else {
+                console.log('Анимации не найдены в новой модели');
               }
+            },
+            function (xhr) {
+              console.log('Прогресс загрузки:', (xhr.loaded / xhr.total * 100) + '%');
+            },
+            function (error) {
+              console.error('Ошибка загрузки новой модели:', error);
             }
           );
         }
