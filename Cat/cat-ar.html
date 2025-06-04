@@ -71,9 +71,8 @@
     let isRotating = false;
     let lastHitPosition = null;
     let rotationSpeed = 5;
-    let isMoving = true;
     let moveSpeed = 0.01;
-    let moveDirection = new THREE.Vector3(1, 0, 0);
+    let startTime = 0;
 
     init();
     animate();
@@ -183,7 +182,7 @@
           // Добавляем обработчики для AR
           renderer.xr.addEventListener('sessionstart', function() {
             console.log('AR сессия началась');
-            isMoving = true;
+            startTime = Date.now();
             clock.start();
             
             // Запрашиваем hit test source
@@ -319,10 +318,29 @@
 
     function animate() {
       renderer.setAnimationLoop(function() {
-        // Обновляем анимации независимо от режима
+        const currentTime = Date.now();
+        const elapsedTime = (currentTime - startTime) / 1000;
+
+        // Обновляем анимации
         if (mixer) {
           const delta = clock.getDelta();
           mixer.update(delta);
+        }
+
+        // Двигаем модель только первые 3 секунды
+        if (model && elapsedTime < 3 && renderer.xr.isPresenting) {
+          // Двигаем модель вперед
+          model.position.z -= moveSpeed;
+          
+          // Если анимация остановилась, перезапускаем её
+          if (currentAnimation && !currentAnimation.isRunning()) {
+            currentAnimation.play();
+          }
+        } else if (model && elapsedTime >= 3) {
+          // Останавливаем анимацию после 3 секунд
+          if (currentAnimation && currentAnimation.isRunning()) {
+            currentAnimation.stop();
+          }
         }
 
         // Обработка вращения в AR
