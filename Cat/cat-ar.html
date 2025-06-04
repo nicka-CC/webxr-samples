@@ -103,6 +103,11 @@
       light.position.set(0.5, 1, 0.25);
       scene.add(light);
 
+      // Добавляем направленный свет для лучшей видимости
+      const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+      directionalLight.position.set(1, 1, 1);
+      scene.add(directionalLight);
+
       // Создаем информационное окно
       const infoDiv = document.createElement('div');
       infoDiv.id = 'info';
@@ -110,11 +115,13 @@
         <h3>AR Котики</h3>
         <p>Статус: <span id="status">Загрузка...</span></p>
         <p>Анимации: <span id="animations">Проверка...</span></p>
+        <p>AR статус: <span id="ar-status">Ожидание...</span></p>
         <p>Управление:</p>
         <p>- Перетаскивание: Вращение</p>
         <p>- Двойной тап: Пауза/Воспроизведение</p>
       `;
       document.body.appendChild(infoDiv);
+
       // Загружаем модель
       const loader = new GLTFLoader();
       loader.load(
@@ -122,6 +129,7 @@
         function (gltf) {
           model = gltf.scene;
           model.scale.set(0.1, 0.1, 0.1);
+          model.position.set(0, 0, -1); // Устанавливаем начальную позицию
           
           // Проверяем материалы модели
           model.traverse((child) => {
@@ -142,12 +150,8 @@
             }
           });
           
-          // Добавляем дополнительное освещение для лучшей видимости текстур
-          const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
-          directionalLight.position.set(1, 1, 1);
-          scene.add(directionalLight);
-          
           scene.add(model);
+          
           // Настраиваем анимации
           mixer = new THREE.AnimationMixer(model);
           animations = gltf.animations;
@@ -161,14 +165,6 @@
             currentAnimation.setLoop(THREE.LoopRepeat);
             currentAnimation.clampWhenFinished = false;
             currentAnimation.play();
-            
-            // Добавляем проверку состояния анимации
-            setInterval(() => {
-              if (currentAnimation && !currentAnimation.isRunning()) {
-                console.log('Анимация остановилась, перезапускаем...');
-                currentAnimation.play();
-              }
-            }, 1000);
           } else {
             document.getElementById('animations').textContent = 'Не найдено';
             document.getElementById('status').textContent = 'Нет анимаций';
@@ -182,6 +178,7 @@
           // Добавляем обработчики для AR
           renderer.xr.addEventListener('sessionstart', function() {
             console.log('AR сессия началась');
+            document.getElementById('ar-status').textContent = 'AR активен';
             startTime = Date.now();
             clock.start();
             
@@ -190,18 +187,23 @@
             session.requestReferenceSpace('viewer').then((referenceSpace) => {
               session.requestHitTestSource({ space: referenceSpace }).then((source) => {
                 hitTestSource = source;
+                console.log('Hit test source получен');
+              }).catch(error => {
+                console.error('Ошибка получения hit test source:', error);
               });
+            }).catch(error => {
+              console.error('Ошибка получения reference space:', error);
             });
             hitTestSourceRequested = true;
           });
 
           renderer.xr.addEventListener('sessionend', function() {
             console.log('AR сессия закончилась');
+            document.getElementById('ar-status').textContent = 'AR неактивен';
             hitTestSource = null;
             hitTestSourceRequested = false;
             isRotating = false;
             lastHitPosition = null;
-            // Останавливаем часы при окончании AR
             clock.stop();
           });
 
@@ -331,44 +333,34 @@
         if (model && elapsedTime < 3 && renderer.xr.isPresenting) {
           // Двигаем модель вперед
           model.position.z += moveSpeed;
-          
-          // Если анимация остановилась, перезапускаем её
-          if (currentAnimation && !currentAnimation.isRunning()) {
-            currentAnimation.play();
-          }
-        } else if (model && elapsedTime >= 3) {
-          // Останавливаем анимацию после 3 секунд
-          if (currentAnimation && currentAnimation.isRunning()) {
-            currentAnimation.stop();
-          }
-          
-          // Загружаем новую модель
-          if (!model.userData.modelChanged) {
-            const loader = new GLTFLoader();
-            loader.load(
-              './speak_base.glb',
-              function (gltf) {
-                const newModel = gltf.scene;
-                newModel.scale.set(0.1, 0.1, 0.1);
-                newModel.position.copy(model.position);
-                newModel.rotation.copy(model.rotation);
-                
-                scene.remove(model);
-                model = newModel;
-                model.userData.modelChanged = true;
-                scene.add(model);
-                
-                // Настраиваем анимации для новой модели
-                mixer = new THREE.AnimationMixer(model);
-                animations = gltf.animations;
-                
-                if (animations && animations.length > 0) {
-                  currentAnimation = mixer.clipAction(animations[0]);
-                  currentAnimation.play();
-                }
+        } else if (model && elapsedTime >= 3 && !model.userData.modelChanged) {
+          // Загружаем новую модель без остановки анимации
+          const loader = new GLTFLoader();
+          loader.load(
+            './speak_base.glb',
+            function (gltf) {
+              const newModel = gltf.scene;
+              newModel.scale.set(0.1, 0.1, 0.1);
+              newModel.position.copy(model.position);
+              newModel.rotation.copy(model.rotation);
+              
+              scene.remove(model);
+              model = newModel;
+              model.userData.modelChanged = true;
+              scene.add(model);
+              
+              // Настраиваем анимации для новой модели
+              mixer = new THREE.AnimationMixer(model);
+              animations = gltf.animations;
+              
+              if (animations && animations.length > 0) {
+                currentAnimation = mixer.clipAction(animations[0]);
+                currentAnimation.setLoop(THREE.LoopRepeat);
+                currentAnimation.clampWhenFinished = false;
+                currentAnimation.play();
               }
-            );
-          }
+            }
+          );
         }
 
         // Обработка вращения в AR
