@@ -73,6 +73,7 @@
     let rotationSpeed = 5;
     let moveSpeed = 0.01;
     let startTime = 0;
+    let audioElement = null;
 
     init();
     animate();
@@ -81,6 +82,11 @@
       // Создаем сцену
       scene = new THREE.Scene();
       scene.background = new THREE.Color(0x000000);
+
+      // Создаем аудио элемент
+      audioElement = new Audio('./h.m4a');
+      audioElement.loop = false;
+      audioElement.volume = 1.0;
 
       // Создаем камеру
       camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 20);
@@ -365,6 +371,13 @@
                 currentAnimation.setLoop(THREE.LoopRepeat);
                 currentAnimation.clampWhenFinished = false;
                 currentAnimation.play();
+                
+                // Воспроизводим аудио
+                console.log('Воспроизводим аудио');
+                audioElement.currentTime = 0;
+                audioElement.play().catch(error => {
+                  console.error('Ошибка воспроизведения аудио:', error);
+                });
               } else {
                 console.log('Анимации не найдены в новой модели');
               }
