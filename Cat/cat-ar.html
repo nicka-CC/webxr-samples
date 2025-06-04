@@ -329,18 +329,18 @@
           mixer.update(delta);
         }
 
-        // Двигаем модель только первые 3 секунды
+        // Двигаем модель только первые 3 секунды в AR режиме
         if (model && elapsedTime < 3 && renderer.xr.isPresenting) {
           // Двигаем модель вперед
           model.position.z += moveSpeed;
-        } else if (model && elapsedTime >= 3 && !model.userData.modelChanged) {
-          console.log('Начинаем загрузку новой модели...');
+        } else if (model && elapsedTime >= 3 && !model.userData.modelChanged && renderer.xr.isPresenting) {
+          console.log('Начинаем загрузку новой модели в AR...');
           // Загружаем новую модель без остановки анимации
           const loader = new GLTFLoader();
           loader.load(
             './tell2.glb',
             function (gltf) {
-              console.log('Новая модель загружена');
+              console.log('Новая модель загружена в AR');
               const newModel = gltf.scene;
               newModel.scale.set(0.1, 0.1, 0.1);
               newModel.position.copy(model.position);
@@ -360,7 +360,7 @@
               animations = gltf.animations;
               
               if (animations && animations.length > 0) {
-                console.log('Запускаем анимацию новой модели');
+                console.log('Запускаем анимацию новой модели в AR');
                 currentAnimation = mixer.clipAction(animations[0]);
                 currentAnimation.setLoop(THREE.LoopRepeat);
                 currentAnimation.clampWhenFinished = false;
@@ -370,10 +370,10 @@
               }
             },
             function (xhr) {
-              console.log('Прогресс загрузки:', (xhr.loaded / xhr.total * 100) + '%');
+              console.log('Прогресс загрузки в AR:', (xhr.loaded / xhr.total * 100) + '%');
             },
             function (error) {
-              console.error('Ошибка загрузки новой модели:', error);
+              console.error('Ошибка загрузки новой модели в AR:', error);
             }
           );
         }
