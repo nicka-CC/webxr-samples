@@ -330,7 +330,7 @@
         // Двигаем модель только первые 3 секунды
         if (model && elapsedTime < 3 && renderer.xr.isPresenting) {
           // Двигаем модель вперед
-          model.position.z -= moveSpeed;
+          model.position.z += moveSpeed;
           
           // Если анимация остановилась, перезапускаем её
           if (currentAnimation && !currentAnimation.isRunning()) {
@@ -340,6 +340,34 @@
           // Останавливаем анимацию после 3 секунд
           if (currentAnimation && currentAnimation.isRunning()) {
             currentAnimation.stop();
+          }
+          
+          // Загружаем новую модель
+          if (!model.userData.modelChanged) {
+            const loader = new GLTFLoader();
+            loader.load(
+              './speak_base.glb',
+              function (gltf) {
+                const newModel = gltf.scene;
+                newModel.scale.set(0.1, 0.1, 0.1);
+                newModel.position.copy(model.position);
+                newModel.rotation.copy(model.rotation);
+                
+                scene.remove(model);
+                model = newModel;
+                model.userData.modelChanged = true;
+                scene.add(model);
+                
+                // Настраиваем анимации для новой модели
+                mixer = new THREE.AnimationMixer(model);
+                animations = gltf.animations;
+                
+                if (animations && animations.length > 0) {
+                  currentAnimation = mixer.clipAction(animations[0]);
+                  currentAnimation.play();
+                }
+              }
+            );
           }
         }
 
