@@ -71,6 +71,9 @@
     let isRotating = false;
     let lastHitPosition = null;
     let rotationSpeed = 5;
+    let isMoving = true;
+    let moveSpeed = 0.01;
+    let moveDirection = new THREE.Vector3(1, 0, 0);
 
     init();
     animate();
@@ -89,6 +92,11 @@
       renderer.setPixelRatio(window.devicePixelRatio);
       renderer.setSize(window.innerWidth, window.innerHeight);
       renderer.xr.enabled = true;
+      renderer.outputEncoding = THREE.sRGBEncoding;
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 1.0;
       document.body.appendChild(renderer.domElement);
 
       // Добавляем освещение
@@ -115,6 +123,31 @@
         function (gltf) {
           model = gltf.scene;
           model.scale.set(0.1, 0.1, 0.1);
+          
+          // Проверяем материалы модели
+          model.traverse((child) => {
+            if (child.isMesh && child.material) {
+              console.log('Найден меш:', child.name);
+              console.log('Материал:', child.material);
+              
+              // Настраиваем материал для корректного отображения текстур
+              const material = child.material;
+              material.roughness = 0.5;
+              material.metalness = 0.0;
+              material.envMapIntensity = 1.0;
+              material.needsUpdate = true;
+              
+              // Включаем тени для меша
+              child.castShadow = true;
+              child.receiveShadow = true;
+            }
+          });
+          
+          // Добавляем дополнительное освещение для лучшей видимости текстур
+          const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+          directionalLight.position.set(1, 1, 1);
+          scene.add(directionalLight);
+          
           scene.add(model);
           // Настраиваем анимации
           mixer = new THREE.AnimationMixer(model);
@@ -126,7 +159,17 @@
             
             // Запускаем первую анимацию
             currentAnimation = mixer.clipAction(animations[0]);
+            currentAnimation.setLoop(THREE.LoopRepeat);
+            currentAnimation.clampWhenFinished = false;
             currentAnimation.play();
+            
+            // Добавляем проверку состояния анимации
+            setInterval(() => {
+              if (currentAnimation && !currentAnimation.isRunning()) {
+                console.log('Анимация остановилась, перезапускаем...');
+                currentAnimation.play();
+              }
+            }, 1000);
           } else {
             document.getElementById('animations').textContent = 'Не найдено';
             document.getElementById('status').textContent = 'Нет анимаций';
@@ -140,6 +183,9 @@
           // Добавляем обработчики для AR
           renderer.xr.addEventListener('sessionstart', function() {
             console.log('AR сессия началась');
+            isMoving = true;
+            clock.start();
+            
             // Запрашиваем hit test source
             const session = renderer.xr.getSession();
             session.requestReferenceSpace('viewer').then((referenceSpace) => {
@@ -156,6 +202,8 @@
             hitTestSourceRequested = false;
             isRotating = false;
             lastHitPosition = null;
+            // Останавливаем часы при окончании AR
+            clock.stop();
           });
 
           // Обработка жестов в AR
@@ -271,8 +319,10 @@
 
     function animate() {
       renderer.setAnimationLoop(function() {
+        // Обновляем анимации независимо от режима
         if (mixer) {
-          mixer.update(clock.getDelta());
+          const delta = clock.getDelta();
+          mixer.update(delta);
         }
 
         // Обработка вращения в AR
@@ -295,8 +345,6 @@
                 
                 // Ограничиваем вращение по X
                 model.rotation.x = Math.max(-Math.PI/2, Math.min(Math.PI/2, model.rotation.x));
-                
-                console.log(`Вращение: X=${deltaX.toFixed(2)}, Y=${deltaY.toFixed(2)}`);
               }
               
               lastHitPosition = position;
