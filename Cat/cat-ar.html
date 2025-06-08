@@ -71,21 +71,10 @@
     let hitTestSourceRequested = false;
     let isRotating = false;
     let lastHitPosition = null;
-    let rotationSpeed = 0.01;
-    let moveSpeed = 0.05;
-    let startTime = Date.now();
+    let rotationSpeed = 5;
+    let moveSpeed = 0.01;
+    let startTime = 0;
     let audioElement = null;
-
-    // Добавляем переменные для управления движением
-    let movementState = {
-        phase: 'left', // 'left', 'pause1', 'right', 'pause2'
-        distance: 0,
-        targetDistance: 3, // 3 метра влево
-        rotation: 0,
-        targetRotation: Math.PI / 2, // 90 градусов
-        pauseTimer: 0,
-        pauseDuration: 2 // 2 секунды паузы
-    };
 
     init();
     animate();
@@ -145,30 +134,47 @@
       loader.load(
               './walk2.glb',
               function (gltf) {
-                console.log('Модель загружена');
                 model = gltf.scene;
                 model.scale.set(0.1, 0.1, 0.1);
-                
-                // Настраиваем начальное положение модели
-                model.position.set(0, 0, -1); // Размещаем модель перед камерой
-                model.rotation.y = Math.PI / 2; // Начальный поворот на 90 градусов
-                
+                model.position.set(0, 0, -1); // Устанавливаем начальную позицию
+
+                // Проверяем материалы модели
+                model.traverse((child) => {
+                  if (child.isMesh && child.material) {
+                    console.log('Найден меш:', child.name);
+                    console.log('Материал:', child.material);
+
+                    // Настраиваем материал для корректного отображения текстур
+                    const material = child.material;
+                    material.roughness = 0.5;
+                    material.metalness = 0.0;
+                    material.envMapIntensity = 1.0;
+                    material.needsUpdate = true;
+
+                    // Включаем тени для меша
+                    child.castShadow = true;
+                    child.receiveShadow = true;
+                  }
+                });
+
                 scene.add(model);
-                console.log('Модель добавлена на сцену');
 
                 // Настраиваем анимации
                 mixer = new THREE.AnimationMixer(model);
                 animations = gltf.animations;
 
                 if (animations && animations.length > 0) {
-                  console.log('Анимации найдены:', animations.length);
+                  document.getElementById('animations').textContent = `Найдено: ${animations.length}`;
+                  document.getElementById('status').textContent = 'Готово';
+
+                  // Запускаем первую анимацию
                   currentAnimation = mixer.clipAction(animations[0]);
                   currentAnimation.setLoop(THREE.LoopRepeat);
                   currentAnimation.clampWhenFinished = false;
                   currentAnimation.play();
-                  console.log('Анимация запущена');
                 } else {
-                  console.log('Анимации не найдены');
+                  document.getElementById('animations').textContent = 'Не найдено';
+                  document.getElementById('status').textContent = 'Нет анимаций';
                 }
 
                 // Инициализируем обработчики тач-событий
@@ -234,43 +240,13 @@
                     });
                   });
                 });
-
-                // Добавляем обработчик для размещения модели в AR
-                renderer.xr.addEventListener('sessionstart', () => {
-                  console.log('AR сессия началась');
-                  if (model) {
-                    // Размещаем модель перед пользователем
-                    const distance = 1; // 1 метр перед пользователем
-                    model.position.set(0, 0, -distance);
-                    model.rotation.y = Math.PI / 2;
-                    
-                    // Сбрасываем состояние движения
-                    movementState.phase = 'left';
-                    movementState.distance = 0;
-                    movementState.pauseTimer = 0;
-                    console.log('Модель размещена перед пользователем');
-                  }
-                });
-
-                // Добавляем обработчик для размещения модели по тапу
-                renderer.xr.addEventListener('select', (event) => {
-                  if (!model) return;
-                  
-                  const referenceSpace = renderer.xr.getReferenceSpace();
-                  const pose = event.frame.getPose(referenceSpace);
-                  
-                  if (pose) {
-                    const position = pose.transform.position;
-                    model.position.set(position.x, position.y, position.z);
-                    console.log('Модель размещена в AR:', position);
-                  }
-                });
               },
               function (xhr) {
-                console.log('Прогресс загрузки:', (xhr.loaded / xhr.total * 100) + '%');
+                document.getElementById('status').textContent = `Загрузка: ${(xhr.loaded / xhr.total * 100).toFixed(0)}%`;
               },
               function (error) {
-                console.error('Ошибка загрузки модели:', error);
+                document.getElementById('status').textContent = 'Ошибка загрузки';
+                console.error(error);
               }
       );
 
@@ -349,117 +325,62 @@
       isRotating = false;
     }
 
-    function updateModelMovement(deltaTime) {
-        if (!model || !renderer.xr.isPresenting) return;
-
-        // Получаем позицию камеры
-        const camera = renderer.xr.getCamera();
-        const cameraPosition = camera.position;
-
-        // Обновляем позицию модели относительно камеры
-        model.position.x = cameraPosition.x;
-        model.position.z = cameraPosition.z - 1; // 1 метр перед камерой
-
-        switch (movementState.phase) {
-            case 'left':
-                // Движение влево
-                if (movementState.distance < movementState.targetDistance) {
-                    model.position.x -= moveSpeed;
-                    movementState.distance += moveSpeed;
-                } else {
-                    movementState.phase = 'pause1';
-                    movementState.pauseTimer = 0;
-                    model.rotation.y = -Math.PI / 2; // Поворот на -90 градусов
-                }
-                break;
-
-            case 'pause1':
-                // Пауза после движения влево
-                movementState.pauseTimer += deltaTime;
-                if (movementState.pauseTimer >= movementState.pauseDuration) {
-                    movementState.phase = 'right';
-                    movementState.distance = 0;
-                    movementState.targetDistance = 6; // 6 метров вправо
-                    model.rotation.y = Math.PI * 1.5; // Поворот на 270 градусов
-                }
-                break;
-
-            case 'right':
-                // Движение вправо
-                if (movementState.distance < movementState.targetDistance) {
-                    model.position.x += moveSpeed;
-                    movementState.distance += moveSpeed;
-                } else {
-                    movementState.phase = 'pause2';
-                    movementState.pauseTimer = 0;
-                    model.rotation.y = Math.PI / 2; // Поворот на 90 градусов
-                }
-                break;
-
-            case 'pause2':
-                // Пауза после движения вправо
-                movementState.pauseTimer += deltaTime;
-                if (movementState.pauseTimer >= movementState.pauseDuration) {
-                    movementState.phase = 'left';
-                    movementState.distance = 0;
-                    movementState.targetDistance = 3;
-                    model.rotation.y = Math.PI / 2; // Поворот на 90 градусов
-                }
-                break;
-        }
-    }
-
     function animate() {
-      requestAnimationFrame(animate);
+      renderer.setAnimationLoop(function() {
+        const currentTime = Date.now();
+        const elapsedTime = (currentTime - startTime) / 1000;
 
-      const deltaTime = clock.getDelta();
-
-      if (mixer) {
-        mixer.update(deltaTime);
-      }
-
-      // Обновляем движение модели только в AR режиме
-      if (renderer.xr.isPresenting) {
-        updateModelMovement(deltaTime);
-      }
-
-      // Обработка hit-test для AR
-      if (hitTestSourceRequested === false) {
-        const session = renderer.xr.getSession();
-        if (session) {
-          session.requestReferenceSpace('viewer').then((referenceSpace) => {
-            session.requestHitTestSource({ space: referenceSpace }).then((source) => {
-              hitTestSource = source;
-            });
-          });
-          hitTestSourceRequested = true;
+        // Обновляем анимации
+        if (mixer) {
+          const delta = clock.getDelta();
+          mixer.update(delta);
         }
-      }
 
-      if (hitTestSource) {
-        const frame = renderer.xr.getFrame();
-        const hitTestResults = frame.getHitTestResults(hitTestSource);
+        // Двигаем модель только первые 3 секунды в AR режиме
+        if (model && elapsedTime < 3 && renderer.xr.isPresenting) {
+          // Поворачиваем модель на 90 градусов для движения влево
+          model.rotation.y = Math.PI / 2;
+          // Двигаем модель влево
+          model.position.x -= moveSpeed;
+        } else if (model && elapsedTime >= 3 && elapsedTime < 6 && renderer.xr.isPresenting) {
+          // Поворачиваем модель на -90 градусов для движения вправо
+          model.rotation.y = -Math.PI / 2;
+          // Двигаем модель вправо
+          model.position.x += moveSpeed;
+        } else if (model && elapsedTime >= 6 && renderer.xr.isPresenting) {
+          // Сбрасываем время для повторения цикла
+          startTime = Date.now();
+        }
 
-        if (hitTestResults.length > 0) {
-          const hit = hitTestResults[0];
-          const position = hit.getPose(renderer.xr.getReferenceSpace()).transform.position;
+        // Обработка вращения в AR
+        if (isRotating && model && renderer.xr.isPresenting) {
+          const session = renderer.xr.getSession();
+          if (session && hitTestSource) {
+            const frame = session.requestAnimationFrame();
+            const hitTestResults = frame.getHitTestResults(hitTestSource);
 
-          if (lastHitPosition) {
-            const deltaX = position.x - lastHitPosition.x;
-            const deltaY = position.y - lastHitPosition.y;
+            if (hitTestResults.length > 0) {
+              const hit = hitTestResults[0];
+              const position = hit.getPose(renderer.xr.getReferenceSpace()).transform.position;
 
-            model.rotation.y += deltaX * rotationSpeed;
-            model.rotation.x += deltaY * rotationSpeed;
+              if (lastHitPosition) {
+                const deltaX = position.x - lastHitPosition.x;
+                const deltaY = position.y - lastHitPosition.y;
 
-            // Ограничиваем вращение по X
-            model.rotation.x = Math.max(-Math.PI/2, Math.min(Math.PI/2, model.rotation.x));
+                model.rotation.y += deltaX * rotationSpeed;
+                model.rotation.x += deltaY * rotationSpeed;
+
+                // Ограничиваем вращение по X
+                model.rotation.x = Math.max(-Math.PI/2, Math.min(Math.PI/2, model.rotation.x));
+              }
+
+              lastHitPosition = position;
+            }
           }
-
-          lastHitPosition = position;
         }
-      }
 
-      renderer.render(scene, camera);
+        renderer.render(scene, camera);
+      });
     }
   </script>
 </head>
