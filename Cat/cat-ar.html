@@ -90,8 +90,8 @@
       audioElement.volume = 1.0;
 
       // Создаем камеру
-      camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 20);
-      camera.position.set(0, 1.6, 3);
+      camera = new THREE.PerspectiveCamera(90, window.innerWidth / window.innerHeight, 0.01, 20);
+      camera.position.set(0, 0, 3);
 
       // Создаем рендерер
       renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
@@ -136,7 +136,7 @@
               function (gltf) {
                 model = gltf.scene;
                 model.scale.set(0.1, 0.1, 0.1);
-                model.position.set(0, -5, -1); // Устанавливаем начальную позицию
+                model.position.set(0, -1, -1); // Устанавливаем начальную позицию
 
                 // Проверяем материалы модели
                 model.traverse((child) => {
