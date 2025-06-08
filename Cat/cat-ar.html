@@ -74,7 +74,7 @@
     let moveSpeed = 0.01;
     let startTime = 0;
     let audioElement = null;
-    let currentDirection = 'left';
+    let currentDirection = 'left'; // 'left' или 'right'
     let distanceTraveled = 0;
     let isLookingAtViewer = false;
     let lookAtViewerTime = 0;
@@ -133,79 +133,25 @@
       // Загружаем модель
       const loader = new GLTFLoader();
       loader.load(
-        './walk2.glb',
+        './tell1.glb',
         function (gltf) {
-          console.log('Модель успешно загружена');
           model = gltf.scene;
           model.scale.set(0.1, 0.1, 0.1);
-          
-          // Устанавливаем начальную позицию на полу
-          model.position.set(0, -0.5, 0); // Опускаем модель на пол
-          model.rotation.y = Math.PI / 2;
-          
-          // Проверяем материалы модели
-          model.traverse((child) => {
-            if (child.isMesh && child.material) {
-              console.log('Найден меш:', child.name);
-              console.log('Материал:', child.material);
-              
-              const material = child.material;
-              material.roughness = 0.5;
-              material.metalness = 0.0;
-              material.envMapIntensity = 1.0;
-              material.needsUpdate = true;
-              
-              child.castShadow = true;
-              child.receiveShadow = true;
-            }
-          });
-          
+          model.position.set(0, 0, 0); // Приземляем модель на пол
+          model.rotation.y = Math.PI / 2; // Поворачиваем на 90 градусов влево
           scene.add(model);
 
           // Настраиваем анимации
           mixer = new THREE.AnimationMixer(model);
           animations = gltf.animations;
           if (animations && animations.length > 0) {
-            console.log('Найдено анимаций:', animations.length);
             currentAnimation = mixer.clipAction(animations[0]);
             currentAnimation.setLoop(THREE.LoopRepeat);
             currentAnimation.clampWhenFinished = false;
             currentAnimation.play();
-          } else {
-            console.warn('Анимации не найдены в модели');
           }
-
-          // Добавляем обработчики для AR
-          renderer.xr.addEventListener('sessionstart', function() {
-            console.log('AR сессия началась');
-            startTime = Date.now();
-            clock.start();
-
-            // Запрашиваем hit test source
-            const session = renderer.xr.getSession();
-            session.requestReferenceSpace('viewer').then((referenceSpace) => {
-              session.requestHitTestSource({ space: referenceSpace }).then((source) => {
-                hitTestSource = source;
-                console.log('Hit test source получен');
-              }).catch(error => {
-                console.error('Ошибка получения hit test source:', error);
-              });
-            }).catch(error => {
-              console.error('Ошибка получения reference space:', error);
-            });
-            hitTestSourceRequested = true;
-          });
-
-          renderer.xr.addEventListener('sessionend', function() {
-            console.log('AR сессия закончилась');
-            hitTestSource = null;
-            hitTestSourceRequested = false;
-            clock.stop();
-          });
         },
-        function (xhr) {
-          console.log('Прогресс загрузки:', (xhr.loaded / xhr.total * 100).toFixed(0) + '%');
-        },
+        undefined,
         function (error) {
           console.error('Ошибка загрузки модели:', error);
         }
@@ -216,26 +162,7 @@
 
       // Добавляем обработчики событий
       window.addEventListener('resize', onWindowResize, false);
-      
-      // Обработка жестов для анимаций
-      let lastTapTime = 0;
-      renderer.domElement.addEventListener('click', function(event) {
-        const currentTime = new Date().getTime();
-        const tapLength = currentTime - lastTapTime;
-        
-        if (tapLength < 300 && tapLength > 0) {
-          // Двойной тап - пауза/воспроизведение
-          if (currentAnimation) {
-            if (currentAnimation.isRunning()) {
-              currentAnimation.stop();
-            } else {
-              currentAnimation.play();
-            }
-          }
-        }
-        
-        lastTapTime = currentTime;
-      });
+      document.addEventListener('click', onDocumentClick, false);
     }
 
     function onWindowResize() {
