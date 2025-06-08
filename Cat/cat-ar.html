@@ -344,10 +344,13 @@
             model.position.x -= moveSpeed;
           } else if (elapsedTime < 5) {
             // Пауза и поворот к зрителю после движения влево
-            model.rotation.y = Math.PI;
+            model.rotation.y = 0; // Поворот лицом к зрителю
             // Воспроизводим звук
-            if (!audioElement.played) {
-              audioElement.play();
+            if (audioElement && audioElement.paused) {
+              audioElement.currentTime = 0;
+              audioElement.play().catch(error => {
+                console.error('Ошибка воспроизведения звука:', error);
+              });
             }
           } else if (elapsedTime < 8) {
             // Движение вправо
@@ -355,7 +358,7 @@
             model.position.x += moveSpeed;
           } else if (elapsedTime < 10) {
             // Пауза и поворот к зрителю после движения вправо
-            model.rotation.y = Math.PI;
+            model.rotation.y = 0; // Поворот лицом к зрителю
           } else {
             // Сбрасываем время для повторения цикла
             startTime = Date.now();
