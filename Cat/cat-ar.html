@@ -337,7 +337,7 @@
     }
 
     function updateModelMovement(deltaTime) {
-        if (!model) return;
+        if (!model || !renderer.xr.isPresenting) return;
 
         switch (movementState.phase) {
             case 'left':
@@ -397,8 +397,10 @@
         mixer.update(deltaTime);
       }
 
-      // Обновляем движение модели
-      updateModelMovement(deltaTime);
+      // Обновляем движение модели только в AR режиме
+      if (renderer.xr.isPresenting) {
+        updateModelMovement(deltaTime);
+      }
 
       // Обработка hit-test для AR
       if (hitTestSourceRequested === false) {
