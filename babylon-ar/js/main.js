@@ -12,6 +12,15 @@ let rotationSpeed = 0.01;
 let currentRotationX = 0;
 let currentRotationY = 0;
 
+// Добавляем переменные для анимации движения
+let isMovingLeft = true;
+let movementSpeed = 0.05;
+let movementDistance = 3;
+let currentDistance = 0;
+let lookAtViewerTime = 0;
+let isLookingAtViewer = false;
+let movementState = 'moving'; // 'moving', 'looking', 'turning'
+
 // Добавляем поддержку анимаций
 let animations = [];
 let animationMixer = null;
@@ -81,6 +90,50 @@ async function createScene() {
                     scene.beginAnimation(mesh, 0, 100, true);
                     debugDiv.innerHTML += `<br>Запущена анимация в меше: ${anim.name}`;
                 });
+            }
+        });
+
+        // Добавляем функцию обновления анимации
+        scene.registerBeforeRender(() => {
+            if (modelRoot) {
+                switch (movementState) {
+                    case 'moving':
+                        if (isMovingLeft) {
+                            modelRoot.position.x -= movementSpeed;
+                            currentDistance += movementSpeed;
+                            if (currentDistance >= movementDistance) {
+                                movementState = 'turning';
+                                currentDistance = 0;
+                            }
+                        } else {
+                            modelRoot.position.x += movementSpeed;
+                            currentDistance += movementSpeed;
+                            if (currentDistance >= movementDistance * 2) {
+                                movementState = 'turning';
+                                currentDistance = 0;
+                            }
+                        }
+                        break;
+
+                    case 'turning':
+                        if (isMovingLeft) {
+                            modelRoot.rotation.y = Math.PI / 2; // 90 градусов
+                            isMovingLeft = false;
+                        } else {
+                            modelRoot.rotation.y = -Math.PI / 2; // -90 градусов
+                            isMovingLeft = true;
+                        }
+                        movementState = 'looking';
+                        lookAtViewerTime = 0;
+                        break;
+
+                    case 'looking':
+                        lookAtViewerTime += scene.getEngine().getDeltaTime() / 1000;
+                        if (lookAtViewerTime >= 2) { // 2 секунды смотрит на зрителя
+                            movementState = 'moving';
+                        }
+                        break;
+                }
             }
         });
 
