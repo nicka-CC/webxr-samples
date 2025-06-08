@@ -336,24 +336,30 @@
           mixer.update(delta);
         }
 
-        // Двигаем модель только первые 3 секунды в AR режиме
-        if (model && elapsedTime < 3 && renderer.xr.isPresenting) {
-          // Поворачиваем модель на 90 градусов для движения влево
-          model.rotation.y = Math.PI / 2 + Math.PI; // Добавляем 180 градусов
-          // Двигаем модель влево
-          model.position.x -= moveSpeed;
-          // Воспроизводим звук
-          if (!audioElement.played) {
-            audioElement.play();
+        // Двигаем модель в AR режиме
+        if (model && renderer.xr.isPresenting) {
+          if (elapsedTime < 3) {
+            // Движение влево
+            model.rotation.y = Math.PI / 2 + Math.PI;
+            model.position.x -= moveSpeed;
+          } else if (elapsedTime < 5) {
+            // Пауза и поворот к зрителю после движения влево
+            model.rotation.y = Math.PI;
+            // Воспроизводим звук
+            if (!audioElement.played) {
+              audioElement.play();
+            }
+          } else if (elapsedTime < 8) {
+            // Движение вправо
+            model.rotation.y = -Math.PI / 2 + Math.PI;
+            model.position.x += moveSpeed;
+          } else if (elapsedTime < 10) {
+            // Пауза и поворот к зрителю после движения вправо
+            model.rotation.y = Math.PI;
+          } else {
+            // Сбрасываем время для повторения цикла
+            startTime = Date.now();
           }
-        } else if (model && elapsedTime >= 3 && elapsedTime < 6 && renderer.xr.isPresenting) {
-          // Поворачиваем модель на -90 градусов для движения вправо
-          model.rotation.y = -Math.PI / 2 + Math.PI; // Добавляем 180 градусов
-          // Двигаем модель вправо
-          model.position.x += moveSpeed;
-        } else if (model && elapsedTime >= 6 && renderer.xr.isPresenting) {
-          // Сбрасываем время для повторения цикла
-          startTime = Date.now();
         }
 
         // Обработка вращения в AR
