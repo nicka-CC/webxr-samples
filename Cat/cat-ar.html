@@ -74,7 +74,7 @@
     let moveSpeed = 0.01;
     let startTime = 0;
     let audioElement = null;
-    let currentDirection = 'left'; // 'left' или 'right'
+    let currentDirection = 'left';
     let distanceTraveled = 0;
     let isLookingAtViewer = false;
     let lookAtViewerTime = 0;
@@ -133,13 +133,13 @@
       // Загружаем модель
       const loader = new GLTFLoader();
       loader.load(
-        './walk2.glb', // Возвращаем оригинальную модель
+        './walk2.glb',
         function (gltf) {
           console.log('Модель успешно загружена');
           model = gltf.scene;
           model.scale.set(0.1, 0.1, 0.1);
-          model.position.set(0, 0, 0); // Приземляем модель на пол
-          model.rotation.y = Math.PI / 2; // Поворачиваем на 90 градусов влево
+          model.position.set(0, 0, 0);
+          model.rotation.y = Math.PI / 2;
           
           // Проверяем материалы модели
           model.traverse((child) => {
@@ -147,14 +147,12 @@
               console.log('Найден меш:', child.name);
               console.log('Материал:', child.material);
               
-              // Настраиваем материал для корректного отображения текстур
               const material = child.material;
               material.roughness = 0.5;
               material.metalness = 0.0;
               material.envMapIntensity = 1.0;
               material.needsUpdate = true;
               
-              // Включаем тени для меша
               child.castShadow = true;
               child.receiveShadow = true;
             }
@@ -174,6 +172,34 @@
           } else {
             console.warn('Анимации не найдены в модели');
           }
+
+          // Добавляем обработчики для AR
+          renderer.xr.addEventListener('sessionstart', function() {
+            console.log('AR сессия началась');
+            startTime = Date.now();
+            clock.start();
+
+            // Запрашиваем hit test source
+            const session = renderer.xr.getSession();
+            session.requestReferenceSpace('viewer').then((referenceSpace) => {
+              session.requestHitTestSource({ space: referenceSpace }).then((source) => {
+                hitTestSource = source;
+                console.log('Hit test source получен');
+              }).catch(error => {
+                console.error('Ошибка получения hit test source:', error);
+              });
+            }).catch(error => {
+              console.error('Ошибка получения reference space:', error);
+            });
+            hitTestSourceRequested = true;
+          });
+
+          renderer.xr.addEventListener('sessionend', function() {
+            console.log('AR сессия закончилась');
+            hitTestSource = null;
+            hitTestSourceRequested = false;
+            clock.stop();
+          });
         },
         function (xhr) {
           console.log('Прогресс загрузки:', (xhr.loaded / xhr.total * 100).toFixed(0) + '%');
