@@ -339,12 +339,16 @@
         // Двигаем модель только первые 3 секунды в AR режиме
         if (model && elapsedTime < 3 && renderer.xr.isPresenting) {
           // Поворачиваем модель на 90 градусов для движения влево
-          model.rotation.y = Math.PI / 2;
+          model.rotation.y = Math.PI / 2 + Math.PI; // Добавляем 180 градусов
           // Двигаем модель влево
           model.position.x -= moveSpeed;
+          // Воспроизводим звук
+          if (!audioElement.played) {
+            audioElement.play();
+          }
         } else if (model && elapsedTime >= 3 && elapsedTime < 6 && renderer.xr.isPresenting) {
           // Поворачиваем модель на -90 градусов для движения вправо
-          model.rotation.y = -Math.PI / 2;
+          model.rotation.y = -Math.PI / 2 + Math.PI; // Добавляем 180 градусов
           // Двигаем модель вправо
           model.position.x += moveSpeed;
         } else if (model && elapsedTime >= 6 && renderer.xr.isPresenting) {
