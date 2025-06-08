@@ -145,47 +145,30 @@
       loader.load(
               './walk2.glb',
               function (gltf) {
+                console.log('Модель загружена');
                 model = gltf.scene;
                 model.scale.set(0.1, 0.1, 0.1);
-                model.position.set(0, 0, -1); // Устанавливаем начальную позицию
-
-                // Проверяем материалы модели
-                model.traverse((child) => {
-                  if (child.isMesh && child.material) {
-                    console.log('Найден меш:', child.name);
-                    console.log('Материал:', child.material);
-
-                    // Настраиваем материал для корректного отображения текстур
-                    const material = child.material;
-                    material.roughness = 0.5;
-                    material.metalness = 0.0;
-                    material.envMapIntensity = 1.0;
-                    material.needsUpdate = true;
-
-                    // Включаем тени для меша
-                    child.castShadow = true;
-                    child.receiveShadow = true;
-                  }
-                });
-
+                
+                // Настраиваем начальное положение модели
+                model.position.set(0, 0, -1); // Размещаем модель перед камерой
+                model.rotation.y = Math.PI / 2; // Начальный поворот на 90 градусов
+                
                 scene.add(model);
+                console.log('Модель добавлена на сцену');
 
                 // Настраиваем анимации
                 mixer = new THREE.AnimationMixer(model);
                 animations = gltf.animations;
 
                 if (animations && animations.length > 0) {
-                  document.getElementById('animations').textContent = `Найдено: ${animations.length}`;
-                  document.getElementById('status').textContent = 'Готово';
-
-                  // Запускаем первую анимацию
+                  console.log('Анимации найдены:', animations.length);
                   currentAnimation = mixer.clipAction(animations[0]);
                   currentAnimation.setLoop(THREE.LoopRepeat);
                   currentAnimation.clampWhenFinished = false;
                   currentAnimation.play();
+                  console.log('Анимация запущена');
                 } else {
-                  document.getElementById('animations').textContent = 'Не найдено';
-                  document.getElementById('status').textContent = 'Нет анимаций';
+                  console.log('Анимации не найдены');
                 }
 
                 // Инициализируем обработчики тач-событий
@@ -251,13 +234,43 @@
                     });
                   });
                 });
+
+                // Добавляем обработчик для размещения модели в AR
+                renderer.xr.addEventListener('sessionstart', () => {
+                  console.log('AR сессия началась');
+                  if (model) {
+                    // Размещаем модель перед пользователем
+                    const distance = 1; // 1 метр перед пользователем
+                    model.position.set(0, 0, -distance);
+                    model.rotation.y = Math.PI / 2;
+                    
+                    // Сбрасываем состояние движения
+                    movementState.phase = 'left';
+                    movementState.distance = 0;
+                    movementState.pauseTimer = 0;
+                    console.log('Модель размещена перед пользователем');
+                  }
+                });
+
+                // Добавляем обработчик для размещения модели по тапу
+                renderer.xr.addEventListener('select', (event) => {
+                  if (!model) return;
+                  
+                  const referenceSpace = renderer.xr.getReferenceSpace();
+                  const pose = event.frame.getPose(referenceSpace);
+                  
+                  if (pose) {
+                    const position = pose.transform.position;
+                    model.position.set(position.x, position.y, position.z);
+                    console.log('Модель размещена в AR:', position);
+                  }
+                });
               },
               function (xhr) {
-                document.getElementById('status').textContent = `Загрузка: ${(xhr.loaded / xhr.total * 100).toFixed(0)}%`;
+                console.log('Прогресс загрузки:', (xhr.loaded / xhr.total * 100) + '%');
               },
               function (error) {
-                document.getElementById('status').textContent = 'Ошибка загрузки';
-                console.error(error);
+                console.error('Ошибка загрузки модели:', error);
               }
       );
 
@@ -338,6 +351,14 @@
 
     function updateModelMovement(deltaTime) {
         if (!model || !renderer.xr.isPresenting) return;
+
+        // Получаем позицию камеры
+        const camera = renderer.xr.getCamera();
+        const cameraPosition = camera.position;
+
+        // Обновляем позицию модели относительно камеры
+        model.position.x = cameraPosition.x;
+        model.position.z = cameraPosition.z - 1; // 1 метр перед камерой
 
         switch (movementState.phase) {
             case 'left':
