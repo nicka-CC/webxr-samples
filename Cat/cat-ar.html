@@ -133,25 +133,51 @@
       // Загружаем модель
       const loader = new GLTFLoader();
       loader.load(
-        './tell1.glb',
+        './walk2.glb', // Возвращаем оригинальную модель
         function (gltf) {
+          console.log('Модель успешно загружена');
           model = gltf.scene;
           model.scale.set(0.1, 0.1, 0.1);
           model.position.set(0, 0, 0); // Приземляем модель на пол
           model.rotation.y = Math.PI / 2; // Поворачиваем на 90 градусов влево
+          
+          // Проверяем материалы модели
+          model.traverse((child) => {
+            if (child.isMesh && child.material) {
+              console.log('Найден меш:', child.name);
+              console.log('Материал:', child.material);
+              
+              // Настраиваем материал для корректного отображения текстур
+              const material = child.material;
+              material.roughness = 0.5;
+              material.metalness = 0.0;
+              material.envMapIntensity = 1.0;
+              material.needsUpdate = true;
+              
+              // Включаем тени для меша
+              child.castShadow = true;
+              child.receiveShadow = true;
+            }
+          });
+          
           scene.add(model);
 
           // Настраиваем анимации
           mixer = new THREE.AnimationMixer(model);
           animations = gltf.animations;
           if (animations && animations.length > 0) {
+            console.log('Найдено анимаций:', animations.length);
             currentAnimation = mixer.clipAction(animations[0]);
             currentAnimation.setLoop(THREE.LoopRepeat);
             currentAnimation.clampWhenFinished = false;
             currentAnimation.play();
+          } else {
+            console.warn('Анимации не найдены в модели');
           }
         },
-        undefined,
+        function (xhr) {
+          console.log('Прогресс загрузки:', (xhr.loaded / xhr.total * 100).toFixed(0) + '%');
+        },
         function (error) {
           console.error('Ошибка загрузки модели:', error);
         }
@@ -162,7 +188,26 @@
 
       // Добавляем обработчики событий
       window.addEventListener('resize', onWindowResize, false);
-      document.addEventListener('click', onDocumentClick, false);
+      
+      // Обработка жестов для анимаций
+      let lastTapTime = 0;
+      renderer.domElement.addEventListener('click', function(event) {
+        const currentTime = new Date().getTime();
+        const tapLength = currentTime - lastTapTime;
+        
+        if (tapLength < 300 && tapLength > 0) {
+          // Двойной тап - пауза/воспроизведение
+          if (currentAnimation) {
+            if (currentAnimation.isRunning()) {
+              currentAnimation.stop();
+            } else {
+              currentAnimation.play();
+            }
+          }
+        }
+        
+        lastTapTime = currentTime;
+      });
     }
 
     function onWindowResize() {
