@@ -378,8 +378,10 @@
         if (model && renderer.xr.isPresenting) {
           if (elapsedTime < 3) {
             // Движение влево
-            model.rotation.y = Math.PI / 2 + Math.PI;
             model.position.x -= moveSpeed;
+            if (mixer && currentAnimation) {
+              currentAnimation.play();
+            }
           } else if (elapsedTime < 5) {
             // Пауза и поворот к зрителю после движения влево
             if (!isTurning) {
@@ -388,27 +390,33 @@
               model.visible = false;
               leftModel.visible = true;
               leftModel.position.copy(model.position);
-              leftModel.rotation.copy(model.rotation);
-              leftModel.rotation.y = 0;
+              
+              // Воспроизводим звук
+              if (audioElement && audioElement.paused) {
+                audioElement.currentTime = 0;
+                audioElement.play().catch(error => {
+                  console.error('Ошибка воспроизведения звука:', error);
+                });
+              }
             }
             
             if (currentTime - turnStartTime >= 2000) { // 2 секунды на поворот
               leftModel.visible = false;
               rightModel.visible = true;
               rightModel.position.copy(leftModel.position);
-              rightModel.rotation.copy(leftModel.rotation);
             }
             
             if (currentTime - turnStartTime >= 4000) { // 4 секунды на весь поворот
               isTurning = false;
               rightModel.visible = false;
               model.visible = true;
-              model.rotation.y = 0;
             }
           } else if (elapsedTime < 8) {
             // Движение вправо
-            model.rotation.y = -Math.PI / 2 + Math.PI;
             model.position.x += moveSpeed;
+            if (mixer && currentAnimation) {
+              currentAnimation.play();
+            }
           } else if (elapsedTime < 10) {
             // Пауза и поворот к зрителю после движения вправо
             if (!isTurning) {
@@ -417,25 +425,32 @@
               model.visible = false;
               rightModel.visible = true;
               rightModel.position.copy(model.position);
-              rightModel.rotation.copy(model.rotation);
-              rightModel.rotation.y = 0;
+              
+              // Воспроизводим звук
+              if (audioElement && audioElement.paused) {
+                audioElement.currentTime = 0;
+                audioElement.play().catch(error => {
+                  console.error('Ошибка воспроизведения звука:', error);
+                });
+              }
             }
             
             if (currentTime - turnStartTime >= 2000) {
               rightModel.visible = false;
               leftModel.visible = true;
               leftModel.position.copy(rightModel.position);
-              leftModel.rotation.copy(rightModel.rotation);
             }
             
             if (currentTime - turnStartTime >= 4000) {
               isTurning = false;
               leftModel.visible = false;
               model.visible = true;
-              model.rotation.y = 0;
             }
           } else {
             startTime = Date.now();
+            if (mixer && currentAnimation) {
+              currentAnimation.play();
+            }
           }
         }
 
