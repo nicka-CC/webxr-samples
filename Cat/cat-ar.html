@@ -65,6 +65,7 @@
     let camera, scene, renderer;
     let model, mixer;
     let leftModel;
+    let isLeftModelLoaded = false;
     let clock = new THREE.Clock();
     let currentAnimation = null;
     let animations = [];
@@ -263,6 +264,7 @@
           leftModel.scale.set(2, 2, 2);
           leftModel.visible = false;
           scene.add(leftModel);
+          isLeftModelLoaded = true;
           console.log('Left model loaded and added to scene');
         },
         function (xhr) {
@@ -368,7 +370,7 @@
             model.position.x -= moveSpeed;
 
             // Подменяем модель в конце движения влево
-            if (elapsedTime >= 2.5 && leftModel) {
+            if (elapsedTime >= 2.5 && isLeftModelLoaded) {
               document.getElementById('left-model-status').textContent = 'Активна';
               // Проверяем, что модели существуют
               if (!model || !leftModel) {
@@ -401,7 +403,7 @@
               } else {
                 document.getElementById('left-model-status').textContent = 'Активна (без анимации)';
               }
-            } else if (elapsedTime >= 2.5 && !leftModel) {
+            } else if (elapsedTime >= 2.5 && !isLeftModelLoaded) {
               document.getElementById('left-model-status').textContent = 'Ожидание загрузки...';
             }
           } else if (elapsedTime < 5) {
