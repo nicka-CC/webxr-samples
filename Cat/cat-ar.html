@@ -336,6 +336,9 @@
             const frame = renderer.xr.getFrame();
             const hitTestResults = frame.getHitTestResults(hitTestSource);
 
+            // Добавляем логирование для отладки
+            showError(`Hit test source active. Results count: ${hitTestResults.length}. Model placed: ${modelPlaced}`);
+
             if (hitTestResults.length > 0 && !modelPlaced) {
               const hit = hitTestResults[0];
               const pose = hit.getPose(referenceSpace);
@@ -351,8 +354,16 @@
                 modelPlaced = true;
                 document.getElementById('status').textContent = 'Кот размещен';
                 showError('Модель успешно размещена на поверхности');
+              } else {
+                showError('Pose не получен из hit-тест результата.');
               }
+            } else if (hitTestResults.length === 0) {
+              showError('Нет hit-тест результатов. Продолжаем поиск поверхности.');
+            } else if (modelPlaced) {
+              showError('Модель уже размещена. Новые hit-тест результаты игнорируются.');
             }
+          } else {
+            showError('Hit test source неактивен или не получен.');
           }
 
           // Остальная логика анимации
