@@ -373,6 +373,12 @@
               leftModel.visible = true;
               model.visible = false;
               model = leftModel;
+              mixer = new THREE.AnimationMixer(model);
+              if (animations.length > 0) {
+                currentAnimation = mixer.clipAction(animations[0]);
+                currentAnimation.setLoop(THREE.LoopRepeat);
+                currentAnimation.play();
+              }
             } else if (elapsedTime >= 2.5 && !leftModel) {
               document.getElementById('left-model-status').textContent = 'Ожидание загрузки...';
             }
