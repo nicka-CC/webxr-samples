@@ -369,13 +369,6 @@
             // Пауза и поворот к зрителю после движения влево
             model.rotation.y = 0; // Поворот лицом к зрителю
 
-            // Возвращаемся к основной модели
-            if (model === leftModel) {
-              leftModel.visible = false;
-              model.visible = true;
-              model = leftModel;
-            }
-
             // Останавливаем анимацию в начале паузы
             if (mixer && currentAnimation && elapsedTime < 4) {
               currentAnimation.stop();
