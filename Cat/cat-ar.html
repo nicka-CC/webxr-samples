@@ -260,12 +260,8 @@
         function (gltf) {
           document.getElementById('left-model-status').textContent = 'Загружена';
           leftModel = gltf.scene;
-          // Сохраняем только геометрию
-          leftModel.traverse((child) => {
-            if (child.isMesh) {
-              child.geometry = leftModel.children[0].geometry;
-            }
-          });
+          leftModel.scale.set(2, 2, 2);
+          leftModel.visible = false;
           scene.add(leftModel);
         },
         function (xhr) {
@@ -372,12 +368,30 @@
             // Подменяем модель в конце движения влево
             if (elapsedTime >= 2.5 && leftModel) {
               document.getElementById('left-model-status').textContent = 'Активна';
-              // Меняем только геометрию
-              model.traverse((child) => {
-                if (child.isMesh) {
-                  child.geometry = leftModel.children[0].geometry;
+              // Сохраняем текущую позицию и поворот
+              const currentPosition = model.position.clone();
+              const currentRotation = model.rotation.clone();
+              
+              // Настраиваем новую модель
+              leftModel.position.copy(currentPosition);
+              leftModel.rotation.copy(currentRotation);
+              leftModel.visible = true;
+              
+              // Скрываем старую модель
+              model.visible = false;
+              
+              // Обновляем ссылку на текущую модель
+              model = leftModel;
+              
+              // Перезапускаем анимацию
+              if (mixer) {
+                mixer.stopAllAction();
+                if (animations && animations.length > 0) {
+                  currentAnimation = mixer.clipAction(animations[0]);
+                  currentAnimation.setLoop(THREE.LoopRepeat);
+                  currentAnimation.play();
                 }
-              });
+              }
             } else if (elapsedTime >= 2.5 && !leftModel) {
               document.getElementById('left-model-status').textContent = 'Ожидание загрузки...';
             }
