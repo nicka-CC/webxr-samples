@@ -270,13 +270,13 @@
 
         // Двигаем модель в AR режиме
         if (model && renderer.xr.isPresenting) {
-          if (elapsedTime < 3) {
+          if (elapsedTime < 4) {
             // Движение влево
             model.rotation.y = Math.PI / 2 + Math.PI;
             model.position.x -= moveSpeed;
 
             // Подменяем модель в конце движения влево
-            if (elapsedTime >= 2.5 && leftModel) {
+            if (elapsedTime >= 3.5 && leftModel) {
               document.getElementById('left-model-status').textContent = 'Активна';
               // Копируем позицию и поворот
               leftModel.position.copy(model.position);
@@ -299,18 +299,18 @@
                 currentAnimation.play();
               }
             }
-          } else if (elapsedTime < 5) {
+          } else if (elapsedTime < 6) {
             // Пауза и поворот к зрителю после движения влево
             model.rotation.y = 0; // Поворот лицом к зрителю
 
             // Останавливаем анимацию в начале паузы
-            if (mixer && currentAnimation && elapsedTime < 4) {
+            if (mixer && currentAnimation && elapsedTime < 5) {
               currentAnimation.stop();
               currentAnimation = null;
             }
 
             // Возобновляем анимацию в конце паузы
-            if (mixer && animations.length > 0 && !currentAnimation && elapsedTime >= 4) {
+            if (mixer && animations.length > 0 && !currentAnimation && elapsedTime >= 5) {
               currentAnimation = mixer.clipAction(animations[0]);
               currentAnimation.setLoop(THREE.LoopRepeat);
               currentAnimation.play();
