@@ -462,24 +462,24 @@
       const elapsedTime = (Date.now() - startTime) / 1000;
       const cycleDuration = 8; // 8 секунд на полный цикл
       const cycleTime = elapsedTime % cycleDuration;
-      const halfCycle = cycleDuration / 2;
 
       // Определяем текущее состояние движения
       if (cycleTime < 4) {
         // Движение влево
         if (movementState !== 'moving_left') {
           movementState = 'moving_left';
-          // Плавно подменяем модель на left.glb
-          if (leftModel) {
-            leftModel.position.copy(model.position);
-            leftModel.rotation.copy(model.rotation);
-            leftModel.visible = true;
-            model.visible = false;
-            model = leftModel;
-          }
         }
         model.position.x -= moveSpeed;
         model.rotation.y = Math.PI / 2;
+
+        // Подменяем модель только в конце отрезка движения влево
+        if (cycleTime >= 3.8 && leftModel) {
+          leftModel.position.copy(model.position);
+          leftModel.rotation.copy(model.rotation);
+          leftModel.visible = true;
+          model.visible = false;
+          model = leftModel;
+        }
       } else if (cycleTime < 6) {
         // Пауза и поворот к зрителю
         if (movementState !== 'looking') {
@@ -496,12 +496,6 @@
         // Движение вправо
         if (movementState !== 'moving_right') {
           movementState = 'moving_right';
-          // Возвращаемся к основной модели
-          if (model !== leftModel && leftModel) {
-            leftModel.visible = false;
-            model.visible = true;
-            model = leftModel;
-          }
         }
         model.position.x += moveSpeed;
         model.rotation.y = -Math.PI / 2;
