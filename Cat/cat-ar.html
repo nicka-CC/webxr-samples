@@ -396,18 +396,19 @@
 
         // Обработка состояния 'looking'
         if (movementState === 'looking') {
-          lookAtViewerTime += scene.getEngine().getDeltaTime() / 1000;
-          if (lookAtViewerTime >= 2) { // 2 секунды смотрит на зрителя
-            movementState = 'moving';
-            // Останавливаем анимацию
+            // Останавливаем анимацию сразу при повороте
             if (mixer) {
-              mixer.stopAllAction();
+                mixer.stopAllAction();
             }
             animations = [];
             currentAnimation = null;
-            // Сбрасываем таймер
-            lookAtViewerTime = 0;
-          }
+            
+            lookAtViewerTime += scene.getEngine().getDeltaTime() / 1000;
+            if (lookAtViewerTime >= 2) { // 2 секунды смотрит на зрителя
+                movementState = 'moving';
+                // Сбрасываем таймер
+                lookAtViewerTime = 0;
+            }
         }
 
         renderer.render(scene, camera);
