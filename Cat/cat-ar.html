@@ -380,10 +380,6 @@
             // Движение влево
             model.rotation.y = Math.PI / 2 + Math.PI;
             model.position.x -= moveSpeed;
-            if (mixer && currentAnimation) {
-              currentAnimation.stop();
-              currentAnimation = null;
-            }
           } else if (elapsedTime < 5) {
             // Пауза и поворот к зрителю после движения влево
             if (!isTurning) {
@@ -413,11 +409,6 @@
             // Движение вправо
             model.rotation.y = -Math.PI / 2 + Math.PI;
             model.position.x += moveSpeed;
-            if (mixer && animations.length > 0 && !currentAnimation) {
-              currentAnimation = mixer.clipAction(animations[0]);
-              currentAnimation.setLoop(THREE.LoopRepeat);
-              currentAnimation.play();
-            }
           } else if (elapsedTime < 10) {
             // Пауза и поворот к зрителю после движения вправо
             if (!isTurning) {
@@ -445,11 +436,6 @@
             }
           } else {
             startTime = Date.now();
-            if (mixer && animations.length > 0 && !currentAnimation) {
-              currentAnimation = mixer.clipAction(animations[0]);
-              currentAnimation.setLoop(THREE.LoopRepeat);
-              currentAnimation.play();
-            }
           }
         }
 
