@@ -344,123 +344,20 @@
       isRotating = false;
     }
 
-
-
     function animate() {
       renderer.setAnimationLoop(function() {
-        const currentTime = Date.now();
-        const elapsedTime = (currentTime - startTime) / 1000;
+        if (mixer) mixer.update(clock.getDelta());
 
-        // Обновляем анимации
-        if (mixer) {
-          const delta = clock.getDelta();
-          mixer.update(delta);
+        if (renderer.xr.isPresenting) { // Проверяем AR режим
+          updateModelPosition();
         }
-
-        // Двигаем модель в AR режиме
-        if (model && renderer.xr.isPresenting) {
-          if (elapsedTime < 3) {
-            // Движение влево
-            model.rotation.y = Math.PI / 2 + Math.PI;
-            model.position.x -= moveSpeed;
-          } else if (elapsedTime < 5) {
-            // Пауза и поворот к зрителю после движения влево
-            model.rotation.y = 0; // Поворот лицом к зрителю
-
-          
-
-            // Возобновляем анимацию в конце паузы
-            if (mixer && animations.length > 0 && !currentAnimation && elapsedTime >= 4) {
-              currentAnimation = mixer.clipAction(animations[0]);
-              currentAnimation.setLoop(THREE.LoopRepeat);
-              currentAnimation.play();
-            }
-
-            // Воспроизводим звук
-            if (audioElement && audioElement.paused) {
-              audioElement.currentTime = 0;
-              audioElement.play().catch(error => {
-                console.error('Ошибка воспроизведения звука:', error);
-              });
-            }
-          } else if (elapsedTime < 8) {
-            // Движение вправо
-            model.rotation.y = -Math.PI / 2 + Math.PI;
-            model.position.x += moveSpeed;
-            // Убедимся, что анимация запущена
-            if (mixer && animations.length > 0 && !currentAnimation) {
-              currentAnimation = mixer.clipAction(animations[0]);
-              currentAnimation.setLoop(THREE.LoopRepeat);
-              currentAnimation.play();
-            }
-          } else if (elapsedTime < 10) {
-            // Пауза и поворот к зрителю после движения вправо
-            model.rotation.y = 0; // Поворот лицом к зрителю
-
-          } else {
-            // Сбрасываем время для повторения цикла
-            startTime = Date.now();
-            // Возобновляем анимацию
-            if (mixer && animations.length > 0 && !currentAnimation) {
-              currentAnimation = mixer.clipAction(animations[0]);
-              currentAnimation.setLoop(THREE.LoopRepeat);
-              currentAnimation.play();
-            }
-          }
-        }
-
-        // Обработка вращения в AR
-        if (isRotating && model && renderer.xr.isPresenting) {
-          const session = renderer.xr.getSession();
-          if (session && hitTestSource) {
-            const frame = session.requestAnimationFrame();
-            const hitTestResults = frame.getHitTestResults(hitTestSource);
-
-            if (hitTestResults.length > 0) {
-              const hit = hitTestResults[0];
-              const position = hit.getPose(renderer.xr.getReferenceSpace()).transform.position;
-
-              if (lastHitPosition) {
-                const deltaX = position.x - lastHitPosition.x;
-                const deltaY = position.y - lastHitPosition.y;
-
-                model.rotation.y += deltaX * rotationSpeed;
-                model.rotation.x += deltaY * rotationSpeed;
-
-                // Ограничиваем вращение по X
-                model.rotation.x = Math.max(-Math.PI/2, Math.min(Math.PI/2, model.rotation.x));
-              }
-
-              lastHitPosition = position;
-            }
-          }
-        }
-
-        // Обработка состояния 'looking'
-        if (movementState === 'looking') {
-          // Убираем остановку анимации при повороте
-          lookAtViewerTime += scene.getEngine().getDeltaTime() / 1000;
-          if (lookAtViewerTime >= 2) { // 2 секунды смотрит на зрителя
-            movementState = 'moving';
-            // Сбрасываем таймер
-            lookAtViewerTime = 0;
-            // Возобновляем анимацию
-            if (mixer && animations.length > 0) {
-              currentAnimation = mixer.clipAction(animations[0]);
-              currentAnimation.setLoop(THREE.LoopRepeat);
-              currentAnimation.play();
-            }
-          }
-        }
-
-        updateModelPosition();
 
         renderer.render(scene, camera);
       });
     }
 
     function updateModelPosition() {
-      if (!model) return;
+      if (!model || !renderer.xr.isPresenting) return; // Проверяем AR режим
 
       const elapsedTime = (Date.now() - startTime) / 1000;
       const cycleDuration = 8; // 8 секунд на полный цикл
