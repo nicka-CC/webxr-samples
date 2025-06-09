@@ -396,18 +396,23 @@
 
         // Обработка состояния 'looking'
         if (movementState === 'looking') {
-            // Останавливаем анимацию сразу при повороте
-            if (mixer) {
-                mixer.stopAllAction();
+            // Останавливаем анимацию при повороте
+            if (mixer && currentAnimation) {
+                currentAnimation.stop();
+                currentAnimation = null;
             }
-            animations = [];
-            currentAnimation = null;
             
             lookAtViewerTime += scene.getEngine().getDeltaTime() / 1000;
             if (lookAtViewerTime >= 2) { // 2 секунды смотрит на зрителя
                 movementState = 'moving';
                 // Сбрасываем таймер
                 lookAtViewerTime = 0;
+                // Возобновляем анимацию
+                if (mixer && animations.length > 0) {
+                    currentAnimation = mixer.clipAction(animations[0]);
+                    currentAnimation.setLoop(THREE.LoopRepeat);
+                    currentAnimation.play();
+                }
             }
         }
 
