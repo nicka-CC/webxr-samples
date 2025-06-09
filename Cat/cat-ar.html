@@ -260,8 +260,12 @@
         function (gltf) {
           document.getElementById('left-model-status').textContent = 'Загружена';
           leftModel = gltf.scene;
-          leftModel.scale.set(2, 2, 2);
-          // leftModel.visible = false;
+          // Сохраняем только геометрию
+          leftModel.traverse((child) => {
+            if (child.isMesh) {
+              child.geometry = leftModel.children[0].geometry;
+            }
+          });
           scene.add(leftModel);
         },
         function (xhr) {
@@ -368,21 +372,12 @@
             // Подменяем модель в конце движения влево
             if (elapsedTime >= 2.5 && leftModel) {
               document.getElementById('left-model-status').textContent = 'Активна';
-              // Копируем позицию и поворот
-              leftModel.position.copy(model.position);
-              leftModel.rotation.copy(model.rotation);
-              // Делаем новую модель видимой
-              leftModel.visible = true;
-              // Скрываем старую модель
-              model.visible = false;
-              // Обновляем ссылку на текущую модель
-              model = leftModel;
-              // Убедимся, что анимация продолжается
-              if (mixer && animations.length > 0 && !currentAnimation) {
-                currentAnimation = mixer.clipAction(animations[0]);
-                currentAnimation.setLoop(THREE.LoopRepeat);
-                currentAnimation.play();
-              }
+              // Меняем только геометрию
+              model.traverse((child) => {
+                if (child.isMesh) {
+                  child.geometry = leftModel.children[0].geometry;
+                }
+              });
             } else if (elapsedTime >= 2.5 && !leftModel) {
               document.getElementById('left-model-status').textContent = 'Ожидание загрузки...';
             }
