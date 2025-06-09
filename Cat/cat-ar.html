@@ -368,30 +368,11 @@
             // Подменяем модель в конце движения влево
             if (elapsedTime >= 2.5 && leftModel) {
               document.getElementById('left-model-status').textContent = 'Активна';
-              // Сохраняем текущую позицию и поворот
-              const currentPosition = model.position.clone();
-              const currentRotation = model.rotation.clone();
-              
-              // Настраиваем новую модель
-              leftModel.position.copy(currentPosition);
-              leftModel.rotation.copy(currentRotation);
+              leftModel.position.copy(model.position);
+              leftModel.rotation.copy(model.rotation);
               leftModel.visible = true;
-              
-              // Скрываем старую модель
               model.visible = false;
-              
-              // Обновляем ссылку на текущую модель
               model = leftModel;
-              
-              // Перезапускаем анимацию
-              if (mixer) {
-                mixer.stopAllAction();
-                if (animations && animations.length > 0) {
-                  currentAnimation = mixer.clipAction(animations[0]);
-                  currentAnimation.setLoop(THREE.LoopRepeat);
-                  currentAnimation.play();
-                }
-              }
             } else if (elapsedTime >= 2.5 && !leftModel) {
               document.getElementById('left-model-status').textContent = 'Ожидание загрузки...';
             }
