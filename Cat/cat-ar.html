@@ -424,8 +424,7 @@
 
         // Обработка состояния 'looking'
         if (movementState === 'looking') {
-          // Останавливаем анимацию при повороте
-
+          // Убираем остановку анимации при повороте
           lookAtViewerTime += scene.getEngine().getDeltaTime() / 1000;
           if (lookAtViewerTime >= 2) { // 2 секунды смотрит на зрителя
             movementState = 'moving';
