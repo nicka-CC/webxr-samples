@@ -78,6 +78,7 @@
     let lookAtViewerTime = 0;
     let movementState = 'moving';
     let modelPlaced = false;
+    let referenceSpace = null;
 
     init();
     animate();
@@ -204,7 +205,8 @@
 
                   // Запрашиваем hit test source
                   const session = renderer.xr.getSession();
-                  session.requestReferenceSpace('viewer').then((referenceSpace) => {
+                  session.requestReferenceSpace('viewer').then((space) => {
+                    referenceSpace = space;
                     session.requestHitTestSource({ space: referenceSpace }).then((source) => {
                       hitTestSource = source;
                       hitTestSourceRequested = true;
@@ -348,6 +350,7 @@
                 model.visible = true;
                 modelPlaced = true;
                 document.getElementById('status').textContent = 'Кот размещен';
+                showError('Модель успешно размещена на поверхности');
               }
             }
           }
