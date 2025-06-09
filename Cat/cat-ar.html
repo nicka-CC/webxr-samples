@@ -263,12 +263,14 @@
           leftModel.scale.set(2, 2, 2);
           leftModel.visible = false;
           scene.add(leftModel);
+          console.log('Left model loaded and added to scene');
         },
         function (xhr) {
           document.getElementById('left-model-status').textContent = `Загрузка: ${(xhr.loaded / xhr.total * 100).toFixed(0)}%`;
         },
         function (error) {
           document.getElementById('left-model-status').textContent = 'Ошибка загрузки';
+          console.error('Error loading left model:', error);
         }
       );
 
@@ -368,16 +370,36 @@
             // Подменяем модель в конце движения влево
             if (elapsedTime >= 2.5 && leftModel) {
               document.getElementById('left-model-status').textContent = 'Активна';
+              // Проверяем, что модели существуют
+              if (!model || !leftModel) {
+                document.getElementById('left-model-status').textContent = 'Ошибка: модели не найдены';
+                return;
+              }
+
+              // Копируем позицию и поворот
               leftModel.position.copy(model.position);
               leftModel.rotation.copy(model.rotation);
+              
+              // Делаем новую модель видимой
               leftModel.visible = true;
+              
+              // Скрываем старую модель
               model.visible = false;
+              
+              // Обновляем ссылку на текущую модель
               model = leftModel;
+              
+              // Создаем новый миксер для анимации
               mixer = new THREE.AnimationMixer(model);
-              if (animations.length > 0) {
+              
+              // Проверяем наличие анимаций
+              if (animations && animations.length > 0) {
                 currentAnimation = mixer.clipAction(animations[0]);
                 currentAnimation.setLoop(THREE.LoopRepeat);
                 currentAnimation.play();
+                document.getElementById('left-model-status').textContent = 'Активна (с анимацией)';
+              } else {
+                document.getElementById('left-model-status').textContent = 'Активна (без анимации)';
               }
             } else if (elapsedTime >= 2.5 && !leftModel) {
               document.getElementById('left-model-status').textContent = 'Ожидание загрузки...';
