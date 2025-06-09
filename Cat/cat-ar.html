@@ -93,11 +93,15 @@
       audioElement.volume = 1.0;
 
       // Создаем камеру
-      camera = new THREE.PerspectiveCamera(90, window.innerWidth / window.innerHeight, 0.01, 20);
-      camera.position.set(0, 0, 3);
+      camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 100);
+      camera.position.set(0, 1.6, 3); // Устанавливаем камеру на уровне глаз
 
       // Создаем рендерер
-      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      renderer = new THREE.WebGLRenderer({ 
+        antialias: true, 
+        alpha: true,
+        powerPreference: 'high-performance'
+      });
       renderer.setPixelRatio(window.devicePixelRatio);
       renderer.setSize(window.innerWidth, window.innerHeight);
       renderer.xr.enabled = true;
@@ -109,13 +113,12 @@
       document.body.appendChild(renderer.domElement);
 
       // Добавляем освещение
-      const light = new THREE.HemisphereLight(0xffffff, 0xbbbbff, 1);
-      light.position.set(0.5, 1, 0.25);
-      scene.add(light);
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+      scene.add(ambientLight);
 
-      // Добавляем направленный свет для лучшей видимости
       const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
       directionalLight.position.set(1, 1, 1);
+      directionalLight.castShadow = true;
       scene.add(directionalLight);
 
       // Создаем информационное окно
@@ -126,6 +129,7 @@
         <p>Статус: <span id="status">Загрузка...</span></p>
         <p>Анимации: <span id="animations">Проверка...</span></p>
         <p>AR статус: <span id="ar-status">Ожидание...</span></p>
+        <p>Ошибки: <span id="errors" style="color: red;"></span></p>
         <p>Управление:</p>
         <p>- Перетаскивание: Вращение</p>
         <p>- Двойной тап: Пауза/Воспроизведение</p>
@@ -133,31 +137,35 @@
       `;
       document.body.appendChild(infoDiv);
 
+      // Функция для отображения ошибок
+      function showError(message) {
+        const errorsElement = document.getElementById('errors');
+        errorsElement.textContent = message;
+        console.error(message);
+      }
+
       // Загружаем модель
       const loader = new GLTFLoader();
+      showError('Начинаем загрузку модели...');
       loader.load(
               './walk2.glb',
               function (gltf) {
+                showError('Модель успешно загружена');
                 model = gltf.scene;
-                model.scale.set(2,2, 2);
-                // Изначально скрываем модель
+                model.scale.set(0.5, 0.5, 0.5);
                 model.visible = false;
                 scene.add(model);
+                showError('Модель добавлена на сцену');
 
                 // Проверяем материалы модели
                 model.traverse((child) => {
                   if (child.isMesh && child.material) {
-                    console.log('Найден меш:', child.name);
-                    console.log('Материал:', child.material);
-
-                    // Настраиваем материал для корректного отображения текстур
+                    showError('Найден меш: ' + child.name);
                     const material = child.material;
                     material.roughness = 0.5;
                     material.metalness = 0.0;
                     material.envMapIntensity = 1.0;
                     material.needsUpdate = true;
-
-                    // Включаем тени для меша
                     child.castShadow = true;
                     child.receiveShadow = true;
                   }
@@ -166,19 +174,20 @@
                 // Настраиваем анимации
                 mixer = new THREE.AnimationMixer(model);
                 animations = gltf.animations;
+                showError('Анимации загружены: ' + (animations ? animations.length : 0));
 
                 if (animations && animations.length > 0) {
                   document.getElementById('animations').textContent = `Найдено: ${animations.length}`;
                   document.getElementById('status').textContent = 'Готово';
-
-                  // Запускаем первую анимацию
                   currentAnimation = mixer.clipAction(animations[0]);
                   currentAnimation.setLoop(THREE.LoopRepeat);
                   currentAnimation.clampWhenFinished = false;
                   currentAnimation.play();
+                  showError('Анимация запущена');
                 } else {
                   document.getElementById('animations').textContent = 'Не найдено';
                   document.getElementById('status').textContent = 'Нет анимаций';
+                  showError('Анимации не найдены в модели');
                 }
 
                 // Инициализируем обработчики тач-событий
@@ -188,7 +197,7 @@
 
                 // Добавляем обработчики для AR
                 renderer.xr.addEventListener('sessionstart', function() {
-                  console.log('AR сессия началась');
+                  showError('AR сессия началась');
                   document.getElementById('ar-status').textContent = 'AR активен';
                   startTime = Date.now();
                   clock.start();
@@ -199,17 +208,17 @@
                     session.requestHitTestSource({ space: referenceSpace }).then((source) => {
                       hitTestSource = source;
                       hitTestSourceRequested = true;
-                      console.log('Hit test source получен');
+                      showError('Hit test source получен');
                     }).catch(error => {
-                      console.error('Ошибка получения hit test source:', error);
+                      showError('Ошибка получения hit test source: ' + error.message);
                     });
                   }).catch(error => {
-                    console.error('Ошибка получения reference space:', error);
+                    showError('Ошибка получения reference space: ' + error.message);
                   });
                 });
 
                 renderer.xr.addEventListener('sessionend', function() {
-                  console.log('AR сессия закончилась');
+                  showError('AR сессия закончилась');
                   document.getElementById('ar-status').textContent = 'AR неактивен';
                   hitTestSource = null;
                   hitTestSourceRequested = false;
@@ -246,11 +255,13 @@
                 });
               },
               function (xhr) {
-                document.getElementById('status').textContent = `Загрузка: ${(xhr.loaded / xhr.total * 100).toFixed(0)}%`;
+                const progress = (xhr.loaded / xhr.total * 100).toFixed(0);
+                document.getElementById('status').textContent = `Загрузка: ${progress}%`;
+                showError(`Загрузка модели: ${progress}%`);
               },
               function (error) {
                 document.getElementById('status').textContent = 'Ошибка загрузки';
-                console.error('Ошибка загрузки модели:', error);
+                showError('Ошибка загрузки модели: ' + error.message);
               }
       );
 
