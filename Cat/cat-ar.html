@@ -146,6 +146,21 @@
               model.position.set(0, -5, -16);
               setupModel(model);
               scene.add(model);
+
+              // Настраиваем анимации для основной модели
+              mixer = new THREE.AnimationMixer(model);
+              animations = gltf.animations;
+              if (animations && animations.length > 0) {
+                  document.getElementById('animations').textContent = `Найдено: ${animations.length}`;
+                  document.getElementById('status').textContent = 'Готово';
+                  currentAnimation = mixer.clipAction(animations[0]);
+                  currentAnimation.setLoop(THREE.LoopRepeat);
+                  currentAnimation.clampWhenFinished = false;
+                  currentAnimation.play();
+              } else {
+                  document.getElementById('animations').textContent = 'Не найдено';
+                  document.getElementById('status').textContent = 'Нет анимаций';
+              }
           },
           undefined,
           console.error
@@ -160,6 +175,14 @@
               leftModel.visible = false;
               setupModel(leftModel);
               scene.add(leftModel);
+
+              // Настраиваем анимации для левой модели
+              const leftMixer = new THREE.AnimationMixer(leftModel);
+              if (gltf.animations && gltf.animations.length > 0) {
+                  const leftAnimation = leftMixer.clipAction(gltf.animations[0]);
+                  leftAnimation.setLoop(THREE.LoopRepeat);
+                  leftAnimation.play();
+              }
           },
           undefined,
           console.error
@@ -174,6 +197,14 @@
               rightModel.visible = false;
               setupModel(rightModel);
               scene.add(rightModel);
+
+              // Настраиваем анимации для правой модели
+              const rightMixer = new THREE.AnimationMixer(rightModel);
+              if (gltf.animations && gltf.animations.length > 0) {
+                  const rightAnimation = rightMixer.clipAction(gltf.animations[0]);
+                  rightAnimation.setLoop(THREE.LoopRepeat);
+                  rightAnimation.play();
+              }
           },
           undefined,
           console.error
@@ -191,24 +222,6 @@
                   child.receiveShadow = true;
               }
           });
-      }
-
-      // Настраиваем анимации
-      mixer = new THREE.AnimationMixer(model);
-      animations = gltf.animations;
-
-      if (animations && animations.length > 0) {
-        document.getElementById('animations').textContent = `Найдено: ${animations.length}`;
-        document.getElementById('status').textContent = 'Готово';
-
-        // Запускаем первую анимацию
-        currentAnimation = mixer.clipAction(animations[0]);
-        currentAnimation.setLoop(THREE.LoopRepeat);
-        currentAnimation.clampWhenFinished = false;
-        currentAnimation.play();
-      } else {
-        document.getElementById('animations').textContent = 'Не найдено';
-        document.getElementById('status').textContent = 'Нет анимаций';
       }
 
       // Инициализируем обработчики тач-событий
