@@ -126,6 +126,7 @@
         <p>Статус: <span id="status">Загрузка...</span></p>
         <p>Анимации: <span id="animations">Проверка...</span></p>
         <p>AR статус: <span id="ar-status">Ожидание...</span></p>
+        <p>Left модель: <span id="left-model-status">Загрузка...</span></p>
         <p>Управление:</p>
         <p>- Перетаскивание: Вращение</p>
         <p>- Двойной тап: Пауза/Воспроизведение</p>
@@ -257,10 +258,17 @@
       loader.load(
         './left.glb',
         function (gltf) {
+          document.getElementById('left-model-status').textContent = 'Загружена';
           leftModel = gltf.scene;
           leftModel.scale.set(2, 2, 2);
           leftModel.visible = false;
           scene.add(leftModel);
+        },
+        function (xhr) {
+          document.getElementById('left-model-status').textContent = `Загрузка: ${(xhr.loaded / xhr.total * 100).toFixed(0)}%`;
+        },
+        function (error) {
+          document.getElementById('left-model-status').textContent = 'Ошибка загрузки';
         }
       );
 
@@ -359,11 +367,14 @@
 
             // Подменяем модель в конце движения влево
             if (elapsedTime >= 2.5 && leftModel) {
+              document.getElementById('left-model-status').textContent = 'Активна';
               leftModel.position.copy(model.position);
               leftModel.rotation.copy(model.rotation);
               leftModel.visible = true;
               model.visible = false;
               model = leftModel;
+            } else if (elapsedTime >= 2.5 && !leftModel) {
+              document.getElementById('left-model-status').textContent = 'Ожидание загрузки...';
             }
           } else if (elapsedTime < 5) {
             // Пауза и поворот к зрителю после движения влево
