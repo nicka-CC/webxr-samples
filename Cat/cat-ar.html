@@ -351,6 +351,7 @@
             // Останавливаем анимацию в начале паузы
             if (mixer && currentAnimation && elapsedTime < 4) {
                 currentAnimation.stop();
+                currentAnimation = null; // Сбрасываем ссылку на анимацию
             }
             
             // Возобновляем анимацию в конце паузы
@@ -371,7 +372,7 @@
             // Движение вправо
             model.rotation.y = -Math.PI / 2 + Math.PI;
             model.position.x += moveSpeed;
-            // Возобновляем анимацию
+            // Убедимся, что анимация запущена
             if (mixer && animations.length > 0 && !currentAnimation) {
                 currentAnimation = mixer.clipAction(animations[0]);
                 currentAnimation.setLoop(THREE.LoopRepeat);
@@ -383,6 +384,7 @@
             // Останавливаем анимацию
             if (mixer && currentAnimation) {
                 currentAnimation.stop();
+                currentAnimation = null; // Сбрасываем ссылку на анимацию
             }
           } else {
             // Сбрасываем время для повторения цикла
