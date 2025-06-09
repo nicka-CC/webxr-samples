@@ -155,6 +155,7 @@
         './walk2.glb',
         function (gltf) {
           model = gltf.scene;
+          model.name = 'mainModel';
           model.scale.set(2, 2, 2);
           model.position.set(0, -5, -16);
           setupModelMaterials(model);
@@ -473,11 +474,11 @@
         model.rotation.y = Math.PI / 2;
 
         // Подменяем модель только в конце отрезка движения влево
-        if (cycleTime >= 3.8 && leftModel) {
+        if (cycleTime >= 3.8 && leftModel && model !== leftModel) {
           leftModel.position.copy(model.position);
           leftModel.rotation.copy(model.rotation);
-          leftModel.visible = true;
-          model.visible = false;
+          scene.add(leftModel);
+          scene.remove(model);
           model = leftModel;
         }
       } else if (cycleTime < 6) {
@@ -485,10 +486,15 @@
         if (movementState !== 'looking') {
           movementState = 'looking';
           // Возвращаемся к основной модели
-          if (model !== leftModel && leftModel) {
-            leftModel.visible = false;
-            model.visible = true;
-            model = leftModel;
+          if (model === leftModel) {
+            const mainModel = scene.getObjectByName('mainModel');
+            if (mainModel) {
+              mainModel.position.copy(model.position);
+              mainModel.rotation.copy(model.rotation);
+              scene.add(mainModel);
+              scene.remove(model);
+              model = mainModel;
+            }
           }
         }
         model.rotation.y = 0;
