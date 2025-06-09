@@ -64,6 +64,7 @@
 
     let camera, scene, renderer;
     let model, mixer;
+    let leftModel, rightModel;
     let clock = new THREE.Clock();
     let currentAnimation = null;
     let animations = [];
@@ -77,6 +78,8 @@
     let audioElement = null;
     let lookAtViewerTime = 0;
     let movementState = 'moving';
+    let isTurning = false;
+    let turnStartTime = 0;
 
     init();
     animate();
@@ -131,126 +134,146 @@
       `;
       document.body.appendChild(infoDiv);
 
-      // Загружаем модель
+      // Загружаем модели
       const loader = new GLTFLoader();
+      
+      // Загружаем основную модель
       loader.load(
-              './walk2.glb',
-              function (gltf) {
-                model = gltf.scene;
-                model.scale.set(2,2, 2);
-                model.position.set(0, -5, -16); // Устанавливаем начальную позицию
-
-                // Проверяем материалы модели
-                model.traverse((child) => {
-                  if (child.isMesh && child.material) {
-                    console.log('Найден меш:', child.name);
-                    console.log('Материал:', child.material);
-
-                    // Настраиваем материал для корректного отображения текстур
-                    const material = child.material;
-                    material.roughness = 0.5;
-                    material.metalness = 0.0;
-                    material.envMapIntensity = 1.0;
-                    material.needsUpdate = true;
-
-                    // Включаем тени для меша
-                    child.castShadow = true;
-                    child.receiveShadow = true;
-                  }
-                });
-
-                scene.add(model);
-
-                // Настраиваем анимации
-                mixer = new THREE.AnimationMixer(model);
-                animations = gltf.animations;
-
-                if (animations && animations.length > 0) {
-                  document.getElementById('animations').textContent = `Найдено: ${animations.length}`;
-                  document.getElementById('status').textContent = 'Готово';
-
-                  // Запускаем первую анимацию
-                  currentAnimation = mixer.clipAction(animations[0]);
-                  currentAnimation.setLoop(THREE.LoopRepeat);
-                  currentAnimation.clampWhenFinished = false;
-                  currentAnimation.play();
-                } else {
-                  document.getElementById('animations').textContent = 'Не найдено';
-                  document.getElementById('status').textContent = 'Нет анимаций';
-                }
-
-                // Инициализируем обработчики тач-событий
-                renderer.domElement.addEventListener('touchstart', onTouchStart, false);
-                renderer.domElement.addEventListener('touchmove', onTouchMove, false);
-                renderer.domElement.addEventListener('touchend', onTouchEnd, false);
-
-                // Добавляем обработчики для AR
-                renderer.xr.addEventListener('sessionstart', function() {
-                  console.log('AR сессия началась');
-                  document.getElementById('ar-status').textContent = 'AR активен';
-                  startTime = Date.now();
-                  clock.start();
-
-                  // Запрашиваем hit test source
-                  const session = renderer.xr.getSession();
-                  session.requestReferenceSpace('viewer').then((referenceSpace) => {
-                    session.requestHitTestSource({ space: referenceSpace }).then((source) => {
-                      hitTestSource = source;
-                      console.log('Hit test source получен');
-                    }).catch(error => {
-                      console.error('Ошибка получения hit test source:', error);
-                    });
-                  }).catch(error => {
-                    console.error('Ошибка получения reference space:', error);
-                  });
-                  hitTestSourceRequested = true;
-                });
-
-                renderer.xr.addEventListener('sessionend', function() {
-                  console.log('AR сессия закончилась');
-                  document.getElementById('ar-status').textContent = 'AR неактивен';
-                  hitTestSource = null;
-                  hitTestSourceRequested = false;
-                  isRotating = false;
-                  lastHitPosition = null;
-                  clock.stop();
-                });
-
-                // Обработка жестов в AR
-                renderer.xr.addEventListener('selectstart', function() {
-                  isRotating = true;
-                  console.log('Начало вращения');
-                });
-
-                renderer.xr.addEventListener('selectend', function() {
-                  isRotating = false;
-                  lastHitPosition = null;
-                  console.log('Конец вращения');
-                });
-
-                // Обработка движения в AR
-                renderer.xr.addEventListener('inputsourceschange', function(event) {
-                  event.added.forEach((inputSource) => {
-                    inputSource.addEventListener('selectstart', () => {
-                      isRotating = true;
-                      console.log('Начало вращения');
-                    });
-                    inputSource.addEventListener('selectend', () => {
-                      isRotating = false;
-                      lastHitPosition = null;
-                      console.log('Конец вращения');
-                    });
-                  });
-                });
-              },
-              function (xhr) {
-                document.getElementById('status').textContent = `Загрузка: ${(xhr.loaded / xhr.total * 100).toFixed(0)}%`;
-              },
-              function (error) {
-                document.getElementById('status').textContent = 'Ошибка загрузки';
-                console.error(error);
-              }
+          './walk2.glb',
+          function (gltf) {
+              model = gltf.scene;
+              model.scale.set(2, 2, 2);
+              model.position.set(0, -5, -16);
+              setupModel(model);
+              scene.add(model);
+          },
+          undefined,
+          console.error
       );
+
+      // Загружаем модель поворота влево
+      loader.load(
+          './left.glb',
+          function (gltf) {
+              leftModel = gltf.scene;
+              leftModel.scale.set(2, 2, 2);
+              leftModel.visible = false;
+              setupModel(leftModel);
+              scene.add(leftModel);
+          },
+          undefined,
+          console.error
+      );
+
+      // Загружаем модель поворота вправо
+      loader.load(
+          './right.glb',
+          function (gltf) {
+              rightModel = gltf.scene;
+              rightModel.scale.set(2, 2, 2);
+              rightModel.visible = false;
+              setupModel(rightModel);
+              scene.add(rightModel);
+          },
+          undefined,
+          console.error
+      );
+
+      function setupModel(model) {
+          model.traverse((child) => {
+              if (child.isMesh && child.material) {
+                  const material = child.material;
+                  material.roughness = 0.5;
+                  material.metalness = 0.0;
+                  material.envMapIntensity = 1.0;
+                  material.needsUpdate = true;
+                  child.castShadow = true;
+                  child.receiveShadow = true;
+              }
+          });
+      }
+
+      // Настраиваем анимации
+      mixer = new THREE.AnimationMixer(model);
+      animations = gltf.animations;
+
+      if (animations && animations.length > 0) {
+        document.getElementById('animations').textContent = `Найдено: ${animations.length}`;
+        document.getElementById('status').textContent = 'Готово';
+
+        // Запускаем первую анимацию
+        currentAnimation = mixer.clipAction(animations[0]);
+        currentAnimation.setLoop(THREE.LoopRepeat);
+        currentAnimation.clampWhenFinished = false;
+        currentAnimation.play();
+      } else {
+        document.getElementById('animations').textContent = 'Не найдено';
+        document.getElementById('status').textContent = 'Нет анимаций';
+      }
+
+      // Инициализируем обработчики тач-событий
+      renderer.domElement.addEventListener('touchstart', onTouchStart, false);
+      renderer.domElement.addEventListener('touchmove', onTouchMove, false);
+      renderer.domElement.addEventListener('touchend', onTouchEnd, false);
+
+      // Добавляем обработчики для AR
+      renderer.xr.addEventListener('sessionstart', function() {
+        console.log('AR сессия началась');
+        document.getElementById('ar-status').textContent = 'AR активен';
+        startTime = Date.now();
+        clock.start();
+
+        // Запрашиваем hit test source
+        const session = renderer.xr.getSession();
+        session.requestReferenceSpace('viewer').then((referenceSpace) => {
+          session.requestHitTestSource({ space: referenceSpace }).then((source) => {
+            hitTestSource = source;
+            console.log('Hit test source получен');
+          }).catch(error => {
+            console.error('Ошибка получения hit test source:', error);
+          });
+        }).catch(error => {
+          console.error('Ошибка получения reference space:', error);
+        });
+        hitTestSourceRequested = true;
+      });
+
+      renderer.xr.addEventListener('sessionend', function() {
+        console.log('AR сессия закончилась');
+        document.getElementById('ar-status').textContent = 'AR неактивен';
+        hitTestSource = null;
+        hitTestSourceRequested = false;
+        isRotating = false;
+        lastHitPosition = null;
+        clock.stop();
+      });
+
+      // Обработка жестов в AR
+      renderer.xr.addEventListener('selectstart', function() {
+        isRotating = true;
+        console.log('Начало вращения');
+      });
+
+      renderer.xr.addEventListener('selectend', function() {
+        isRotating = false;
+        lastHitPosition = null;
+        console.log('Конец вращения');
+      });
+
+      // Обработка движения в AR
+      renderer.xr.addEventListener('inputsourceschange', function(event) {
+        event.added.forEach((inputSource) => {
+          inputSource.addEventListener('selectstart', () => {
+            isRotating = true;
+            console.log('Начало вращения');
+          });
+          inputSource.addEventListener('selectend', () => {
+            isRotating = false;
+            lastHitPosition = null;
+            console.log('Конец вращения');
+          });
+        });
+      });
 
       // Добавляем кнопку AR
       document.body.appendChild(ARButton.createButton(renderer));
@@ -344,35 +367,39 @@
             // Движение влево
             model.rotation.y = Math.PI / 2 + Math.PI;
             model.position.x -= moveSpeed;
+            if (mixer && currentAnimation) {
+              currentAnimation.stop();
+              currentAnimation = null;
+            }
           } else if (elapsedTime < 5) {
             // Пауза и поворот к зрителю после движения влево
-            model.rotation.y = 0; // Поворот лицом к зрителю
-
-            // Останавливаем анимацию в начале паузы
-            if (mixer && currentAnimation && elapsedTime < 4) {
-              currentAnimation.stop();
-              currentAnimation = null; // Сбрасываем ссылку на анимацию
+            if (!isTurning) {
+              isTurning = true;
+              turnStartTime = currentTime;
+              model.visible = false;
+              leftModel.visible = true;
+              leftModel.position.copy(model.position);
+              leftModel.rotation.copy(model.rotation);
+              leftModel.rotation.y = 0;
             }
-
-            // Возобновляем анимацию в конце паузы
-            if (mixer && animations.length > 0 && !currentAnimation && elapsedTime >= 4) {
-              currentAnimation = mixer.clipAction(animations[0]);
-              currentAnimation.setLoop(THREE.LoopRepeat);
-              currentAnimation.play();
+            
+            if (currentTime - turnStartTime >= 2000) { // 2 секунды на поворот
+              leftModel.visible = false;
+              rightModel.visible = true;
+              rightModel.position.copy(leftModel.position);
+              rightModel.rotation.copy(leftModel.rotation);
             }
-
-            // Воспроизводим звук
-            if (audioElement && audioElement.paused) {
-              audioElement.currentTime = 0;
-              audioElement.play().catch(error => {
-                console.error('Ошибка воспроизведения звука:', error);
-              });
+            
+            if (currentTime - turnStartTime >= 4000) { // 4 секунды на весь поворот
+              isTurning = false;
+              rightModel.visible = false;
+              model.visible = true;
+              model.rotation.y = 0;
             }
           } else if (elapsedTime < 8) {
             // Движение вправо
             model.rotation.y = -Math.PI / 2 + Math.PI;
             model.position.x += moveSpeed;
-            // Убедимся, что анимация запущена
             if (mixer && animations.length > 0 && !currentAnimation) {
               currentAnimation = mixer.clipAction(animations[0]);
               currentAnimation.setLoop(THREE.LoopRepeat);
@@ -380,16 +407,31 @@
             }
           } else if (elapsedTime < 10) {
             // Пауза и поворот к зрителю после движения вправо
-            model.rotation.y = 0; // Поворот лицом к зрителю
-            // Останавливаем анимацию
-            if (mixer && currentAnimation) {
-              currentAnimation.stop();
-              currentAnimation = null; // Сбрасываем ссылку на анимацию
+            if (!isTurning) {
+              isTurning = true;
+              turnStartTime = currentTime;
+              model.visible = false;
+              rightModel.visible = true;
+              rightModel.position.copy(model.position);
+              rightModel.rotation.copy(model.rotation);
+              rightModel.rotation.y = 0;
+            }
+            
+            if (currentTime - turnStartTime >= 2000) {
+              rightModel.visible = false;
+              leftModel.visible = true;
+              leftModel.position.copy(rightModel.position);
+              leftModel.rotation.copy(rightModel.rotation);
+            }
+            
+            if (currentTime - turnStartTime >= 4000) {
+              isTurning = false;
+              leftModel.visible = false;
+              model.visible = true;
+              model.rotation.y = 0;
             }
           } else {
-            // Сбрасываем время для повторения цикла
             startTime = Date.now();
-            // Возобновляем анимацию
             if (mixer && animations.length > 0 && !currentAnimation) {
               currentAnimation = mixer.clipAction(animations[0]);
               currentAnimation.setLoop(THREE.LoopRepeat);
