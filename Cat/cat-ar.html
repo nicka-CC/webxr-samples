@@ -75,6 +75,8 @@
     let moveSpeed = 0.1;
     let startTime = 0;
     let audioElement = null;
+    let lookAtViewerTime = 0;
+    let movementState = 'moving';
 
     init();
     animate();
@@ -389,6 +391,22 @@
 
               lastHitPosition = position;
             }
+          }
+        }
+
+        // Обработка состояния 'looking'
+        if (movementState === 'looking') {
+          lookAtViewerTime += scene.getEngine().getDeltaTime() / 1000;
+          if (lookAtViewerTime >= 2) { // 2 секунды смотрит на зрителя
+            movementState = 'moving';
+            // Останавливаем анимацию
+            if (mixer) {
+              mixer.stopAllAction();
+            }
+            animations = [];
+            currentAnimation = null;
+            // Сбрасываем таймер
+            lookAtViewerTime = 0;
           }
         }
 
