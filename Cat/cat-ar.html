@@ -71,12 +71,10 @@
     let hitTestSourceRequested = false;
     let isRotating = false;
     let lastHitPosition = null;
-    let rotationSpeed = 5;
+    let rotationSpeed = 15;
     let moveSpeed = 0.01;
     let startTime = 0;
     let audioElement = null;
-    let reticle = null;
-    let modelPlaced = false;
 
     init();
     animate();
@@ -85,14 +83,6 @@
       // Создаем сцену
       scene = new THREE.Scene();
       scene.background = new THREE.Color(0x000000);
-
-      // Создаем ретикул для AR
-      const geometry = new THREE.RingGeometry(0.15, 0.2, 32).rotateX(-Math.PI / 2);
-      const material = new THREE.MeshBasicMaterial({ color: 0xffffff });
-      reticle = new THREE.Mesh(geometry, material);
-      reticle.matrixAutoUpdate = false;
-      reticle.visible = false;
-      scene.add(reticle);
 
       // Создаем аудио элемент
       audioElement = new Audio('./hhhh.mp3');
@@ -146,7 +136,7 @@
               function (gltf) {
                 model = gltf.scene;
                 model.scale.set(0.8, 0.8, 0.8);
-                model.position.set(0, -4, -4); // Устанавливаем начальную позицию
+                model.position.set(0, -5, -4); // Устанавливаем начальную позицию
 
                 // Проверяем материалы модели
                 model.traverse((child) => {
@@ -198,11 +188,10 @@
                   document.getElementById('ar-status').textContent = 'AR активен';
                   startTime = Date.now();
                   clock.start();
-                  modelPlaced = false;
 
                   // Запрашиваем hit test source
                   const session = renderer.xr.getSession();
-                  session.requestReferenceSpace('local').then((referenceSpace) => {
+                  session.requestReferenceSpace('viewer').then((referenceSpace) => {
                     session.requestHitTestSource({ space: referenceSpace }).then((source) => {
                       hitTestSource = source;
                       console.log('Hit test source получен');
@@ -251,42 +240,6 @@
                     });
                   });
                 });
-
-                // Обработка hit test в AR
-                function onXRFrame(time, frame) {
-                  if (hitTestSourceRequested === false) return;
-
-                  const referenceSpace = renderer.xr.getReferenceSpace();
-                  const session = renderer.xr.getSession();
-
-                  if (hitTestSource) {
-                    const hitTestResults = frame.getHitTestResults(hitTestSource);
-
-                    if (hitTestResults.length > 0) {
-                      const hit = hitTestResults[0];
-                      const pose = hit.getPose(referenceSpace);
-
-                      if (pose) {
-                        reticle.visible = true;
-                        reticle.matrix.fromArray(pose.transform.matrix);
-
-                        // Если модель еще не размещена, размещаем её
-                        if (!modelPlaced) {
-                          model.position.copy(reticle.position);
-                          model.position.y += 0.5; // Поднимаем модель немного над поверхностью
-                          model.rotation.y = Math.PI; // Поворачиваем модель лицом к камере
-                          scene.add(model);
-                          modelPlaced = true;
-                          document.getElementById('ar-status').textContent = 'Модель размещена';
-                        }
-                      }
-                    } else {
-                      reticle.visible = false;
-                    }
-                  }
-                }
-
-                renderer.setAnimationLoop(onXRFrame);
               },
               function (xhr) {
                 document.getElementById('status').textContent = `Загрузка: ${(xhr.loaded / xhr.total * 100).toFixed(0)}%`;
