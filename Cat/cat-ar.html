@@ -347,6 +347,19 @@
           } else if (elapsedTime < 5) {
             // Пауза и поворот к зрителю после движения влево
             model.rotation.y = 0; // Поворот лицом к зрителю
+            
+            // Останавливаем анимацию в начале паузы
+            if (mixer && currentAnimation && elapsedTime < 4) {
+                currentAnimation.stop();
+            }
+            
+            // Возобновляем анимацию в конце паузы
+            if (mixer && animations.length > 0 && !currentAnimation && elapsedTime >= 4) {
+                currentAnimation = mixer.clipAction(animations[0]);
+                currentAnimation.setLoop(THREE.LoopRepeat);
+                currentAnimation.play();
+            }
+            
             // Воспроизводим звук
             if (audioElement && audioElement.paused) {
               audioElement.currentTime = 0;
@@ -358,12 +371,28 @@
             // Движение вправо
             model.rotation.y = -Math.PI / 2 + Math.PI;
             model.position.x += moveSpeed;
+            // Возобновляем анимацию
+            if (mixer && animations.length > 0 && !currentAnimation) {
+                currentAnimation = mixer.clipAction(animations[0]);
+                currentAnimation.setLoop(THREE.LoopRepeat);
+                currentAnimation.play();
+            }
           } else if (elapsedTime < 10) {
             // Пауза и поворот к зрителю после движения вправо
             model.rotation.y = 0; // Поворот лицом к зрителю
+            // Останавливаем анимацию
+            if (mixer && currentAnimation) {
+                currentAnimation.stop();
+            }
           } else {
             // Сбрасываем время для повторения цикла
             startTime = Date.now();
+            // Возобновляем анимацию
+            if (mixer && animations.length > 0 && !currentAnimation) {
+                currentAnimation = mixer.clipAction(animations[0]);
+                currentAnimation.setLoop(THREE.LoopRepeat);
+                currentAnimation.play();
+            }
           }
         }
 
