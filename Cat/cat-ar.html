@@ -148,9 +148,9 @@
 
                     // Настраиваем материал для корректного отображения текстур
                     const material = child.material;
-                    material.roughness = 0.5;
+                    material.roughness = 1.0; // Делаем материал полностью матовым
                     material.metalness = 0.0;
-                    material.envMapIntensity = 1.0;
+                    material.envMapIntensity = 0.0; // Убираем отражение окружения
                     material.needsUpdate = true;
 
                     // Включаем тени для меша
@@ -174,6 +174,7 @@
                   currentAnimation.setLoop(THREE.LoopRepeat);
                   currentAnimation.clampWhenFinished = false;
                   currentAnimation.play();
+                  currentAnimation.paused = false; // Убираем возможность паузы
                 } else {
                   document.getElementById('animations').textContent = 'Не найдено';
                   document.getElementById('status').textContent = 'Нет анимаций';
