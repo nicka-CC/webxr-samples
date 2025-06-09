@@ -167,7 +167,10 @@
                   }
                 });
 
-                scene.add(model);
+                // Добавляем модель в сцену только если не в AR режиме
+                if (!renderer.xr.isPresenting) {
+                  scene.add(model);
+                }
 
                 // Настраиваем анимации
                 mixer = new THREE.AnimationMixer(model);
