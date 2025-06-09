@@ -135,8 +135,8 @@
               './walk2.glb',
               function (gltf) {
                 model = gltf.scene;
-                model.scale.set(0.5, 0.5, 0.5);
-                model.position.set(0, -2, -4); // Устанавливаем начальную позицию
+                model.scale.set(0.8, 0.8, 0.8);
+                model.position.set(0, -3, -4); // Устанавливаем начальную позицию
 
                 // Проверяем материалы модели
                 model.traverse((child) => {
@@ -338,11 +338,11 @@
 
         // Двигаем модель в AR режиме
         if (model && renderer.xr.isPresenting) {
-          if (elapsedTime < 9) {
+          if (elapsedTime < 3) {
             // Движение влево
             model.rotation.y = Math.PI / 2 + Math.PI;
             model.position.x -= moveSpeed;
-          } else if (elapsedTime < 30) {
+          } else if (elapsedTime < 5) {
             // Пауза и поворот к зрителю после движения влево
             model.rotation.y = 0; // Поворот лицом к зрителю
             // Воспроизводим звук
@@ -352,11 +352,11 @@
                 console.error('Ошибка воспроизведения звука:', error);
               });
             }
-          } else if (elapsedTime < 24) {
+          } else if (elapsedTime < 8) {
             // Движение вправо
             model.rotation.y = -Math.PI / 2 + Math.PI;
             model.position.x += moveSpeed;
-          } else if (elapsedTime <30) {
+          } else if (elapsedTime < 10) {
             // Пауза и поворот к зрителю после движения вправо
             model.rotation.y = 0; // Поворот лицом к зрителю
           } else {
