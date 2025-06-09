@@ -382,11 +382,7 @@
           } else if (elapsedTime < 10) {
             // Пауза и поворот к зрителю после движения вправо
             model.rotation.y = 0; // Поворот лицом к зрителю
-            // Останавливаем анимацию
-            if (mixer && currentAnimation) {
-              currentAnimation.stop();
-              currentAnimation = null; // Сбрасываем ссылку на анимацию
-            }
+
           } else {
             // Сбрасываем время для повторения цикла
             startTime = Date.now();
@@ -429,10 +425,6 @@
         // Обработка состояния 'looking'
         if (movementState === 'looking') {
           // Останавливаем анимацию при повороте
-          if (mixer && currentAnimation) {
-            currentAnimation.stop();
-            currentAnimation = null;
-          }
 
           lookAtViewerTime += scene.getEngine().getDeltaTime() / 1000;
           if (lookAtViewerTime >= 2) { // 2 секунды смотрит на зрителя
