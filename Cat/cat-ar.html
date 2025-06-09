@@ -358,7 +358,7 @@
             model.position.x -= moveSpeed;
 
             // Подменяем модель в конце движения влево
-            if (elapsedTime >= 2.8 && leftModel) {
+            if (elapsedTime >= 2.5 && leftModel) {
               leftModel.position.copy(model.position);
               leftModel.rotation.copy(model.rotation);
               leftModel.visible = true;
