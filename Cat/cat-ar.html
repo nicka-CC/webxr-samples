@@ -372,148 +372,81 @@
       isRotating = false;
     }
 
+    let isTurningLeft = false;
+    let isTransitioning = false;
+    let savedPosition, savedRotation;
+
     function animate() {
-      renderer.setAnimationLoop(function() {
-        const currentTime = Date.now();
-        const elapsedTime = (currentTime - startTime) / 1000;
+      renderer.setAnimationLoop(() => {
+        const delta = clock.getDelta();
+        if (mixer) mixer.update(delta);
 
-        // Обновляем анимации
-        if (mixer) {
-          const delta = clock.getDelta();
-          mixer.update(delta);
+        if (model && renderer.xr.isPresenting && !isTransitioning) {
+          if (model.position.x <= -10 && !isTurningLeft) {
+            isTurningLeft = true;
+            isTransitioning = true;
 
-          // Проверяем позицию модели
-          if (model && renderer.xr.isPresenting) {
-            console.log('Текущая позиция модели:', model.position.x);
-            if (model.position.x <= -10 && !isTurningLeft) {
-              console.log('Позиция модели достигла порога поворота:', model.position.x);
-              isTurningLeft = true;
-              turnStartTime = Date.now();
-              console.log('Активация поворота влево');
-              
-              // Полностью заменяем модель
-              if (model && leftModel) {
-                  // Сохраняем текущую позицию и поворот
-                  const currentPosition = model.position.clone();
-                  const currentRotation = model.rotation.clone();
-                  
-                  // Удаляем старую модель
-                  modelGroup.remove(model);
-                  model = null;
-                  
-                  // Устанавливаем новую модель
-                  model = leftModel;
-                model.position.copy(currentPosition);
-                model.rotation.copy(currentRotation);
-                model.visible = true;
+            // Сохраняем позицию и поворот
+            savedPosition = model.position.clone();
+            savedRotation = model.rotation.clone();
+
+            // Удаляем текущую модель (walk2)
+            modelGroup.remove(model);
+            model = null;
+
+            // Подключаем модель left
+            model = leftModel;
+            model.position.copy(savedPosition);
+            model.rotation.copy(savedRotation);
+            model.visible = true;
+            modelGroup.add(model);
+
+            // Настраиваем mixer для новой модели
+            mixer = new THREE.AnimationMixer(model);
+            const action = mixer.clipAction(leftAnimations[0]);
+            action.setLoop(THREE.LoopOnce);
+            action.clampWhenFinished = true;
+            action.play();
+
+            action.onFinished = () => {
+              // После завершения left-анимации — вернём walk2
+              modelGroup.remove(model);
+              model = null;
+
+              // Заново создаём модель walk2
+              const loader = new GLTFLoader();
+              loader.load('./walk2.glb', function (gltf) {
+                const walkModel = gltf.scene;
+                const walkAnimations = gltf.animations;
+
+                walkModel.scale.set(2, 2, 2);
+                walkModel.position.copy(savedPosition);
+                walkModel.rotation.y = savedRotation.y + Math.PI; // Поворачиваем к зрителю
+
+                model = walkModel;
+                modelGroup.add(model);
 
                 mixer = new THREE.AnimationMixer(model);
-                animations = leftGltf.animations;
-                if (leftAnimations && leftAnimations.length > 0) {
-                  currentAnimation = mixer.clipAction(leftAnimations[0]);
-                  currentAnimation.setLoop(THREE.LoopRepeat);
-                  currentAnimation.play();
-                }
-                if (animations && animations.length > 0) {
-                  currentAnimation = mixer.clipAction(animations[0]);
-                  currentAnimation.setLoop(THREE.LoopRepeat);
-                  currentAnimation.play();
-                }
-                  model.position.copy(currentPosition);
-                  model.rotation.copy(currentRotation);
-                  model.visible = true;
-                  
-                  console.log('Модель полностью заменена на left');
-              } else {
-                  console.error('Одна из моделей не найдена!');
-              }
-              
-              // Останавливаем текущую анимацию
-              if (currentAnimation) {
-                  currentAnimation.stop();
-                  console.log('Анимация ходьбы остановлена');
-              }
-            }
-          }
-        }
+                const walkAction = mixer.clipAction(walkAnimations[0]);
+                walkAction.setLoop(THREE.LoopRepeat);
+                walkAction.play();
 
-        // Двигаем модель в AR режиме
-        if (model && renderer.xr.isPresenting) {
-          if (elapsedTime < 3) {
-            // Движение влево
-            model.rotation.y = Math.PI / 2 + Math.PI;
-            model.position.x -= moveSpeed;
-          } else if (elapsedTime < 5) {
-            // Пауза и поворот к зрителю после движения влево
-            model.rotation.y = 0; // Поворот лицом к зрителю
-
-            // Воспроизводим звук
-            if (audioElement && audioElement.paused) {
-              audioElement.currentTime = 0;
-              audioElement.play().catch(error => {
-                console.error('Ошибка воспроизведения звука:', error);
+                isTransitioning = false;
+                isTurningLeft = false;
               });
-            }
-          } else if (elapsedTime < 8) {
-            // Движение вправо
-            model.rotation.y = -Math.PI / 2 + Math.PI;
-            model.position.x += moveSpeed;
-            // Убедимся, что анимация запущена
-            if (mixer && animations.length > 0 && !currentAnimation) {
-              currentAnimation = mixer.clipAction(animations[0]);
-              currentAnimation.setLoop(THREE.LoopRepeat);
-              currentAnimation.play();
-            }
-          } else if (elapsedTime < 10) {
-            // Пауза и поворот к зрителю после движения вправо
-            model.rotation.y = 0; // Поворот лицом к зрителю
-
-          } else {
-            // Сбрасываем время для повторения цикла
-            startTime = Date.now();
+            };
           }
-        }
 
-        // Обработка вращения в AR
-        if (isRotating && model && renderer.xr.isPresenting) {
-          const session = renderer.xr.getSession();
-          if (session && hitTestSource) {
-            const frame = session.requestAnimationFrame();
-            const hitTestResults = frame.getHitTestResults(hitTestSource);
-
-            if (hitTestResults.length > 0) {
-              const hit = hitTestResults[0];
-              const position = hit.getPose(renderer.xr.getReferenceSpace()).transform.position;
-
-              if (lastHitPosition) {
-                const deltaX = position.x - lastHitPosition.x;
-                const deltaY = position.y - lastHitPosition.y;
-
-                model.rotation.y += deltaX * rotationSpeed;
-                model.rotation.x += deltaY * rotationSpeed;
-
-                // Ограничиваем вращение по X
-                model.rotation.x = Math.max(-Math.PI/2, Math.min(Math.PI/2, model.rotation.x));
-              }
-
-              lastHitPosition = position;
-            }
-          }
-        }
-
-        // Обработка состояния 'looking'
-        if (movementState === 'looking') {
-          lookAtViewerTime += scene.getEngine().getDeltaTime() / 1000;
-          if (lookAtViewerTime >= 5) { // Увеличиваем до 5 секунд
-            movementState = 'moving';
-            // Сбрасываем таймер
-            lookAtViewerTime = 0;
+          // Продолжаем движение, если не в переходе
+          if (!isTransitioning) {
+            model.position.x -= 0.01; // или moveSpeed
           }
         }
 
         renderer.render(scene, camera);
       });
     }
+
   </script>
 </head>
 <body>
