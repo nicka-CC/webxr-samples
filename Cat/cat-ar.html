@@ -315,6 +315,7 @@
                   const tellAnimation = mixer2.clipAction(gltf.animations[0]);
                   tellAnimation.setLoop(THREE.LoopRepeat);
                   tellAnimation.clampWhenFinished = false;
+                  tellAnimation.play();
               }
           }
       );
@@ -384,12 +385,13 @@
             model2.visible = false;
             model.rotation.y = Math.PI / 2 + Math.PI;
             model.position.x -= moveSpeed;
-          } else if (elapsedTime < 2.5) {
+          } else if (elapsedTime < 3.5) {
             // Пауза и поворот к зрителю
             currentModel = 'tell';
             model.visible = false;
             model2.visible = true;
             model2.rotation.y = 0;
+            model2.position.copy(model.position);
             
             if (mixer2) {
               mixer2.update(clock.getDelta());
@@ -401,19 +403,20 @@
                 console.error('Ошибка воспроизведения звука:', error);
               });
             }
-          } else if (elapsedTime < 4) {
+          } else if (elapsedTime < 5) {
             // Движение вправо
             currentModel = 'walk';
             model.visible = true;
             model2.visible = false;
             model.rotation.y = -Math.PI / 2 + Math.PI;
             model.position.x += moveSpeed;
-          } else if (elapsedTime < 5) {
+          } else if (elapsedTime < 7) {
             // Пауза и поворот к зрителю
             currentModel = 'tell';
             model.visible = false;
             model2.visible = true;
             model2.rotation.y = 0;
+            model2.position.copy(model.position);
             
             if (mixer2) {
               mixer2.update(clock.getDelta());
