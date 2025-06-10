@@ -387,11 +387,11 @@
             turnStartTime = Date.now();
             console.log('Активация поворота влево');
             
-            // Переключаем модели
+            // Переключаем на модель left и оставляем её
             if (model && leftModel) {
                 model.visible = false;
                 leftModel.visible = true;
-                console.log('Переключение моделей выполнено');
+                console.log('Переключение на модель left выполнено');
             } else {
                 console.error('Одна из моделей не найдена!');
             }
@@ -400,25 +400,6 @@
             if (currentAnimation) {
                 currentAnimation.stop();
                 console.log('Анимация ходьбы остановлена');
-            }
-          }
-
-          // Проверяем, прошло ли 8 секунд с начала поворота
-          if (isTurningLeft && Date.now() - turnStartTime >= 8000) {
-            console.log('Время поворота истекло, возвращаем основную модель');
-            isTurningLeft = false;
-            
-            // Переключаем модели обратно
-            if (model && leftModel) {
-                model.visible = true;
-                leftModel.visible = false;
-                console.log('Возврат к основной модели выполнен');
-            }
-            
-            // Возобновляем анимацию ходьбы
-            if (currentAnimation) {
-                currentAnimation.play();
-                console.log('Анимация ходьбы возобновлена');
             }
           }
         }
