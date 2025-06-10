@@ -367,8 +367,8 @@
             }
           }
 
-          // Проверяем, прошло ли 2 секунды с начала поворота
-          if (isTurningLeft && Date.now() - turnStartTime >= 2000) {
+          // Проверяем, прошло ли 4 секунды с начала поворота
+          if (isTurningLeft && Date.now() - turnStartTime >= 4000) {
             isTurningLeft = false;
             
             // Возвращаем основную модель
