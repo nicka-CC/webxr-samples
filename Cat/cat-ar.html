@@ -152,6 +152,11 @@
                         leftModel.position.set(0, -5, -16);
                         leftModel.visible = false;
                         scene.add(leftModel);
+                        console.log('Модель поворота влево загружена');
+                    },
+                    undefined,
+                    function (error) {
+                        console.error('Ошибка загрузки модели поворота влево:', error);
                     }
                 );
 
@@ -356,28 +361,37 @@
           if (model.position.x <= -10 && !isTurningLeft) {
             isTurningLeft = true;
             turnStartTime = Date.now();
+            console.log('Активация поворота влево');
             
             // Скрываем основную модель и показываем модель поворота
             model.visible = false;
-            leftModel.visible = true;
+            if (leftModel) {
+                leftModel.visible = true;
+                console.log('Модель поворота влево показана');
+            } else {
+                console.error('Модель поворота влево не загружена');
+            }
             
             // Останавливаем текущую анимацию
             if (currentAnimation) {
-              currentAnimation.stop();
+                currentAnimation.stop();
             }
           }
 
           // Проверяем, прошло ли 4 секунды с начала поворота
           if (isTurningLeft && Date.now() - turnStartTime >= 4000) {
             isTurningLeft = false;
+            console.log('Возврат к основной модели');
             
             // Возвращаем основную модель
             model.visible = true;
-            leftModel.visible = false;
+            if (leftModel) {
+                leftModel.visible = false;
+            }
             
             // Возобновляем анимацию ходьбы
             if (currentAnimation) {
-              currentAnimation.play();
+                currentAnimation.play();
             }
           }
         }
@@ -449,7 +463,7 @@
         // Обработка состояния 'looking'
         if (movementState === 'looking') {
           lookAtViewerTime += scene.getEngine().getDeltaTime() / 1000;
-          if (lookAtViewerTime >= 2) { // 2 секунды смотрит на зрителя
+          if (lookAtViewerTime >= 5) { // Увеличиваем до 5 секунд
             movementState = 'moving';
             // Сбрасываем таймер
             lookAtViewerTime = 0;
