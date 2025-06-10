@@ -317,6 +317,7 @@
                   const tellAnimation = mixer2.clipAction(gltf.animations[0]);
                   tellAnimation.setLoop(THREE.LoopRepeat);
                   tellAnimation.clampWhenFinished = false;
+                  tellAnimation.timeScale = 2.0;
                   tellAnimation.play();
               }
           }
@@ -351,6 +352,7 @@
                   const leftAnimation = mixerLeft.clipAction(animationsLeft[0]);
                   leftAnimation.setLoop(THREE.LoopOnce);
                   leftAnimation.clampWhenFinished = true;
+                  leftAnimation.timeScale = 2.0;
                   leftAnimation.play();
               }
           }
@@ -385,6 +387,7 @@
                   const rightAnimation = mixerRight.clipAction(animationsRight[0]);
                   rightAnimation.setLoop(THREE.LoopOnce);
                   rightAnimation.clampWhenFinished = true;
+                  rightAnimation.timeScale = 2.0;
                   rightAnimation.play();
               }
           }
@@ -478,6 +481,7 @@
             if (mixerLeft) {
                 const leftAnimation = mixerLeft.clipAction(animationsLeft[0]);
                 leftAnimation.reset();
+                leftAnimation.timeScale = 2.0;
                 leftAnimation.play();
                 mixerLeft.update(clock.getDelta());
             }
@@ -492,7 +496,9 @@
             model2.rotation.y = 0;
             
             if (mixer2) {
-              mixer2.update(clock.getDelta());
+                const tellAnimation = mixer2.clipAction(animations[0]);
+                tellAnimation.timeScale = 2.0;
+                mixer2.update(clock.getDelta());
             }
             
             if (audioElement && audioElement.paused) {
@@ -514,6 +520,7 @@
             if (mixerRight) {
                 const rightAnimation = mixerRight.clipAction(animationsRight[0]);
                 rightAnimation.reset();
+                rightAnimation.timeScale = 2.0;
                 rightAnimation.play();
                 mixerRight.update(clock.getDelta());
             }
@@ -539,6 +546,7 @@
             if (mixerRight) {
                 const rightAnimation = mixerRight.clipAction(animationsRight[0]);
                 rightAnimation.reset();
+                rightAnimation.timeScale = 2.0;
                 rightAnimation.play();
                 mixerRight.update(clock.getDelta());
             }
@@ -553,7 +561,9 @@
             model2.rotation.y = 0;
             
             if (mixer2) {
-              mixer2.update(clock.getDelta());
+                const tellAnimation = mixer2.clipAction(animations[0]);
+                tellAnimation.timeScale = 2.0;
+                mixer2.update(clock.getDelta());
             }
           } else if (elapsedTime < 8.0) {
             // Поворот налево
@@ -568,6 +578,7 @@
             if (mixerLeft) {
                 const leftAnimation = mixerLeft.clipAction(animationsLeft[0]);
                 leftAnimation.reset();
+                leftAnimation.timeScale = 2.0;
                 leftAnimation.play();
                 mixerLeft.update(clock.getDelta());
             }
