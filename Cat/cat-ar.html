@@ -423,6 +423,8 @@
           } else if (elapsedTime < 5) {
             // Пауза и поворот к зрителю после движения влево
             model.rotation.y = 0; // Поворот лицом к зрителю
+            movementState = 'looking';
+            lookAtViewerTime = 0;
 
             // Воспроизводим звук
             if (audioElement && audioElement.paused) {
@@ -431,23 +433,25 @@
                 console.error('Ошибка воспроизведения звука:', error);
               });
             }
-          } else if (elapsedTime < 8) {
+          } else if (elapsedTime < 15) { // Увеличиваем время до 15 секунд
             // Движение вправо
-            model.rotation.y = -Math.PI / 2 + Math.PI;
-            model.position.x += moveSpeed;
+            if (movementState === 'looking') {
+              // Если все еще в режиме "смотрит на зрителя", не двигаемся
+              model.rotation.y = 0;
+            } else {
+              model.rotation.y = -Math.PI / 2 + Math.PI;
+              model.position.x += moveSpeed;
+            }
             // Убедимся, что анимация запущена
             if (mixer && animations.length > 0 && !currentAnimation) {
               currentAnimation = mixer.clipAction(animations[0]);
               currentAnimation.setLoop(THREE.LoopRepeat);
               currentAnimation.play();
             }
-          } else if (elapsedTime < 10) {
-            // Пауза и поворот к зрителю после движения вправо
-            model.rotation.y = 0; // Поворот лицом к зрителю
-
           } else {
             // Сбрасываем время для повторения цикла
             startTime = Date.now();
+            movementState = 'moving';
           }
         }
 
@@ -480,10 +484,9 @@
 
         // Обработка состояния 'looking'
         if (movementState === 'looking') {
-          lookAtViewerTime += scene.getEngine().getDeltaTime() / 1000;
+          lookAtViewerTime += clock.getDelta();
           if (lookAtViewerTime >= 10) { // 10 секунд смотрит на зрителя
             movementState = 'moving';
-            // Сбрасываем таймер
             lookAtViewerTime = 0;
           }
         }
