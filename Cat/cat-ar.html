@@ -63,10 +63,12 @@
     import { ARButton } from 'three/addons/webxr/ARButton.js';
 
     let camera, scene, renderer;
-    let model, model2, mixer, mixer2;
+    let model, model2, modelLeft, modelRight, mixer, mixer2, mixerLeft, mixerRight;
     let clock = new THREE.Clock();
     let currentAnimation = null;
     let animations = [];
+    let animationsLeft = [];
+    let animationsRight = [];
     let hitTestSource = null;
     let hitTestSourceRequested = false;
     let isRotating = false;
@@ -319,6 +321,72 @@
               }
           }
       );
+
+      // Загрузка модели поворота налево
+      loader.load(
+          './left.glb',
+          function (gltf) {
+              modelLeft = gltf.scene;
+              modelLeft.scale.set(2.5, 2.5, 2.5);
+              modelLeft.position.set(0, -10, -16);
+              modelLeft.visible = false;
+              
+              modelLeft.traverse((child) => {
+                  if (child.isMesh && child.material) {
+                      const material = child.material;
+                      material.roughness = 1.0;
+                      material.metalness = 0.0;
+                      material.envMapIntensity = 0.0;
+                      material.needsUpdate = true;
+                      child.castShadow = true;
+                      child.receiveShadow = true;
+                  }
+              });
+              
+              scene.add(modelLeft);
+              
+              mixerLeft = new THREE.AnimationMixer(modelLeft);
+              if (gltf.animations && gltf.animations.length > 0) {
+                  animationsLeft = gltf.animations;
+                  const leftAnimation = mixerLeft.clipAction(animationsLeft[0]);
+                  leftAnimation.setLoop(THREE.LoopOnce);
+                  leftAnimation.clampWhenFinished = true;
+              }
+          }
+      );
+
+      // Загрузка модели поворота направо
+      loader.load(
+          './right.glb',
+          function (gltf) {
+              modelRight = gltf.scene;
+              modelRight.scale.set(2.5, 2.5, 2.5);
+              modelRight.position.set(0, -10, -16);
+              modelRight.visible = false;
+              
+              modelRight.traverse((child) => {
+                  if (child.isMesh && child.material) {
+                      const material = child.material;
+                      material.roughness = 1.0;
+                      material.metalness = 0.0;
+                      material.envMapIntensity = 0.0;
+                      material.needsUpdate = true;
+                      child.castShadow = true;
+                      child.receiveShadow = true;
+                  }
+              });
+              
+              scene.add(modelRight);
+              
+              mixerRight = new THREE.AnimationMixer(modelRight);
+              if (gltf.animations && gltf.animations.length > 0) {
+                  animationsRight = gltf.animations;
+                  const rightAnimation = mixerRight.clipAction(animationsRight[0]);
+                  rightAnimation.setLoop(THREE.LoopOnce);
+                  rightAnimation.clampWhenFinished = true;
+              }
+          }
+      );
     }
 
     function onWindowResize() {
@@ -375,23 +443,48 @@
           const delta = clock.getDelta();
           mixer2.update(delta);
         }
+        if (mixerLeft) {
+          const delta = clock.getDelta();
+          mixerLeft.update(delta);
+        }
+        if (mixerRight) {
+          const delta = clock.getDelta();
+          mixerRight.update(delta);
+        }
 
         // Двигаем модель в AR режиме
-        if (model && model2 && renderer.xr.isPresenting) {
+        if (model && model2 && modelLeft && modelRight && renderer.xr.isPresenting) {
           if (elapsedTime < 1.5) {
             // Движение влево
             currentModel = 'walk';
             model.visible = true;
             model2.visible = false;
+            modelLeft.visible = false;
+            modelRight.visible = false;
             model.rotation.y = Math.PI / 2 + Math.PI;
             model.position.x -= moveSpeed;
+          } else if (elapsedTime < 2.0) {
+            // Поворот налево
+            currentModel = 'left';
+            model.visible = false;
+            model2.visible = false;
+            modelLeft.visible = true;
+            modelRight.visible = false;
+            modelLeft.position.copy(model.position);
+            modelLeft.rotation.y = model.rotation.y;
+            
+            if (mixerLeft) {
+              mixerLeft.update(clock.getDelta());
+            }
           } else if (elapsedTime < 3.5) {
-            // Пауза и поворот к зрителю
+            // Говорение
             currentModel = 'tell';
             model.visible = false;
             model2.visible = true;
+            modelLeft.visible = false;
+            modelRight.visible = false;
+            model2.position.copy(modelLeft.position);
             model2.rotation.y = 0;
-            model2.position.copy(model.position);
             
             if (mixer2) {
               mixer2.update(clock.getDelta());
@@ -403,23 +496,66 @@
                 console.error('Ошибка воспроизведения звука:', error);
               });
             }
-          } else if (elapsedTime < 5) {
+          } else if (elapsedTime < 4.0) {
+            // Поворот направо
+            currentModel = 'right';
+            model.visible = false;
+            model2.visible = false;
+            modelLeft.visible = false;
+            modelRight.visible = true;
+            modelRight.position.copy(model2.position);
+            modelRight.rotation.y = 0;
+            
+            if (mixerRight) {
+              mixerRight.update(clock.getDelta());
+            }
+          } else if (elapsedTime < 5.5) {
             // Движение вправо
             currentModel = 'walk';
             model.visible = true;
             model2.visible = false;
+            modelLeft.visible = false;
+            modelRight.visible = false;
             model.rotation.y = -Math.PI / 2 + Math.PI;
             model.position.x += moveSpeed;
-          } else if (elapsedTime < 7) {
-            // Пауза и поворот к зрителю
+          } else if (elapsedTime < 6.0) {
+            // Поворот направо
+            currentModel = 'right';
+            model.visible = false;
+            model2.visible = false;
+            modelLeft.visible = false;
+            modelRight.visible = true;
+            modelRight.position.copy(model.position);
+            modelRight.rotation.y = model.rotation.y;
+            
+            if (mixerRight) {
+              mixerRight.update(clock.getDelta());
+            }
+          } else if (elapsedTime < 7.5) {
+            // Говорение
             currentModel = 'tell';
             model.visible = false;
             model2.visible = true;
+            modelLeft.visible = false;
+            modelRight.visible = false;
+            model2.position.copy(modelRight.position);
             model2.rotation.y = 0;
-            model2.position.copy(model.position);
             
             if (mixer2) {
               mixer2.update(clock.getDelta());
+            }
+          } else if (elapsedTime < 8.0) {
+            // Поворот налево
+            currentModel = 'left';
+            model.visible = false;
+            model2.visible = false;
+            modelLeft.visible = true;
+            modelRight.visible = false;
+            modelLeft.position.copy(model2.position);
+            modelLeft.rotation.y = 0;
+            
+            if (mixerLeft) {
+              mixerLeft.update(clock.getDelta());
             }
           } else {
             startTime = Date.now();
