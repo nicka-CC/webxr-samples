@@ -151,8 +151,20 @@
                         leftModel.scale.set(2,2, 2);
                         leftModel.position.set(0, -5, -16);
                         leftModel.visible = false;
+                        
+                        // Настраиваем материалы для модели поворота
+                        leftModel.traverse((child) => {
+                            if (child.isMesh && child.material) {
+                                const material = child.material;
+                                material.roughness = 1.0;
+                                material.metalness = 0.0;
+                                material.envMapIntensity = 0.0;
+                                material.needsUpdate = true;
+                            }
+                        });
+                        
                         scene.add(leftModel);
-                        console.log('Модель поворота влево загружена');
+                        console.log('Модель поворота влево загружена и настроена');
                     },
                     undefined,
                     function (error) {
@@ -363,10 +375,13 @@
             turnStartTime = Date.now();
             console.log('Активация поворота влево');
             
-            // Скрываем основную модель и показываем модель поворота
+            // Полностью скрываем основную модель
             model.visible = false;
+            model.position.set(0, -100, -16); // Убираем модель за пределы видимости
+            
             if (leftModel) {
                 leftModel.visible = true;
+                leftModel.position.set(0, -5, -16); // Устанавливаем позицию для модели поворота
                 console.log('Модель поворота влево показана');
             } else {
                 console.error('Модель поворота влево не загружена');
@@ -378,15 +393,18 @@
             }
           }
 
-          // Проверяем, прошло ли 4 секунды с начала поворота
-          if (isTurningLeft && Date.now() - turnStartTime >= 4000) {
+          // Проверяем, прошло ли 8 секунд с начала поворота
+          if (isTurningLeft && Date.now() - turnStartTime >= 8000) {
             isTurningLeft = false;
             console.log('Возврат к основной модели');
             
             // Возвращаем основную модель
             model.visible = true;
+            model.position.set(0, -5, -16); // Возвращаем модель на исходную позицию
+            
             if (leftModel) {
                 leftModel.visible = false;
+                leftModel.position.set(0, -100, -16); // Убираем модель поворота за пределы видимости
             }
             
             // Возобновляем анимацию ходьбы
