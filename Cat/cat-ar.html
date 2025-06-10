@@ -81,6 +81,7 @@
     let isTurningLeft = false;
     let turnStartTime = 0;
     let modelGroup = null;
+    let leftAnimations = [];
 
     init();
     animate();
@@ -156,6 +157,7 @@
                     function (leftGltf) {
                         console.log('Модель left.glb успешно загружена');
                         leftModel = leftGltf.scene;
+                      leftAnimations = leftGltf.animations;
                         console.log('Создана сцена для модели поворота');
                         
                         leftModel.scale.set(2,2, 2);
@@ -401,6 +403,22 @@
                   
                   // Устанавливаем новую модель
                   model = leftModel;
+                model.position.copy(currentPosition);
+                model.rotation.copy(currentRotation);
+                model.visible = true;
+
+                mixer = new THREE.AnimationMixer(model);
+                animations = leftGltf.animations;
+                if (leftAnimations && leftAnimations.length > 0) {
+                  currentAnimation = mixer.clipAction(leftAnimations[0]);
+                  currentAnimation.setLoop(THREE.LoopRepeat);
+                  currentAnimation.play();
+                }
+                if (animations && animations.length > 0) {
+                  currentAnimation = mixer.clipAction(animations[0]);
+                  currentAnimation.setLoop(THREE.LoopRepeat);
+                  currentAnimation.play();
+                }
                   model.position.copy(currentPosition);
                   model.rotation.copy(currentRotation);
                   model.visible = true;
