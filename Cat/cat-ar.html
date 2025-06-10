@@ -481,7 +481,7 @@
         // Обработка состояния 'looking'
         if (movementState === 'looking') {
           lookAtViewerTime += scene.getEngine().getDeltaTime() / 1000;
-          if (lookAtViewerTime >= 5) { // Увеличиваем до 5 секунд
+          if (lookAtViewerTime >= 10) { // 10 секунд смотрит на зрителя
             movementState = 'moving';
             // Сбрасываем таймер
             lookAtViewerTime = 0;
