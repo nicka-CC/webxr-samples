@@ -387,11 +387,23 @@
             turnStartTime = Date.now();
             console.log('Активация поворота влево');
             
-            // Переключаем на модель left и оставляем её
+            // Полностью заменяем модель
             if (model && leftModel) {
-                model.visible = false;
-                leftModel.visible = true;
-                console.log('Переключение на модель left выполнено');
+                // Сохраняем текущую позицию и поворот
+                const currentPosition = model.position.clone();
+                const currentRotation = model.rotation.clone();
+                
+                // Удаляем старую модель
+                modelGroup.remove(model);
+                model = null;
+                
+                // Устанавливаем новую модель
+                model = leftModel;
+                model.position.copy(currentPosition);
+                model.rotation.copy(currentRotation);
+                model.visible = true;
+                
+                console.log('Модель полностью заменена на left');
             } else {
                 console.error('Одна из моделей не найдена!');
             }
