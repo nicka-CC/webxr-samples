@@ -77,11 +77,6 @@
     let audioElement = null;
     let lookAtViewerTime = 0;
     let movementState = 'moving';
-    let leftModel = null;
-    let rightModel = null;
-    let isTurningLeft = false;
-    let isTurningRight = false;
-    let turnStartTime = 0;
 
     init();
     animate();
@@ -139,69 +134,11 @@
       // Загружаем модель
       const loader = new GLTFLoader();
       loader.load(
-              './walk3.glb',
+              './walk2.glb',
               function (gltf) {
                 model = gltf.scene;
                 model.scale.set(2,2, 2);
-                model.position.set(0, -5, -16);
-
-                // Загружаем модель поворота влево
-                loader.load(
-                    './left.glb',
-                    function (leftGltf) {
-                        leftModel = leftGltf.scene;
-                        leftModel.scale.set(2,2, 2);
-                        leftModel.position.set(0, -5, -16);
-                        leftModel.visible = false;
-                        
-                        // Настраиваем материалы для модели поворота
-                        leftModel.traverse((child) => {
-                            if (child.isMesh && child.material) {
-                                const material = child.material;
-                                material.roughness = 1.0;
-                                material.metalness = 0.0;
-                                material.envMapIntensity = 0.0;
-                                material.needsUpdate = true;
-                            }
-                        });
-                        
-                        scene.add(leftModel);
-                        console.log('Модель поворота влево загружена и настроена');
-                    },
-                    undefined,
-                    function (error) {
-                        console.error('Ошибка загрузки модели поворота влево:', error);
-                    }
-                );
-
-                // Загружаем модель поворота вправо
-                loader.load(
-                    './right.glb',
-                    function (rightGltf) {
-                        rightModel = rightGltf.scene;
-                        rightModel.scale.set(2,2, 2);
-                        rightModel.position.set(0, -5, -16);
-                        rightModel.visible = false;
-                        
-                        // Настраиваем материалы для модели поворота
-                        rightModel.traverse((child) => {
-                            if (child.isMesh && child.material) {
-                                const material = child.material;
-                                material.roughness = 1.0;
-                                material.metalness = 0.0;
-                                material.envMapIntensity = 0.0;
-                                material.needsUpdate = true;
-                            }
-                        });
-                        
-                        scene.add(rightModel);
-                        console.log('Модель поворота вправо загружена и настроена');
-                    },
-                    undefined,
-                    function (error) {
-                        console.error('Ошибка загрузки модели поворота вправо:', error);
-                    }
-                );
+                model.position.set(0, -5, -16); // Устанавливаем начальную позицию
 
                 // Проверяем материалы модели
                 model.traverse((child) => {
@@ -399,80 +336,6 @@
         if (mixer) {
           const delta = clock.getDelta();
           mixer.update(delta);
-
-          // Проверяем позицию модели
-          if (model.position.x <= -10 && !isTurningLeft) {
-            isTurningLeft = true;
-            turnStartTime = Date.now();
-            console.log('Активация поворота влево');
-            
-            // Полностью скрываем основную модель
-            model.visible = false;
-            model.position.set(0, -100, -16); // Убираем модель за пределы видимости
-            
-            if (leftModel) {
-                leftModel.visible = true;
-                leftModel.position.set(0, -5, -16); // Устанавливаем позицию для модели поворота
-                console.log('Модель поворота влево показана');
-            } else {
-                console.error('Модель поворота влево не загружена');
-            }
-            
-            // Останавливаем текущую анимацию
-            if (currentAnimation) {
-                currentAnimation.stop();
-            }
-          }
-
-          // Проверяем позицию модели для поворота вправо
-          if (model.position.x >= 10 && !isTurningRight) {
-            isTurningRight = true;
-            turnStartTime = Date.now();
-            console.log('Активация поворота вправо');
-            
-            // Полностью скрываем основную модель
-            model.visible = false;
-            model.position.set(0, -100, -16);
-            
-            if (rightModel) {
-                rightModel.visible = true;
-                rightModel.position.set(0, -5, -16);
-                console.log('Модель поворота вправо показана');
-            } else {
-                console.error('Модель поворота вправо не загружена');
-            }
-            
-            // Останавливаем текущую анимацию
-            if (currentAnimation) {
-                currentAnimation.stop();
-            }
-          }
-
-          // Проверяем, прошло ли 8 секунд с начала поворота
-          if ((isTurningLeft || isTurningRight) && Date.now() - turnStartTime >= 8000) {
-            isTurningLeft = false;
-            isTurningRight = false;
-            console.log('Возврат к основной модели');
-            
-            // Возвращаем основную модель
-            model.visible = true;
-            model.position.set(0, -5, -16);
-            
-            if (leftModel) {
-                leftModel.visible = false;
-                leftModel.position.set(0, -100, -16);
-            }
-            
-            if (rightModel) {
-                rightModel.visible = false;
-                rightModel.position.set(0, -100, -16);
-            }
-            
-            // Возобновляем анимацию ходьбы
-            if (currentAnimation) {
-                currentAnimation.play();
-            }
-          }
         }
 
         // Двигаем модель в AR режиме
@@ -484,16 +347,9 @@
           } else if (elapsedTime < 5) {
             // Пауза и поворот к зрителю после движения влево
             model.rotation.y = 0; // Поворот лицом к зрителю
-            movementState = 'looking';
-            lookAtViewerTime = 0;
 
-            // Подменяем модель на left.glb
-            if (leftModel) {
-                model.visible = false;
-                leftModel.visible = true;
-                leftModel.position.set(0, -5, -16);
-                console.log('Показываем модель left.glb при повороте к зрителю');
-            }
+
+
 
             // Воспроизводим звук
             if (audioElement && audioElement.paused) {
@@ -502,41 +358,24 @@
                 console.error('Ошибка воспроизведения звука:', error);
               });
             }
-          } else if (elapsedTime < 15) { // Увеличиваем время до 15 секунд
+          } else if (elapsedTime < 8) {
             // Движение вправо
-            if (movementState === 'looking') {
-              // Если все еще в режиме "смотрит на зрителя", не двигаемся
-              model.rotation.y = 0;
-            } else {
-              // Возвращаем основную модель
-              if (leftModel) {
-                  leftModel.visible = false;
-                  leftModel.position.set(0, -100, -16);
-              }
-              model.visible = true;
-              model.position.set(0, -5, -16);
-              
-              model.rotation.y = -Math.PI / 2 + Math.PI;
-              model.position.x += moveSpeed;
-            }
+            model.rotation.y = -Math.PI / 2 + Math.PI;
+            model.position.x += moveSpeed;
             // Убедимся, что анимация запущена
             if (mixer && animations.length > 0 && !currentAnimation) {
               currentAnimation = mixer.clipAction(animations[0]);
               currentAnimation.setLoop(THREE.LoopRepeat);
               currentAnimation.play();
             }
+          } else if (elapsedTime < 10) {
+            // Пауза и поворот к зрителю после движения вправо
+            model.rotation.y = 0; // Поворот лицом к зрителю
+
           } else {
             // Сбрасываем время для повторения цикла
             startTime = Date.now();
-            movementState = 'moving';
-            
-            // Убедимся, что основная модель видна
-            if (leftModel) {
-                leftModel.visible = false;
-                leftModel.position.set(0, -100, -16);
-            }
-            model.visible = true;
-            model.position.set(0, -5, -16);
+
           }
         }
 
@@ -569,10 +408,14 @@
 
         // Обработка состояния 'looking'
         if (movementState === 'looking') {
-          lookAtViewerTime += clock.getDelta();
-          if (lookAtViewerTime >= 10) { // 10 секунд смотрит на зрителя
+
+
+          lookAtViewerTime += scene.getEngine().getDeltaTime() / 1000;
+          if (lookAtViewerTime >= 2) { // 2 секунды смотрит на зрителя
             movementState = 'moving';
+            // Сбрасываем таймер
             lookAtViewerTime = 0;
+
           }
         }
 
