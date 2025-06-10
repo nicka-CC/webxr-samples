@@ -63,7 +63,7 @@
     import { ARButton } from 'three/addons/webxr/ARButton.js';
 
     let camera, scene, renderer;
-    let model, mixer;
+    let model, model2, mixer, mixer2;
     let clock = new THREE.Clock();
     let currentAnimation = null;
     let animations = [];
@@ -77,6 +77,7 @@
     let audioElement = null;
     let lookAtViewerTime = 0;
     let movementState = 'moving';
+    let currentModel = 'walk';
 
     init();
     animate();
@@ -285,6 +286,38 @@
 
       // Обработка изменения размера окна
       window.addEventListener('resize', onWindowResize);
+
+      // В функции init() после загрузки первой модели добавляем:
+      loader.load(
+          './tell2.glb',
+          function (gltf) {
+              model2 = gltf.scene;
+              model2.scale.set(2.5, 2.5, 2.5);
+              model2.position.set(0, -10, -16);
+              model2.visible = false;
+              
+              model2.traverse((child) => {
+                  if (child.isMesh && child.material) {
+                      const material = child.material;
+                      material.roughness = 1.0;
+                      material.metalness = 0.0;
+                      material.envMapIntensity = 0.0;
+                      material.needsUpdate = true;
+                      child.castShadow = true;
+                      child.receiveShadow = true;
+                  }
+              });
+              
+              scene.add(model2);
+              
+              mixer2 = new THREE.AnimationMixer(model2);
+              if (gltf.animations && gltf.animations.length > 0) {
+                  const tellAnimation = mixer2.clipAction(gltf.animations[0]);
+                  tellAnimation.setLoop(THREE.LoopRepeat);
+                  tellAnimation.clampWhenFinished = false;
+              }
+          }
+      );
     }
 
     function onWindowResize() {
@@ -337,21 +370,31 @@
           const delta = clock.getDelta();
           mixer.update(delta);
         }
+        if (mixer2) {
+          const delta = clock.getDelta();
+          mixer2.update(delta);
+        }
 
         // Двигаем модель в AR режиме
-        if (model && renderer.xr.isPresenting) {
+        if (model && model2 && renderer.xr.isPresenting) {
           if (elapsedTime < 1.5) {
             // Движение влево
+            currentModel = 'walk';
+            model.visible = true;
+            model2.visible = false;
             model.rotation.y = Math.PI / 2 + Math.PI;
             model.position.x -= moveSpeed;
           } else if (elapsedTime < 2.5) {
-            // Пауза и поворот к зрителю после движения влево
-            model.rotation.y = 0; // Поворот лицом к зрителю
-
-
-
-
-            // Воспроизводим звук
+            // Пауза и поворот к зрителю
+            currentModel = 'tell';
+            model.visible = false;
+            model2.visible = true;
+            model2.rotation.y = 0;
+            
+            if (mixer2) {
+              mixer2.update(clock.getDelta());
+            }
+            
             if (audioElement && audioElement.paused) {
               audioElement.currentTime = 0;
               audioElement.play().catch(error => {
@@ -360,22 +403,23 @@
             }
           } else if (elapsedTime < 4) {
             // Движение вправо
+            currentModel = 'walk';
+            model.visible = true;
+            model2.visible = false;
             model.rotation.y = -Math.PI / 2 + Math.PI;
             model.position.x += moveSpeed;
-            // Убедимся, что анимация запущена
-            if (mixer && animations.length > 0 && !currentAnimation) {
-              currentAnimation = mixer.clipAction(animations[0]);
-              currentAnimation.setLoop(THREE.LoopRepeat);
-              currentAnimation.play();
-            }
           } else if (elapsedTime < 5) {
-            // Пауза и поворот к зрителю после движения вправо
-            model.rotation.y = 0; // Поворот лицом к зрителю
-
+            // Пауза и поворот к зрителю
+            currentModel = 'tell';
+            model.visible = false;
+            model2.visible = true;
+            model2.rotation.y = 0;
+            
+            if (mixer2) {
+              mixer2.update(clock.getDelta());
+            }
           } else {
-            // Сбрасываем время для повторения цикла
             startTime = Date.now();
-
           }
         }
 
@@ -408,14 +452,11 @@
 
         // Обработка состояния 'looking'
         if (movementState === 'looking') {
-
-
           lookAtViewerTime += scene.getEngine().getDeltaTime() / 1000;
           if (lookAtViewerTime >= 2) { // 2 секунды смотрит на зрителя
             movementState = 'moving';
             // Сбрасываем таймер
             lookAtViewerTime = 0;
-
           }
         }
 
