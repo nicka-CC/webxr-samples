@@ -80,6 +80,7 @@
     let leftModel = null;
     let isTurningLeft = false;
     let turnStartTime = 0;
+    let modelGroup = null;
 
     init();
     animate();
@@ -88,6 +89,10 @@
       // Создаем сцену
       scene = new THREE.Scene();
       scene.background = new THREE.Color(0x000000);
+
+      // Создаем группу для моделей
+      modelGroup = new THREE.Group();
+      scene.add(modelGroup);
 
       // Создаем аудио элемент
       audioElement = new Audio('./hhhh.mp3');
@@ -142,12 +147,17 @@
                 model = gltf.scene;
                 model.scale.set(2,2, 2);
                 model.position.set(0, -5, -16);
+                modelGroup.add(model);
 
                 // Загружаем модель поворота влево
+                console.log('Начинаем загрузку модели поворота влево...');
                 loader.load(
                     './left.glb',
                     function (leftGltf) {
+                        console.log('Модель left.glb успешно загружена');
                         leftModel = leftGltf.scene;
+                        console.log('Создана сцена для модели поворота');
+                        
                         leftModel.scale.set(2,2, 2);
                         leftModel.position.set(0, -5, -16);
                         leftModel.visible = false;
@@ -155,6 +165,7 @@
                         // Настраиваем материалы для модели поворота
                         leftModel.traverse((child) => {
                             if (child.isMesh && child.material) {
+                                console.log('Найден меш в модели поворота:', child.name);
                                 const material = child.material;
                                 material.roughness = 1.0;
                                 material.metalness = 0.0;
@@ -163,10 +174,12 @@
                             }
                         });
                         
-                        scene.add(leftModel);
-                        console.log('Модель поворота влево загружена и настроена');
+                        modelGroup.add(leftModel);
+                        console.log('Модель поворота влево добавлена в группу');
                     },
-                    undefined,
+                    function (xhr) {
+                        console.log('Загрузка модели поворота: ' + (xhr.loaded / xhr.total * 100) + '%');
+                    },
                     function (error) {
                         console.error('Ошибка загрузки модели поворота влево:', error);
                     }
@@ -190,8 +203,6 @@
                     child.receiveShadow = true;
                   }
                 });
-
-                scene.add(model);
 
                 // Настраиваем анимации
                 mixer = new THREE.AnimationMixer(model);
@@ -371,45 +382,43 @@
 
           // Проверяем позицию модели
           if (model.position.x <= -10 && !isTurningLeft) {
+            console.log('Позиция модели достигла порога поворота:', model.position.x);
             isTurningLeft = true;
             turnStartTime = Date.now();
             console.log('Активация поворота влево');
             
-            // Полностью скрываем основную модель
-            model.visible = false;
-            model.position.set(0, -100, -16); // Убираем модель за пределы видимости
-            
-            if (leftModel) {
+            // Переключаем модели
+            if (model && leftModel) {
+                model.visible = false;
                 leftModel.visible = true;
-                leftModel.position.set(0, -5, -16); // Устанавливаем позицию для модели поворота
-                console.log('Модель поворота влево показана');
+                console.log('Переключение моделей выполнено');
             } else {
-                console.error('Модель поворота влево не загружена');
+                console.error('Одна из моделей не найдена!');
             }
             
             // Останавливаем текущую анимацию
             if (currentAnimation) {
                 currentAnimation.stop();
+                console.log('Анимация ходьбы остановлена');
             }
           }
 
           // Проверяем, прошло ли 8 секунд с начала поворота
           if (isTurningLeft && Date.now() - turnStartTime >= 8000) {
+            console.log('Время поворота истекло, возвращаем основную модель');
             isTurningLeft = false;
-            console.log('Возврат к основной модели');
             
-            // Возвращаем основную модель
-            model.visible = true;
-            model.position.set(0, -5, -16); // Возвращаем модель на исходную позицию
-            
-            if (leftModel) {
+            // Переключаем модели обратно
+            if (model && leftModel) {
+                model.visible = true;
                 leftModel.visible = false;
-                leftModel.position.set(0, -100, -16); // Убираем модель поворота за пределы видимости
+                console.log('Возврат к основной модели выполнен');
             }
             
             // Возобновляем анимацию ходьбы
             if (currentAnimation) {
                 currentAnimation.play();
+                console.log('Анимация ходьбы возобновлена');
             }
           }
         }
