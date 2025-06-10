@@ -64,7 +64,6 @@
 
     let camera, scene, renderer;
     let model, mixer;
-    let leftModel;
     let clock = new THREE.Clock();
     let currentAnimation = null;
     let animations = [];
@@ -126,61 +125,132 @@
         <p>Статус: <span id="status">Загрузка...</span></p>
         <p>Анимации: <span id="animations">Проверка...</span></p>
         <p>AR статус: <span id="ar-status">Ожидание...</span></p>
-        <p>Left модель: <span id="left-model-status">Загрузка...</span></p>
         <p>Управление:</p>
         <p>- Перетаскивание: Вращение</p>
         <p>- Двойной тап: Пауза/Воспроизведение</p>
       `;
       document.body.appendChild(infoDiv);
 
-      // Загружаем модели
+      // Загружаем модель
       const loader = new GLTFLoader();
-      
-      // Загружаем основную модель
       loader.load(
-        './walk2.glb',
-        function (gltf) {
-          model = gltf.scene;
-          model.scale.set(2, 2, 2);
-          model.position.set(0, -5, -16);
-          model.visible = true;
-          scene.add(model);
+              './walk2.glb',
+              function (gltf) {
+                model = gltf.scene;
+                model.scale.set(2,2, 2);
+                model.position.set(0, -5, -16); // Устанавливаем начальную позицию
 
-          // Настраиваем анимации
-          mixer = new THREE.AnimationMixer(model);
-          animations = gltf.animations;
+                // Проверяем материалы модели
+                model.traverse((child) => {
+                  if (child.isMesh && child.material) {
+                    console.log('Найден меш:', child.name);
+                    console.log('Материал:', child.material);
 
-          if (animations && animations.length > 0) {
-            document.getElementById('animations').textContent = `Найдено: ${animations.length}`;
-            document.getElementById('status').textContent = 'Готово';
+                    // Настраиваем материал для корректного отображения текстур
+                    const material = child.material;
+                    material.roughness = 0.5;
+                    material.metalness = 0.0;
+                    material.envMapIntensity = 1.0;
+                    material.needsUpdate = true;
 
-            currentAnimation = mixer.clipAction(animations[0]);
-            currentAnimation.setLoop(THREE.LoopRepeat);
-            currentAnimation.clampWhenFinished = false;
-            currentAnimation.play();
-          } else {
-            document.getElementById('animations').textContent = 'Не найдено';
-            document.getElementById('status').textContent = 'Нет анимаций';
-          }
-        }
+                    // Включаем тени для меша
+                    child.castShadow = true;
+                    child.receiveShadow = true;
+                  }
+                });
+
+                scene.add(model);
+
+                // Настраиваем анимации
+                mixer = new THREE.AnimationMixer(model);
+                animations = gltf.animations;
+
+                if (animations && animations.length > 0) {
+                  document.getElementById('animations').textContent = `Найдено: ${animations.length}`;
+                  document.getElementById('status').textContent = 'Готово';
+
+                  // Запускаем первую анимацию
+                  currentAnimation = mixer.clipAction(animations[0]);
+                  currentAnimation.setLoop(THREE.LoopRepeat);
+                  currentAnimation.clampWhenFinished = false;
+                  currentAnimation.play();
+                } else {
+                  document.getElementById('animations').textContent = 'Не найдено';
+                  document.getElementById('status').textContent = 'Нет анимаций';
+                }
+
+                // Инициализируем обработчики тач-событий
+                renderer.domElement.addEventListener('touchstart', onTouchStart, false);
+                renderer.domElement.addEventListener('touchmove', onTouchMove, false);
+                renderer.domElement.addEventListener('touchend', onTouchEnd, false);
+
+                // Добавляем обработчики для AR
+                renderer.xr.addEventListener('sessionstart', function() {
+                  console.log('AR сессия началась');
+                  document.getElementById('ar-status').textContent = 'AR активен';
+                  startTime = Date.now();
+                  clock.start();
+
+                  // Запрашиваем hit test source
+                  const session = renderer.xr.getSession();
+                  session.requestReferenceSpace('viewer').then((referenceSpace) => {
+                    session.requestHitTestSource({ space: referenceSpace }).then((source) => {
+                      hitTestSource = source;
+                      console.log('Hit test source получен');
+                    }).catch(error => {
+                      console.error('Ошибка получения hit test source:', error);
+                    });
+                  }).catch(error => {
+                    console.error('Ошибка получения reference space:', error);
+                  });
+                  hitTestSourceRequested = true;
+                });
+
+                renderer.xr.addEventListener('sessionend', function() {
+                  console.log('AR сессия закончилась');
+                  document.getElementById('ar-status').textContent = 'AR неактивен';
+                  hitTestSource = null;
+                  hitTestSourceRequested = false;
+                  isRotating = false;
+                  lastHitPosition = null;
+                  clock.stop();
+                });
+
+                // Обработка жестов в AR
+                renderer.xr.addEventListener('selectstart', function() {
+                  isRotating = true;
+                  console.log('Начало вращения');
+                });
+
+                renderer.xr.addEventListener('selectend', function() {
+                  isRotating = false;
+                  lastHitPosition = null;
+                  console.log('Конец вращения');
+                });
+
+                // Обработка движения в AR
+                renderer.xr.addEventListener('inputsourceschange', function(event) {
+                  event.added.forEach((inputSource) => {
+                    inputSource.addEventListener('selectstart', () => {
+                      isRotating = true;
+                      console.log('Начало вращения');
+                    });
+                    inputSource.addEventListener('selectend', () => {
+                      isRotating = false;
+                      lastHitPosition = null;
+                      console.log('Конец вращения');
+                    });
+                  });
+                });
+              },
+              function (xhr) {
+                document.getElementById('status').textContent = `Загрузка: ${(xhr.loaded / xhr.total * 100).toFixed(0)}%`;
+              },
+              function (error) {
+                document.getElementById('status').textContent = 'Ошибка загрузки';
+                console.error(error);
+              }
       );
-
-      // Загружаем модель поворота влево
-      loader.load(
-        './walk2.glb',
-        function (gltf) {
-          document.getElementById('left-model-status').textContent = 'Загружена';
-          leftModel = gltf.scene;
-          leftModel.scale.set(2, 2, 2);
-          leftModel.visible = false;
-          scene.add(leftModel);
-        }
-      );
-
-      // Инициализируем обработчики тач-событий
-      renderer.domElement.addEventListener('touchstart', onTouchStart, false);
-      renderer.domElement.addEventListener('touchmove', onTouchMove, false);
-      renderer.domElement.addEventListener('touchend', onTouchEnd, false);
 
       // Добавляем кнопку AR
       document.body.appendChild(ARButton.createButton(renderer));
@@ -270,47 +340,22 @@
 
         // Двигаем модель в AR режиме
         if (model && renderer.xr.isPresenting) {
-          if (elapsedTime < 4) {
+          if (elapsedTime < 3) {
             // Движение влево
             model.rotation.y = Math.PI / 2 + Math.PI;
             model.position.x -= moveSpeed;
-
-            // Подменяем модель в конце движения влево
-            if (elapsedTime >= 3.5 && leftModel) {
-              document.getElementById('left-model-status').textContent = 'Активна';
-              // Копируем позицию и поворот
-              leftModel.position.copy(model.position);
-              leftModel.rotation.copy(model.rotation);
-              
-              // Переключаем видимость
-              model.visible = false;
-              leftModel.visible = true;
-              
-              // Обновляем ссылку на текущую модель
-              model = leftModel;
-              
-              // Создаем новый миксер для анимации
-              mixer = new THREE.AnimationMixer(model);
-              
-              // Запускаем анимацию
-              if (animations && animations.length > 0) {
-                currentAnimation = mixer.clipAction(animations[0]);
-                currentAnimation.setLoop(THREE.LoopRepeat);
-                currentAnimation.play();
-              }
-            }
-          } else if (elapsedTime < 6) {
+          } else if (elapsedTime < 5) {
             // Пауза и поворот к зрителю после движения влево
             model.rotation.y = 0; // Поворот лицом к зрителю
 
             // Останавливаем анимацию в начале паузы
-            if (mixer && currentAnimation && elapsedTime < 5) {
+            if (mixer && currentAnimation && elapsedTime < 4) {
               currentAnimation.stop();
-              currentAnimation = null;
+              currentAnimation = null; // Сбрасываем ссылку на анимацию
             }
 
             // Возобновляем анимацию в конце паузы
-            if (mixer && animations.length > 0 && !currentAnimation && elapsedTime >= 5) {
+            if (mixer && animations.length > 0 && !currentAnimation && elapsedTime >= 4) {
               currentAnimation = mixer.clipAction(animations[0]);
               currentAnimation.setLoop(THREE.LoopRepeat);
               currentAnimation.play();
@@ -339,7 +384,7 @@
             // Останавливаем анимацию
             if (mixer && currentAnimation) {
               currentAnimation.stop();
-              currentAnimation = null;
+              currentAnimation = null; // Сбрасываем ссылку на анимацию
             }
           } else {
             // Сбрасываем время для повторения цикла
