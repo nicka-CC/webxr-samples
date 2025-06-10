@@ -148,9 +148,9 @@
 
                     // Настраиваем материал для корректного отображения текстур
                     const material = child.material;
-                    material.roughness = 0.5;
+                    material.roughness = 1.0;
                     material.metalness = 0.0;
-                    material.envMapIntensity = 1.0;
+                    material.envMapIntensity = 0.0;
                     material.needsUpdate = true;
 
                     // Включаем тени для меша
