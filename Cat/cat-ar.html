@@ -77,6 +77,9 @@
     let audioElement = null;
     let lookAtViewerTime = 0;
     let movementState = 'moving';
+    let leftModel = null;
+    let isTurningLeft = false;
+    let turnStartTime = 0;
 
     init();
     animate();
@@ -138,7 +141,19 @@
               function (gltf) {
                 model = gltf.scene;
                 model.scale.set(2,2, 2);
-                model.position.set(0, -5, -16); // Устанавливаем начальную позицию
+                model.position.set(0, -5, -16);
+
+                // Загружаем модель поворота влево
+                loader.load(
+                    './left.glb',
+                    function (leftGltf) {
+                        leftModel = leftGltf.scene;
+                        leftModel.scale.set(2,2, 2);
+                        leftModel.position.set(0, -5, -16);
+                        leftModel.visible = false;
+                        scene.add(leftModel);
+                    }
+                );
 
                 // Проверяем материалы модели
                 model.traverse((child) => {
@@ -336,6 +351,35 @@
         if (mixer) {
           const delta = clock.getDelta();
           mixer.update(delta);
+
+          // Проверяем позицию модели
+          if (model.position.x <= -10 && !isTurningLeft) {
+            isTurningLeft = true;
+            turnStartTime = Date.now();
+            
+            // Скрываем основную модель и показываем модель поворота
+            model.visible = false;
+            leftModel.visible = true;
+            
+            // Останавливаем текущую анимацию
+            if (currentAnimation) {
+              currentAnimation.stop();
+            }
+          }
+
+          // Проверяем, прошло ли 2 секунды с начала поворота
+          if (isTurningLeft && Date.now() - turnStartTime >= 2000) {
+            isTurningLeft = false;
+            
+            // Возвращаем основную модель
+            model.visible = true;
+            leftModel.visible = false;
+            
+            // Возобновляем анимацию ходьбы
+            if (currentAnimation) {
+              currentAnimation.play();
+            }
+          }
         }
 
         // Двигаем модель в AR режиме
@@ -347,9 +391,6 @@
           } else if (elapsedTime < 5) {
             // Пауза и поворот к зрителю после движения влево
             model.rotation.y = 0; // Поворот лицом к зрителю
-
-
-
 
             // Воспроизводим звук
             if (audioElement && audioElement.paused) {
@@ -375,7 +416,6 @@
           } else {
             // Сбрасываем время для повторения цикла
             startTime = Date.now();
-
           }
         }
 
@@ -408,14 +448,11 @@
 
         // Обработка состояния 'looking'
         if (movementState === 'looking') {
-
-
           lookAtViewerTime += scene.getEngine().getDeltaTime() / 1000;
           if (lookAtViewerTime >= 2) { // 2 секунды смотрит на зрителя
             movementState = 'moving';
             // Сбрасываем таймер
             lookAtViewerTime = 0;
-
           }
         }
 

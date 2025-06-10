@@ -148,9 +148,9 @@
 
                     // Настраиваем материал для корректного отображения текстур
                     const material = child.material;
-                    material.roughness = 0.5;
+                    material.roughness = 1.0;
                     material.metalness = 0.0;
-                    material.envMapIntensity = 1.0;
+                    material.envMapIntensity = 0.0;
                     material.needsUpdate = true;
 
                     // Включаем тени для меша
@@ -348,18 +348,8 @@
             // Пауза и поворот к зрителю после движения влево
             model.rotation.y = 0; // Поворот лицом к зрителю
 
-            // Останавливаем анимацию в начале паузы
-            if (mixer && currentAnimation && elapsedTime < 4) {
-              currentAnimation.stop();
-              currentAnimation = null; // Сбрасываем ссылку на анимацию
-            }
 
-            // Возобновляем анимацию в конце паузы
-            if (mixer && animations.length > 0 && !currentAnimation && elapsedTime >= 4) {
-              currentAnimation = mixer.clipAction(animations[0]);
-              currentAnimation.setLoop(THREE.LoopRepeat);
-              currentAnimation.play();
-            }
+
 
             // Воспроизводим звук
             if (audioElement && audioElement.paused) {
@@ -381,20 +371,11 @@
           } else if (elapsedTime < 10) {
             // Пауза и поворот к зрителю после движения вправо
             model.rotation.y = 0; // Поворот лицом к зрителю
-            // Останавливаем анимацию
-            if (mixer && currentAnimation) {
-              currentAnimation.stop();
-              currentAnimation = null; // Сбрасываем ссылку на анимацию
-            }
+
           } else {
             // Сбрасываем время для повторения цикла
             startTime = Date.now();
-            // Возобновляем анимацию
-            if (mixer && animations.length > 0 && !currentAnimation) {
-              currentAnimation = mixer.clipAction(animations[0]);
-              currentAnimation.setLoop(THREE.LoopRepeat);
-              currentAnimation.play();
-            }
+
           }
         }
 
@@ -427,23 +408,14 @@
 
         // Обработка состояния 'looking'
         if (movementState === 'looking') {
-          // Останавливаем анимацию при повороте
-          if (mixer && currentAnimation) {
-            currentAnimation.stop();
-            currentAnimation = null;
-          }
+
 
           lookAtViewerTime += scene.getEngine().getDeltaTime() / 1000;
           if (lookAtViewerTime >= 2) { // 2 секунды смотрит на зрителя
             movementState = 'moving';
             // Сбрасываем таймер
             lookAtViewerTime = 0;
-            // Возобновляем анимацию
-            if (mixer && animations.length > 0) {
-              currentAnimation = mixer.clipAction(animations[0]);
-              currentAnimation.setLoop(THREE.LoopRepeat);
-              currentAnimation.play();
-            }
+
           }
         }
 
