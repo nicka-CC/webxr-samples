@@ -77,16 +77,12 @@
     let audioElement = null;
     let lookAtViewerTime = 0;
     let movementState = 'moving';
-    let leftModel = null;
-    let isTurningLeft = false;
-    let turnStartTime = 0;
-    let modelGroup = null;
-    let leftAnimations = [];
     let tell2Model = null;
     let tell2Animations = [];
     let lookingAtViewerStartTime = 0;
     let isLookingAtViewer = false;
     let isTurnedToViewer = false;
+    let modelGroup = null;
 
     init();
     animate();
@@ -156,44 +152,7 @@
                 model.position.set(0, -5, -16);
                 modelGroup.add(model);
 
-                // Загружаем модель поворота влево
-                console.log('Начинаем загрузку модели поворота влево...');
-                loader.load(
-                    './left.glb',
-                    function (leftGltf) {
-                        console.log('Модель left.glb успешно загружена');
-                        leftModel = leftGltf.scene;
-                      leftAnimations = leftGltf.animations;
-                        console.log('Создана сцена для модели поворота');
-                        
-                        leftModel.scale.set(2,2, 2);
-                        leftModel.position.set(0, -5, -16);
-                        leftModel.visible = false;
-                        
-                        // Настраиваем материалы для модели поворота
-                        leftModel.traverse((child) => {
-                            if (child.isMesh && child.material) {
-                                console.log('Найден меш в модели поворота:', child.name);
-                                const material = child.material;
-                                material.roughness = 1.0;
-                                material.metalness = 0.0;
-                                material.envMapIntensity = 0.0;
-                                material.needsUpdate = true;
-                            }
-                        });
-                        
-                        modelGroup.add(leftModel);
-                        console.log('Модель поворота влево добавлена в группу');
-                    },
-                    function (xhr) {
-                        console.log('Загрузка модели поворота: ' + (xhr.loaded / xhr.total * 100) + '%');
-                    },
-                    function (error) {
-                        console.error('Ошибка загрузки модели поворота влево:', error);
-                    }
-                );
-
-                // Загружаем модель tell2 сразу после загрузки основной модели
+                // Загружаем модель tell2
                 console.log('Начинаем загрузку tell2.glb');
                 loader.load(
                     './tell2.glb',
@@ -216,25 +175,6 @@
                         console.error('Ошибка загрузки tell2:', error);
                     }
                 );
-
-                // Проверяем материалы модели
-                model.traverse((child) => {
-                  if (child.isMesh && child.material) {
-                    console.log('Найден меш:', child.name);
-                    console.log('Материал:', child.material);
-
-                    // Настраиваем материал для корректного отображения текстур
-                    const material = child.material;
-                    material.roughness = 1.0;
-                    material.metalness = 0.0;
-                    material.envMapIntensity = 0.0;
-                    material.needsUpdate = true;
-
-                    // Включаем тени для меша
-                    child.castShadow = true;
-                    child.receiveShadow = true;
-                  }
-                });
 
                 // Настраиваем анимации
                 mixer = new THREE.AnimationMixer(model);
@@ -411,71 +351,71 @@
         if (mixer) {
           const delta = clock.getDelta();
           mixer.update(delta);
+        }
 
-          // Проверяем позицию модели
-          if (model && renderer.xr.isPresenting) {
-            console.log('Текущая позиция:', model.position.x, 'Время:', elapsedTime);
-            
-            if (elapsedTime < 3) {
-                // Движение влево
-                model.rotation.y = Math.PI / 2 + Math.PI;
-                model.position.x -= moveSpeed;
-                console.log('Движение влево');
-            } else if (elapsedTime < 5) {
-                // Пауза и поворот к зрителю
-                model.rotation.y = 0;
-                console.log('Поворот к зрителю');
-                
-                if (!isTurnedToViewer) {
-                    isTurnedToViewer = true;
-                    isLookingAtViewer = true;
-                    lookingAtViewerStartTime = Date.now();
-                    console.log('Начало отсчета времени смотрения на зрителя');
-                }
+        // Двигаем модель в AR режиме
+        if (model && renderer.xr.isPresenting) {
+          console.log('Текущая позиция:', model.position.x, 'Время:', elapsedTime);
+          
+          if (elapsedTime < 3) {
+              // Движение влево
+              model.rotation.y = Math.PI / 2 + Math.PI;
+              model.position.x -= moveSpeed;
+              console.log('Движение влево');
+          } else if (elapsedTime < 5) {
+              // Пауза и поворот к зрителю
+              model.rotation.y = 0;
+              console.log('Поворот к зрителю');
+              
+              if (!isTurnedToViewer) {
+                  isTurnedToViewer = true;
+                  isLookingAtViewer = true;
+                  lookingAtViewerStartTime = Date.now();
+                  console.log('Начало отсчета времени смотрения на зрителя');
+              }
 
-                const lookingTime = (Date.now() - lookingAtViewerStartTime) / 1000;
-                console.log('Время смотрения на зрителя:', lookingTime);
+              const lookingTime = (Date.now() - lookingAtViewerStartTime) / 1000;
+              console.log('Время смотрения на зрителя:', lookingTime);
 
-                if (lookingTime >= 60 && tell2Model && isLookingAtViewer) {
-                    console.log('Подмена модели на tell2');
-                    
-                    // Сохраняем текущую позицию и поворот
-                    const currentPosition = model.position.clone();
-                    const currentRotation = model.rotation.clone();
-                    
-                    // Удаляем текущую модель
-                    modelGroup.remove(model);
-                    model = null;
-                    
-                    // Устанавливаем модель tell2
-                    model = tell2Model;
-                    model.position.copy(currentPosition);
-                    model.rotation.copy(currentRotation);
-                    model.visible = true;
-                    
-                    // Настраиваем анимацию для tell2
-                    if (tell2Animations && tell2Animations.length > 0) {
-                        mixer = new THREE.AnimationMixer(model);
-                        currentAnimation = mixer.clipAction(tell2Animations[0]);
-                        currentAnimation.setLoop(THREE.LoopRepeat);
-                        currentAnimation.play();
-                        console.log('Анимация tell2 запущена');
-                    }
-                    
-                    isLookingAtViewer = false;
-                }
-            } else if (elapsedTime < 8) {
-                // Движение вправо
-                model.rotation.y = -Math.PI / 2 + Math.PI;
-                model.position.x += moveSpeed;
-                console.log('Движение вправо');
-            } else {
-                // Сброс цикла
-                startTime = Date.now();
-                isTurnedToViewer = false;
-                isLookingAtViewer = false;
-                console.log('Сброс цикла');
-            }
+              if (lookingTime >= 60 && tell2Model && isLookingAtViewer) {
+                  console.log('Подмена модели на tell2');
+                  
+                  // Сохраняем текущую позицию и поворот
+                  const currentPosition = model.position.clone();
+                  const currentRotation = model.rotation.clone();
+                  
+                  // Удаляем текущую модель
+                  modelGroup.remove(model);
+                  model = null;
+                  
+                  // Устанавливаем модель tell2
+                  model = tell2Model;
+                  model.position.copy(currentPosition);
+                  model.rotation.copy(currentRotation);
+                  model.visible = true;
+                  
+                  // Настраиваем анимацию для tell2
+                  if (tell2Animations && tell2Animations.length > 0) {
+                      mixer = new THREE.AnimationMixer(model);
+                      currentAnimation = mixer.clipAction(tell2Animations[0]);
+                      currentAnimation.setLoop(THREE.LoopRepeat);
+                      currentAnimation.play();
+                      console.log('Анимация tell2 запущена');
+                  }
+                  
+                  isLookingAtViewer = false;
+              }
+          } else if (elapsedTime < 8) {
+              // Движение вправо
+              model.rotation.y = -Math.PI / 2 + Math.PI;
+              model.position.x += moveSpeed;
+              console.log('Движение вправо');
+          } else {
+              // Сброс цикла
+              startTime = Date.now();
+              isTurnedToViewer = false;
+              isLookingAtViewer = false;
+              console.log('Сброс цикла');
           }
         }
 
