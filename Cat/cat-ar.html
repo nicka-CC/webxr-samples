@@ -217,7 +217,7 @@
       // Создаем рендерер
       renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
       renderer.setPixelRatio(window.devicePixelRatio);
-      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setSize(window.innerWidth * 2 , window.innerHeight * 2);
       renderer.xr.enabled = true;
       renderer.outputEncoding = THREE.sRGBEncoding;
       renderer.shadowMap.enabled = true;
@@ -822,13 +822,9 @@
             model2.visible = false;
             modelLeft.visible = false;
             modelRight.visible = false;
-            model.rotation.y = -Math.PI / 4;  // -45 градусов
-            model.position.x -= moveSpeed * 0.7;  // Движение по X
-            model.position.z += moveSpeed * 0.7;  // Движение по Z
-
-            // Ограничиваем движение, чтобы кот не уходил за сцену
-            model.position.x = Math.max(-5, Math.min(5, model.position.x));
-            model.position.z = Math.max(-5, Math.min(5, model.position.z));
+            model.rotation.y = Math.PI / 4;  // 45 градусов
+            model.position.x += moveSpeed * 0.7;  // Движение по X
+            model.position.z -= moveSpeed * 0.7;  // Движение по Z
 
             if (mixer && animations && animations.length > 0) {
               const walkAnimation = mixer.clipAction(animations[0]);
