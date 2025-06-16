@@ -705,7 +705,7 @@
               }
               mixerLeft.update(clock.getDelta());
             }
-          } else if (elapsedTime < 4.0) {
+          } else if (elapsedTime < 7.0) {
             // Говорение
             currentModel = 'tell';
             model.visible = false;
@@ -727,7 +727,7 @@
                 console.error('Ошибка воспроизведения звука:', error);
               });
             }
-          } else if (elapsedTime < 5.5) {
+          } else if (elapsedTime < 8.5) {
             // Поворот направо
             currentModel = 'right';
             model.visible = false;
@@ -748,7 +748,7 @@
               }
               mixerRight.update(clock.getDelta());
             }
-          } else if (elapsedTime < 7.0) {
+          } else if (elapsedTime < 10.0) {
             // Движение вправо
             currentModel = 'walk';
             model.visible = true;
@@ -757,7 +757,7 @@
             modelRight.visible = false;
             model.rotation.y = -Math.PI / 2 + Math.PI;
             model.position.x += moveSpeed;
-          } else if (elapsedTime < 8.0) {
+          } else if (elapsedTime < 11.0) {
             // Поворот направо
             currentModel = 'right';
             model.visible = false;
@@ -778,7 +778,7 @@
               }
               mixerRight.update(clock.getDelta());
             }
-          } else if (elapsedTime < 9.5) {
+          } else if (elapsedTime < 12.5) {
             // Говорение
             currentModel = 'tell';
             model.visible = false;
@@ -793,7 +793,7 @@
               tellAnimation.timeScale = 16.0;
               mixer2.update(clock.getDelta());
             }
-          } else if (elapsedTime < 10.5) {
+          } else if (elapsedTime < 13.5) {
             // Поворот налево
             currentModel = 'left';
             model.visible = false;
