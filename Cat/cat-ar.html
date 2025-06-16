@@ -74,7 +74,7 @@
     let isRotating = false;
     let lastHitPosition = null;
     let rotationSpeed = 15;
-    let moveSpeed = 0.15;
+    let moveSpeed = 0.2;
     let startTime = 0;
     let audioElement = null;
     let lookAtViewerTime = 0;
@@ -96,10 +96,10 @@
           document.getElementById('latitude').textContent = position.coords.latitude.toFixed(6);
           document.getElementById('longitude').textContent = position.coords.longitude.toFixed(6);
           document.getElementById('accuracy').textContent = position.coords.accuracy.toFixed(2) + ' м';
-          document.getElementById('altitude').textContent = position.coords.altitude ? 
-              position.coords.altitude.toFixed(2) + ' м' : 'недоступно';
-          document.getElementById('speed').textContent = position.coords.speed ? 
-              position.coords.speed.toFixed(2) + ' м/с' : 'недоступно';
+          document.getElementById('altitude').textContent = position.coords.altitude ?
+                  position.coords.altitude.toFixed(2) + ' м' : 'недоступно';
+          document.getElementById('speed').textContent = position.coords.speed ?
+                  position.coords.speed.toFixed(2) + ' м/с' : 'недоступно';
 
           // Выводим в консоль
           console.log('Device Coordinates:', {
@@ -129,10 +129,10 @@
           document.getElementById('latitude').textContent = position.coords.latitude.toFixed(6);
           document.getElementById('longitude').textContent = position.coords.longitude.toFixed(6);
           document.getElementById('accuracy').textContent = position.coords.accuracy.toFixed(2) + ' м';
-          document.getElementById('altitude').textContent = position.coords.altitude ? 
-              position.coords.altitude.toFixed(2) + ' м' : 'недоступно';
-          document.getElementById('speed').textContent = position.coords.speed ? 
-              position.coords.speed.toFixed(2) + ' м/с' : 'недоступно';
+          document.getElementById('altitude').textContent = position.coords.altitude ?
+                  position.coords.altitude.toFixed(2) + ' м' : 'недоступно';
+          document.getElementById('speed').textContent = position.coords.speed ?
+                  position.coords.speed.toFixed(2) + ' м/с' : 'недоступно';
 
           // Выводим в консоль
           console.log('Updated Coordinates:', {
@@ -296,22 +296,22 @@
       function getDeviceInfo() {
         const canvas = document.createElement('canvas');
         const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
-        
+
         if (!gl) {
-            return {
-                renderer: 'WebGL не поддерживается',
-                vendor: 'Неизвестно',
-                model: 'Неизвестно'
-            };
+          return {
+            renderer: 'WebGL не поддерживается',
+            vendor: 'Неизвестно',
+            model: 'Неизвестно'
+          };
         }
 
         const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
         if (!debugInfo) {
-            return {
-                renderer: 'Информация недоступна',
-                vendor: 'Неизвестно',
-                model: 'Неизвестно'
-            };
+          return {
+            renderer: 'Информация недоступна',
+            vendor: 'Неизвестно',
+            model: 'Неизвестно'
+          };
         }
 
         const renderer = gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL);
@@ -320,26 +320,26 @@
         // Определяем модель устройства на основе информации о GPU
         let model = 'Неизвестно';
         if (renderer.includes('Adreno')) {
-            // Qualcomm GPU
-            if (renderer.includes('Adreno 650')) model = 'Snapdragon 865/870';
-            else if (renderer.includes('Adreno 660')) model = 'Snapdragon 888';
-            else if (renderer.includes('Adreno 730')) model = 'Snapdragon 8 Gen 1';
-            else if (renderer.includes('Adreno 740')) model = 'Snapdragon 8 Gen 2';
+          // Qualcomm GPU
+          if (renderer.includes('Adreno 650')) model = 'Snapdragon 865/870';
+          else if (renderer.includes('Adreno 660')) model = 'Snapdragon 888';
+          else if (renderer.includes('Adreno 730')) model = 'Snapdragon 8 Gen 1';
+          else if (renderer.includes('Adreno 740')) model = 'Snapdragon 8 Gen 2';
         } else if (renderer.includes('Mali')) {
-            // ARM GPU
-            if (renderer.includes('Mali-G78')) model = 'Exynos 2100';
-            else if (renderer.includes('Mali-G710')) model = 'Dimensity 9000';
+          // ARM GPU
+          if (renderer.includes('Mali-G78')) model = 'Exynos 2100';
+          else if (renderer.includes('Mali-G710')) model = 'Dimensity 9000';
         } else if (renderer.includes('Apple')) {
-            // Apple GPU
-            if (renderer.includes('Apple A15')) model = 'iPhone 13/14';
-            else if (renderer.includes('Apple A16')) model = 'iPhone 14 Pro';
-            else if (renderer.includes('Apple A17')) model = 'iPhone 15 Pro';
+          // Apple GPU
+          if (renderer.includes('Apple A15')) model = 'iPhone 13/14';
+          else if (renderer.includes('Apple A16')) model = 'iPhone 14 Pro';
+          else if (renderer.includes('Apple A17')) model = 'iPhone 15 Pro';
         }
 
         return {
-            renderer: renderer,
-            vendor: vendor,
-            model: model
+          renderer: renderer,
+          vendor: vendor,
+          model: model
         };
       }
 
@@ -391,7 +391,6 @@
                 if (animations && animations.length > 0) {
                   document.getElementById('animations').textContent = `Найдено: ${animations.length}`;
                   document.getElementById('status').textContent = 'Готово';
-                  console.log('Animations loaded:', animations.length);
 
                   // Запускаем первую анимацию
                   currentAnimation = mixer.clipAction(animations[0]);
@@ -401,7 +400,6 @@
                 } else {
                   document.getElementById('animations').textContent = 'Не найдено';
                   document.getElementById('status').textContent = 'Нет анимаций';
-                  console.log('No animations found in the model');
                 }
 
                 // Инициализируем обработчики тач-событий
@@ -523,98 +521,98 @@
 
       // В функции init() после загрузки первой модели добавляем:
       loader.load(
-          './tell2.glb',
-          function (gltf) {
-              model2 = gltf.scene;
-              model2.scale.set(2.5, 2.5, 2.5);
-              model2.position.set(0, -10, -16);
-              model2.visible = false;
-              
-              model2.traverse((child) => {
+              './tell2.glb',
+              function (gltf) {
+                model2 = gltf.scene;
+                model2.scale.set(2.5, 2.5, 2.5);
+                model2.position.set(0, -10, -16);
+                model2.visible = false;
+
+                model2.traverse((child) => {
                   if (child.isMesh && child.material) {
-                      const material = child.material;
-                      material.roughness = 1.0;
-                      material.metalness = 0.0;
-                      material.envMapIntensity = 0.0;
-                      material.needsUpdate = true;
-                      child.castShadow = true;
-                      child.receiveShadow = true;
+                    const material = child.material;
+                    material.roughness = 1.0;
+                    material.metalness = 0.0;
+                    material.envMapIntensity = 0.0;
+                    material.needsUpdate = true;
+                    child.castShadow = true;
+                    child.receiveShadow = true;
                   }
-              });
-              
-              scene.add(model2);
-              
-              mixer2 = new THREE.AnimationMixer(model2);
-              if (gltf.animations && gltf.animations.length > 0) {
+                });
+
+                scene.add(model2);
+
+                mixer2 = new THREE.AnimationMixer(model2);
+                if (gltf.animations && gltf.animations.length > 0) {
                   const tellAnimation = mixer2.clipAction(gltf.animations[0]);
                   tellAnimation.setLoop(THREE.LoopRepeat);
                   tellAnimation.clampWhenFinished = false;
                   tellAnimation.timeScale = 2.0;
                   tellAnimation.play();
+                }
               }
-          }
       );
 
       // Загрузка модели поворота налево
       loader.load(
-          './left.glb',
-          function (gltf) {
-              modelLeft = gltf.scene;
-              modelLeft.scale.set(2.5, 2.5, 2.5);
-              modelLeft.position.set(0, -10, -16);
-              modelLeft.visible = false;
-              
-              modelLeft.traverse((child) => {
+              './left.glb',
+              function (gltf) {
+                modelLeft = gltf.scene;
+                modelLeft.scale.set(2.5, 2.5, 2.5);
+                modelLeft.position.set(0, -10, -16);
+                modelLeft.visible = false;
+
+                modelLeft.traverse((child) => {
                   if (child.isMesh && child.material) {
-                      const material = child.material;
-                      material.roughness = 1.0;
-                      material.metalness = 0.0;
-                      material.envMapIntensity = 0.0;
-                      material.needsUpdate = true;
-                      child.castShadow = true;
-                      child.receiveShadow = true;
+                    const material = child.material;
+                    material.roughness = 1.0;
+                    material.metalness = 0.0;
+                    material.envMapIntensity = 0.0;
+                    material.needsUpdate = true;
+                    child.castShadow = true;
+                    child.receiveShadow = true;
                   }
-              });
-              
-              scene.add(modelLeft);
-              
-              mixerLeft = new THREE.AnimationMixer(modelLeft);
-              if (gltf.animations && gltf.animations.length > 0) {
+                });
+
+                scene.add(modelLeft);
+
+                mixerLeft = new THREE.AnimationMixer(modelLeft);
+                if (gltf.animations && gltf.animations.length > 0) {
                   animationsLeft = gltf.animations;
                   console.log('Left animations loaded:', animationsLeft.length);
+                }
               }
-          }
       );
 
       // Загрузка модели поворота направо
       loader.load(
-          './right.glb',
-          function (gltf) {
-              modelRight = gltf.scene;
-              modelRight.scale.set(2.5, 2.5, 2.5);
-              modelRight.position.set(0, -10, -16);
-              modelRight.visible = false;
-              
-              modelRight.traverse((child) => {
+              './right.glb',
+              function (gltf) {
+                modelRight = gltf.scene;
+                modelRight.scale.set(2.5, 2.5, 2.5);
+                modelRight.position.set(0, -10, -16);
+                modelRight.visible = false;
+
+                modelRight.traverse((child) => {
                   if (child.isMesh && child.material) {
-                      const material = child.material;
-                      material.roughness = 1.0;
-                      material.metalness = 0.0;
-                      material.envMapIntensity = 0.0;
-                      material.needsUpdate = true;
-                      child.castShadow = true;
-                      child.receiveShadow = true;
+                    const material = child.material;
+                    material.roughness = 1.0;
+                    material.metalness = 0.0;
+                    material.envMapIntensity = 0.0;
+                    material.needsUpdate = true;
+                    child.castShadow = true;
+                    child.receiveShadow = true;
                   }
-              });
-              
-              scene.add(modelRight);
-              
-              mixerRight = new THREE.AnimationMixer(modelRight);
-              if (gltf.animations && gltf.animations.length > 0) {
+                });
+
+                scene.add(modelRight);
+
+                mixerRight = new THREE.AnimationMixer(modelRight);
+                if (gltf.animations && gltf.animations.length > 0) {
                   animationsRight = gltf.animations;
                   console.log('Right animations loaded:', animationsRight.length);
+                }
               }
-          }
       );
     }
 
@@ -674,7 +672,7 @@
               rotation: model.rotation,
               scale: model.scale
             };
-            
+
             // Выводим в консоль каждую секунду
             if (Math.floor(elapsedTime) !== Math.floor(elapsedTime - clock.getDelta())) {
               console.log('Device Info:', deviceInfo);
@@ -713,7 +711,7 @@
 
         // Двигаем модель в AR режиме
         if (model && model2 && modelLeft && modelRight && renderer.xr.isPresenting) {
-          if (elapsedTime < 1.125) {
+          if (elapsedTime < 1.5) {
             // Движение влево
             currentModel = 'walk';
             model.visible = true;
@@ -722,22 +720,7 @@
             modelRight.visible = false;
             model.rotation.y = Math.PI / 2 + Math.PI;
             model.position.x -= moveSpeed;
-            
-            if (mixer && animations && animations.length > 0) {
-              console.log('Playing walk animation');
-              const walkAnimation = mixer.clipAction(animations[0]);
-              walkAnimation.reset();
-              walkAnimation.setLoop(THREE.LoopRepeat);
-              walkAnimation.timeScale = 1.0;
-              walkAnimation.play();
-              mixer.update(clock.getDelta());
-            } else {
-              console.log('No animations available for walking:', {
-                mixer: !!mixer,
-                animations: animations ? animations.length : 0
-              });
-            }
-          } else if (elapsedTime < 1.875) {
+          } else if (elapsedTime < 2.5) {
             // Поворот налево
             currentModel = 'left';
             model.visible = false;
@@ -746,19 +729,19 @@
             modelRight.visible = false;
             modelLeft.position.copy(model.position);
             modelLeft.rotation.y = model.rotation.y;
-            
+
             if (mixerLeft && animationsLeft.length > 0) {
-                const leftAnimation = mixerLeft.clipAction(animationsLeft[0]);
-                if (!leftAnimation.isRunning()) {
-                    leftAnimation.reset();
-                    leftAnimation.setLoop(THREE.LoopOnce);
-                    leftAnimation.clampWhenFinished = true;
-                    leftAnimation.timeScale = 3.0;
-                    leftAnimation.play();
-                }
-                mixerLeft.update(clock.getDelta());
+              const leftAnimation = mixerLeft.clipAction(animationsLeft[0]);
+              if (!leftAnimation.isRunning()) {
+                leftAnimation.reset();
+                leftAnimation.setLoop(THREE.LoopOnce);
+                leftAnimation.clampWhenFinished = true;
+                leftAnimation.timeScale = 3.0;
+                leftAnimation.play();
+              }
+              mixerLeft.update(clock.getDelta());
             }
-          } else if (elapsedTime < 3.0) {
+          } else if (elapsedTime < 4.0) {
             // Говорение
             currentModel = 'tell';
             model.visible = false;
@@ -767,20 +750,20 @@
             modelRight.visible = false;
             model2.position.copy(modelLeft.position);
             model2.rotation.y = 0;
-            
+
             if (mixer2) {
-                const tellAnimation = mixer2.clipAction(animations[0]);
-                tellAnimation.timeScale = 6.0;
-                mixer2.update(clock.getDelta());
+              const tellAnimation = mixer2.clipAction(animations[0]);
+              tellAnimation.timeScale = 8.0;
+              mixer2.update(clock.getDelta());
             }
-            
+
             if (audioElement && audioElement.paused) {
               audioElement.currentTime = 0;
               audioElement.play().catch(error => {
                 console.error('Ошибка воспроизведения звука:', error);
               });
             }
-          } else if (elapsedTime < 4.125) {
+          } else if (elapsedTime < 5.5) {
             // Поворот направо
             currentModel = 'right';
             model.visible = false;
@@ -789,19 +772,19 @@
             modelRight.visible = true;
             modelRight.position.copy(model2.position);
             modelRight.rotation.y = 0;
-            
+
             if (mixerRight && animationsRight.length > 0) {
-                const rightAnimation = mixerRight.clipAction(animationsRight[0]);
-                if (!rightAnimation.isRunning()) {
-                    rightAnimation.reset();
-                    rightAnimation.setLoop(THREE.LoopOnce);
-                    rightAnimation.clampWhenFinished = true;
-                    rightAnimation.timeScale = 3.0;
-                    rightAnimation.play();
-                }
-                mixerRight.update(clock.getDelta());
+              const rightAnimation = mixerRight.clipAction(animationsRight[0]);
+              if (!rightAnimation.isRunning()) {
+                rightAnimation.reset();
+                rightAnimation.setLoop(THREE.LoopOnce);
+                rightAnimation.clampWhenFinished = true;
+                rightAnimation.timeScale = 3.0;
+                rightAnimation.play();
+              }
+              mixerRight.update(clock.getDelta());
             }
-          } else if (elapsedTime < 5.25) {
+          } else if (elapsedTime < 7.0) {
             // Движение вправо
             currentModel = 'walk';
             model.visible = true;
@@ -810,22 +793,7 @@
             modelRight.visible = false;
             model.rotation.y = -Math.PI / 2 + Math.PI;
             model.position.x += moveSpeed;
-            
-            if (mixer && animations && animations.length > 0) {
-              console.log('Playing walk animation');
-              const walkAnimation = mixer.clipAction(animations[0]);
-              walkAnimation.reset();
-              walkAnimation.setLoop(THREE.LoopRepeat);
-              walkAnimation.timeScale = 1.0;
-              walkAnimation.play();
-              mixer.update(clock.getDelta());
-            } else {
-              console.log('No animations available for walking:', {
-                mixer: !!mixer,
-                animations: animations ? animations.length : 0
-              });
-            }
-          } else if (elapsedTime < 6.0) {
+          } else if (elapsedTime < 8.0) {
             // Поворот направо
             currentModel = 'right';
             model.visible = false;
@@ -834,19 +802,19 @@
             modelRight.visible = true;
             modelRight.position.copy(model.position);
             modelRight.rotation.y = model.rotation.y;
-            
+
             if (mixerRight && animationsRight.length > 0) {
-                const rightAnimation = mixerRight.clipAction(animationsRight[0]);
-                if (!rightAnimation.isRunning()) {
-                    rightAnimation.reset();
-                    rightAnimation.setLoop(THREE.LoopOnce);
-                    rightAnimation.clampWhenFinished = true;
-                    rightAnimation.timeScale = 3.0;
-                    rightAnimation.play();
-                }
-                mixerRight.update(clock.getDelta());
+              const rightAnimation = mixerRight.clipAction(animationsRight[0]);
+              if (!rightAnimation.isRunning()) {
+                rightAnimation.reset();
+                rightAnimation.setLoop(THREE.LoopOnce);
+                rightAnimation.clampWhenFinished = true;
+                rightAnimation.timeScale = 3.0;
+                rightAnimation.play();
+              }
+              mixerRight.update(clock.getDelta());
             }
-          } else if (elapsedTime < 7.125) {
+          } else if (elapsedTime < 9.5) {
             // Говорение
             currentModel = 'tell';
             model.visible = false;
@@ -855,13 +823,13 @@
             modelRight.visible = false;
             model2.position.copy(modelRight.position);
             model2.rotation.y = 0;
-            
+
             if (mixer2) {
-                const tellAnimation = mixer2.clipAction(animations[0]);
-                tellAnimation.timeScale = 6.0;
-                mixer2.update(clock.getDelta());
+              const tellAnimation = mixer2.clipAction(animations[0]);
+              tellAnimation.timeScale = 8.0;
+              mixer2.update(clock.getDelta());
             }
-          } else if (elapsedTime < 7.875) {
+          } else if (elapsedTime < 10.5) {
             // Поворот налево
             currentModel = 'left';
             model.visible = false;
@@ -870,17 +838,17 @@
             modelRight.visible = false;
             modelLeft.position.copy(model2.position);
             modelLeft.rotation.y = 0;
-            
+
             if (mixerLeft && animationsLeft.length > 0) {
-                const leftAnimation = mixerLeft.clipAction(animationsLeft[0]);
-                if (!leftAnimation.isRunning()) {
-                    leftAnimation.reset();
-                    leftAnimation.setLoop(THREE.LoopOnce);
-                    leftAnimation.clampWhenFinished = true;
-                    leftAnimation.timeScale = 2.25;
-                    leftAnimation.play();
-                }
-                mixerLeft.update(clock.getDelta());
+              const leftAnimation = mixerLeft.clipAction(animationsLeft[0]);
+              if (!leftAnimation.isRunning()) {
+                leftAnimation.reset();
+                leftAnimation.setLoop(THREE.LoopOnce);
+                leftAnimation.clampWhenFinished = true;
+                leftAnimation.timeScale = 3.0;
+                leftAnimation.play();
+              }
+              mixerLeft.update(clock.getDelta());
             }
           } else {
             startTime = Date.now();
