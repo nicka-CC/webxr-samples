@@ -720,6 +720,17 @@
             modelRight.visible = false;
             model.rotation.y = Math.PI / 2 + Math.PI;
             model.position.x -= moveSpeed;
+            
+            if (mixer && animations.length > 0) {
+              const walkAnimation = mixer.clipAction(animations[0]);
+              if (!walkAnimation.isRunning()) {
+                walkAnimation.reset();
+                walkAnimation.setLoop(THREE.LoopRepeat);
+                walkAnimation.timeScale = 1.0;
+                walkAnimation.play();
+              }
+              mixer.update(clock.getDelta());
+            }
           } else if (elapsedTime < 1.875) {
             // Поворот налево
             currentModel = 'left';
@@ -793,6 +804,17 @@
             modelRight.visible = false;
             model.rotation.y = -Math.PI / 2 + Math.PI;
             model.position.x += moveSpeed;
+            
+            if (mixer && animations.length > 0) {
+              const walkAnimation = mixer.clipAction(animations[0]);
+              if (!walkAnimation.isRunning()) {
+                walkAnimation.reset();
+                walkAnimation.setLoop(THREE.LoopRepeat);
+                walkAnimation.timeScale = 1.0;
+                walkAnimation.play();
+              }
+              mixer.update(clock.getDelta());
+            }
           } else if (elapsedTime < 6.0) {
             // Поворот направо
             currentModel = 'right';
