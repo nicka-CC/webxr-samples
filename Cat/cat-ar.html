@@ -74,7 +74,7 @@
     let isRotating = false;
     let lastHitPosition = null;
     let rotationSpeed = 15;
-    let moveSpeed = 0.2;
+    let moveSpeed = 0.15;
     let startTime = 0;
     let audioElement = null;
     let lookAtViewerTime = 0;
@@ -391,6 +391,7 @@
                 if (animations && animations.length > 0) {
                   document.getElementById('animations').textContent = `Найдено: ${animations.length}`;
                   document.getElementById('status').textContent = 'Готово';
+                  console.log('Animations loaded:', animations.length);
 
                   // Запускаем первую анимацию
                   currentAnimation = mixer.clipAction(animations[0]);
@@ -400,6 +401,7 @@
                 } else {
                   document.getElementById('animations').textContent = 'Не найдено';
                   document.getElementById('status').textContent = 'Нет анимаций';
+                  console.log('No animations found in the model');
                 }
 
                 // Инициализируем обработчики тач-событий
@@ -711,7 +713,7 @@
 
         // Двигаем модель в AR режиме
         if (model && model2 && modelLeft && modelRight && renderer.xr.isPresenting) {
-          if (elapsedTime < 1.5) {
+          if (elapsedTime < 1.125) {
             // Движение влево
             currentModel = 'walk';
             model.visible = true;
@@ -720,7 +722,22 @@
             modelRight.visible = false;
             model.rotation.y = Math.PI / 2 + Math.PI;
             model.position.x -= moveSpeed;
-          } else if (elapsedTime < 2.5) {
+            
+            if (mixer && animations && animations.length > 0) {
+              console.log('Playing walk animation');
+              const walkAnimation = mixer.clipAction(animations[0]);
+              walkAnimation.reset();
+              walkAnimation.setLoop(THREE.LoopRepeat);
+              walkAnimation.timeScale = 1.0;
+              walkAnimation.play();
+              mixer.update(clock.getDelta());
+            } else {
+              console.log('No animations available for walking:', {
+                mixer: !!mixer,
+                animations: animations ? animations.length : 0
+              });
+            }
+          } else if (elapsedTime < 1.875) {
             // Поворот налево
             currentModel = 'left';
             model.visible = false;
@@ -741,7 +758,7 @@
                 }
                 mixerLeft.update(clock.getDelta());
             }
-          } else if (elapsedTime < 4.0) {
+          } else if (elapsedTime < 3.0) {
             // Говорение
             currentModel = 'tell';
             model.visible = false;
@@ -753,7 +770,7 @@
             
             if (mixer2) {
                 const tellAnimation = mixer2.clipAction(animations[0]);
-                tellAnimation.timeScale = 8.0;
+                tellAnimation.timeScale = 6.0;
                 mixer2.update(clock.getDelta());
             }
             
@@ -763,7 +780,7 @@
                 console.error('Ошибка воспроизведения звука:', error);
               });
             }
-          } else if (elapsedTime < 5.5) {
+          } else if (elapsedTime < 4.125) {
             // Поворот направо
             currentModel = 'right';
             model.visible = false;
@@ -784,7 +801,7 @@
                 }
                 mixerRight.update(clock.getDelta());
             }
-          } else if (elapsedTime < 7.0) {
+          } else if (elapsedTime < 5.25) {
             // Движение вправо
             currentModel = 'walk';
             model.visible = true;
@@ -793,7 +810,22 @@
             modelRight.visible = false;
             model.rotation.y = -Math.PI / 2 + Math.PI;
             model.position.x += moveSpeed;
-          } else if (elapsedTime < 8.0) {
+            
+            if (mixer && animations && animations.length > 0) {
+              console.log('Playing walk animation');
+              const walkAnimation = mixer.clipAction(animations[0]);
+              walkAnimation.reset();
+              walkAnimation.setLoop(THREE.LoopRepeat);
+              walkAnimation.timeScale = 1.0;
+              walkAnimation.play();
+              mixer.update(clock.getDelta());
+            } else {
+              console.log('No animations available for walking:', {
+                mixer: !!mixer,
+                animations: animations ? animations.length : 0
+              });
+            }
+          } else if (elapsedTime < 6.0) {
             // Поворот направо
             currentModel = 'right';
             model.visible = false;
@@ -814,7 +846,7 @@
                 }
                 mixerRight.update(clock.getDelta());
             }
-          } else if (elapsedTime < 9.5) {
+          } else if (elapsedTime < 7.125) {
             // Говорение
             currentModel = 'tell';
             model.visible = false;
@@ -826,10 +858,10 @@
             
             if (mixer2) {
                 const tellAnimation = mixer2.clipAction(animations[0]);
-                tellAnimation.timeScale = 8.0;
+                tellAnimation.timeScale = 6.0;
                 mixer2.update(clock.getDelta());
             }
-          } else if (elapsedTime < 10.5) {
+          } else if (elapsedTime < 7.875) {
             // Поворот налево
             currentModel = 'left';
             model.visible = false;
@@ -845,7 +877,7 @@
                     leftAnimation.reset();
                     leftAnimation.setLoop(THREE.LoopOnce);
                     leftAnimation.clampWhenFinished = true;
-                    leftAnimation.timeScale = 3.0;
+                    leftAnimation.timeScale = 2.25;
                     leftAnimation.play();
                 }
                 mixerLeft.update(clock.getDelta());
