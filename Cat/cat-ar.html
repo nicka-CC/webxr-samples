@@ -700,7 +700,7 @@
                 leftAnimation.reset();
                 leftAnimation.setLoop(THREE.LoopOnce);
                 leftAnimation.clampWhenFinished = true;
-                leftAnimation.timeScale = 10.0;
+                leftAnimation.timeScale = 13.0;
                 leftAnimation.play();
               }
               mixerLeft.update(clock.getDelta());
@@ -720,7 +720,7 @@
               if (!tellAnimation.isRunning()) {
                 tellAnimation.reset();  // Сбрасываем анимацию
                 tellAnimation.setLoop(THREE.LoopRepeat);  // Устанавливаем повторение
-                tellAnimation.timeScale = 32.0;  // Устанавливаем скорость
+                tellAnimation.timeScale = 128.0;  // Устанавливаем скорость
                 tellAnimation.play();  // Запускаем заново
               }
               mixer2.update(clock.getDelta());
@@ -734,11 +734,11 @@
             }
           } else if (elapsedTime < 19.0) {
             // Поворот направо
-            currentModel = 'right';
+            currentModel = 'left';
             model.visible = false;
             model2.visible = false;
-            modelLeft.visible = false;
-            modelRight.visible = true;
+            modelLeft.visible = true;
+            modelRight.visible = false;
             modelRight.position.copy(model2.position);
             modelRight.rotation.y = 0;
 
