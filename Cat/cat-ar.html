@@ -720,7 +720,7 @@
               if (!tellAnimation.isRunning()) {
                 tellAnimation.reset();  // Сбрасываем анимацию
                 tellAnimation.setLoop(THREE.LoopRepeat);  // Устанавливаем повторение
-                tellAnimation.timeScale = 64.0;  // Устанавливаем скорость
+                tellAnimation.timeScale = 80.0;  // Устанавливаем скорость
                 tellAnimation.play();  // Запускаем заново
               }
               mixer2.update(clock.getDelta());
@@ -734,25 +734,24 @@
             }
           } else if (elapsedTime < 19.0) {
             // Поворот направо
-            currentModel = 'left';
+            currentModel = 'right';
             model.visible = false;
             model2.visible = false;
-            modelLeft.visible = true;
-            modelRight.visible = false;
+            modelLeft.visible = false;
+            modelRight.visible = true;
             modelRight.position.copy(model2.position);
             modelRight.rotation.y = 0;
 
-
-            if (mixerLeft && animationsLeft.length > 0) {
-              const leftAnimation = mixerLeft.clipAction(animationsLeft[0]);
-              if (!leftAnimation.isRunning()) {
-                leftAnimation.reset();
-                leftAnimation.setLoop(THREE.LoopOnce);
-                leftAnimation.clampWhenFinished = true;
-                leftAnimation.timeScale = 12.0;
-                leftAnimation.play();
+            if (mixerRight && animationsRight.length > 0) {
+              const rightAnimation = mixerRight.clipAction(animationsRight[0]);
+              if (!rightAnimation.isRunning()) {
+                rightAnimation.reset();
+                rightAnimation.setLoop(THREE.LoopOnce);
+                rightAnimation.clampWhenFinished = true;
+                rightAnimation.timeScale = 10.0;
+                rightAnimation.play();
               }
-              mixerLeft.update(clock.getDelta());
+              mixerRight.update(clock.getDelta());
             }
           } else if (elapsedTime < 21.0) {
             // Движение вправо
