@@ -89,7 +89,6 @@
       scene = new THREE.Scene();
       scene.background = new THREE.Color(0x000000);
 
-      // Получаем координаты устройства
       if ("geolocation" in navigator) {
         navigator.geolocation.getCurrentPosition(function(position) {
           // Обновляем информацию на экране
@@ -179,7 +178,6 @@
         orientation: window.screen.orientation ? window.screen.orientation.type : 'unknown',
         geolocation: 'available' in navigator.geolocation ? 'available' : 'not available'
       });
-
       // Создаем аудио элемент
       audioElement = new Audio('./hhhh.mp3');
       audioElement.loop = false;
@@ -188,6 +186,7 @@
       // Создаем камеру
       camera = new THREE.PerspectiveCamera(90, window.innerWidth / window.innerHeight, 0.01, 20);
       camera.position.set(0, 0, 3);
+
 
       // Выводим начальные координаты камеры
       console.log('Initial Camera Position:', {
@@ -215,7 +214,6 @@
           });
         }
       });
-
       // Создаем рендерер
       renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
       renderer.setPixelRatio(window.devicePixelRatio);
@@ -242,7 +240,7 @@
       const infoDiv = document.createElement('div');
       infoDiv.id = 'info';
       infoDiv.innerHTML = `
-        <h3>AR Котики</h3>
+         <h3>AR Котики</h3>
         <p>Статус: <span id="status">Загрузка...</span></p>
         <p>Анимации: <span id="animations">Проверка...</span></p>
         <p>AR статус: <span id="ar-status">Ожидание...</span></p>
@@ -266,7 +264,6 @@
       `;
       document.body.appendChild(infoDiv);
 
-      // Добавляем функцию определения браузера
       function getBrowserInfo() {
         const ua = navigator.userAgent;
         let browserName;
@@ -414,7 +411,7 @@
                   startTime = Date.now();
                   clock.start();
 
-                  // Получаем информацию об устройстве
+                  // Запрашиваем hit test source
                   const session = renderer.xr.getSession();
                   if (session) {
                     console.log('XR Device Info:', {
@@ -424,8 +421,6 @@
                       renderState: session.renderState
                     });
                   }
-
-                  // Запрашиваем hit test source
                   session.requestReferenceSpace('viewer').then((referenceSpace) => {
                     session.requestHitTestSource({ space: referenceSpace }).then((source) => {
                       hitTestSource = source;
@@ -660,36 +655,6 @@
       renderer.setAnimationLoop(function() {
         const currentTime = Date.now();
         const elapsedTime = (currentTime - startTime) / 1000;
-
-        // Выводим информацию о текущей модели
-        if (model && renderer.xr.isPresenting) {
-          const session = renderer.xr.getSession();
-          if (session) {
-            // Получаем информацию об устройстве
-            const deviceInfo = {
-              device: session.inputSources[0]?.handedness || 'unknown',
-              position: model.position,
-              rotation: model.rotation,
-              scale: model.scale
-            };
-
-            // Выводим в консоль каждую секунду
-            if (Math.floor(elapsedTime) !== Math.floor(elapsedTime - clock.getDelta())) {
-              console.log('Device Info:', deviceInfo);
-              console.log('Current Model:', currentModel);
-              console.log('Model Position:', {
-                x: model.position.x.toFixed(2),
-                y: model.position.y.toFixed(2),
-                z: model.position.z.toFixed(2)
-              });
-              console.log('Model Rotation:', {
-                x: (model.rotation.x * (180/Math.PI)).toFixed(2) + '°',
-                y: (model.rotation.y * (180/Math.PI)).toFixed(2) + '°',
-                z: (model.rotation.z * (180/Math.PI)).toFixed(2) + '°'
-              });
-            }
-          }
-        }
 
         // Обновляем анимации
         if (mixer) {
