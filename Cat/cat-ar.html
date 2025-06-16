@@ -391,6 +391,7 @@
                 if (animations && animations.length > 0) {
                   document.getElementById('animations').textContent = `Найдено: ${animations.length}`;
                   document.getElementById('status').textContent = 'Готово';
+                  console.log('Animations loaded:', animations.length);
 
                   // Запускаем первую анимацию
                   currentAnimation = mixer.clipAction(animations[0]);
@@ -400,6 +401,7 @@
                 } else {
                   document.getElementById('animations').textContent = 'Не найдено';
                   document.getElementById('status').textContent = 'Нет анимаций';
+                  console.log('No animations found in the model');
                 }
 
                 // Инициализируем обработчики тач-событий
@@ -721,15 +723,19 @@
             model.rotation.y = Math.PI / 2 + Math.PI;
             model.position.x -= moveSpeed;
             
-            if (mixer && animations.length > 0) {
+            if (mixer && animations && animations.length > 0) {
+              console.log('Playing walk animation');
               const walkAnimation = mixer.clipAction(animations[0]);
-              if (!walkAnimation.isRunning()) {
-                walkAnimation.reset();
-                walkAnimation.setLoop(THREE.LoopRepeat);
-                walkAnimation.timeScale = 1.0;
-                walkAnimation.play();
-              }
+              walkAnimation.reset();
+              walkAnimation.setLoop(THREE.LoopRepeat);
+              walkAnimation.timeScale = 1.0;
+              walkAnimation.play();
               mixer.update(clock.getDelta());
+            } else {
+              console.log('No animations available for walking:', {
+                mixer: !!mixer,
+                animations: animations ? animations.length : 0
+              });
             }
           } else if (elapsedTime < 1.875) {
             // Поворот налево
@@ -805,15 +811,19 @@
             model.rotation.y = -Math.PI / 2 + Math.PI;
             model.position.x += moveSpeed;
             
-            if (mixer && animations.length > 0) {
+            if (mixer && animations && animations.length > 0) {
+              console.log('Playing walk animation');
               const walkAnimation = mixer.clipAction(animations[0]);
-              if (!walkAnimation.isRunning()) {
-                walkAnimation.reset();
-                walkAnimation.setLoop(THREE.LoopRepeat);
-                walkAnimation.timeScale = 1.0;
-                walkAnimation.play();
-              }
+              walkAnimation.reset();
+              walkAnimation.setLoop(THREE.LoopRepeat);
+              walkAnimation.timeScale = 1.0;
+              walkAnimation.play();
               mixer.update(clock.getDelta());
+            } else {
+              console.log('No animations available for walking:', {
+                mixer: !!mixer,
+                animations: animations ? animations.length : 0
+              });
             }
           } else if (elapsedTime < 6.0) {
             // Поворот направо
