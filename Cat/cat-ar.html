@@ -579,7 +579,6 @@
               }
       );
 
-      // Загрузка модели поворота направо
       loader.load(
               './right.glb',
               function (gltf) {
@@ -744,7 +743,7 @@
                 rightAnimation.reset();
                 rightAnimation.setLoop(THREE.LoopOnce);
                 rightAnimation.clampWhenFinished = true;
-                rightAnimation.timeScale = 3.0;
+                rightAnimation.timeScale = 6.0;
                 rightAnimation.play();
               }
               mixerRight.update(clock.getDelta());
@@ -774,7 +773,7 @@
                 rightAnimation.reset();
                 rightAnimation.setLoop(THREE.LoopOnce);
                 rightAnimation.clampWhenFinished = true;
-                rightAnimation.timeScale = 3.0;
+                rightAnimation.timeScale = 6.0;
                 rightAnimation.play();
               }
               mixerRight.update(clock.getDelta());
