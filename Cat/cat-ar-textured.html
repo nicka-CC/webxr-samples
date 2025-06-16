@@ -63,16 +63,18 @@
     import { ARButton } from 'three/addons/webxr/ARButton.js';
 
     let camera, scene, renderer;
-    let model, model2, mixer, mixer2;
+    let model, model2, modelLeft, modelRight, mixer, mixer2, mixerLeft, mixerRight;
     let clock = new THREE.Clock();
     let currentAnimation = null;
     let animations = [];
+    let animationsLeft = [];
+    let animationsRight = [];
     let hitTestSource = null;
     let hitTestSourceRequested = false;
     let isRotating = false;
     let lastHitPosition = null;
     let rotationSpeed = 15;
-    let moveSpeed = 0.2;
+    let moveSpeed = 0.15;
     let startTime = 0;
     let audioElement = null;
     let lookAtViewerTime = 0;
@@ -87,6 +89,95 @@
       scene = new THREE.Scene();
       scene.background = new THREE.Color(0x000000);
 
+      if ("geolocation" in navigator) {
+        navigator.geolocation.getCurrentPosition(function(position) {
+          // Обновляем информацию на экране
+          document.getElementById('latitude').textContent = position.coords.latitude.toFixed(6);
+          document.getElementById('longitude').textContent = position.coords.longitude.toFixed(6);
+          document.getElementById('accuracy').textContent = position.coords.accuracy.toFixed(2) + ' м';
+          document.getElementById('altitude').textContent = position.coords.altitude ?
+                  position.coords.altitude.toFixed(2) + ' м' : 'недоступно';
+          document.getElementById('speed').textContent = position.coords.speed ?
+                  position.coords.speed.toFixed(2) + ' м/с' : 'недоступно';
+
+          // Выводим в консоль
+          console.log('Device Coordinates:', {
+            latitude: position.coords.latitude.toFixed(6),
+            longitude: position.coords.longitude.toFixed(6),
+            accuracy: position.coords.accuracy.toFixed(2) + ' meters',
+            altitude: position.coords.altitude ? position.coords.altitude.toFixed(2) + ' meters' : 'not available',
+            speed: position.coords.speed ? position.coords.speed.toFixed(2) + ' m/s' : 'not available'
+          });
+        }, function(error) {
+          console.error('Error getting location:', error.message);
+          // Обновляем информацию об ошибке на экране
+          document.getElementById('latitude').textContent = 'ошибка';
+          document.getElementById('longitude').textContent = 'ошибка';
+          document.getElementById('accuracy').textContent = 'ошибка';
+          document.getElementById('altitude').textContent = 'ошибка';
+          document.getElementById('speed').textContent = 'ошибка';
+        }, {
+          enableHighAccuracy: true,
+          timeout: 5000,
+          maximumAge: 0
+        });
+
+        // Следим за изменением координат
+        navigator.geolocation.watchPosition(function(position) {
+          // Обновляем информацию на экране
+          document.getElementById('latitude').textContent = position.coords.latitude.toFixed(6);
+          document.getElementById('longitude').textContent = position.coords.longitude.toFixed(6);
+          document.getElementById('accuracy').textContent = position.coords.accuracy.toFixed(2) + ' м';
+          document.getElementById('altitude').textContent = position.coords.altitude ?
+                  position.coords.altitude.toFixed(2) + ' м' : 'недоступно';
+          document.getElementById('speed').textContent = position.coords.speed ?
+                  position.coords.speed.toFixed(2) + ' м/с' : 'недоступно';
+
+          // Выводим в консоль
+          console.log('Updated Coordinates:', {
+            latitude: position.coords.latitude.toFixed(6),
+            longitude: position.coords.longitude.toFixed(6),
+            accuracy: position.coords.accuracy.toFixed(2) + ' meters',
+            altitude: position.coords.altitude ? position.coords.altitude.toFixed(2) + ' meters' : 'not available',
+            speed: position.coords.speed ? position.coords.speed.toFixed(2) + ' m/s' : 'not available'
+          });
+        }, function(error) {
+          console.error('Error watching location:', error.message);
+          // Обновляем информацию об ошибке на экране
+          document.getElementById('latitude').textContent = 'ошибка';
+          document.getElementById('longitude').textContent = 'ошибка';
+          document.getElementById('accuracy').textContent = 'ошибка';
+          document.getElementById('altitude').textContent = 'ошибка';
+          document.getElementById('speed').textContent = 'ошибка';
+        }, {
+          enableHighAccuracy: true,
+          timeout: 5000,
+          maximumAge: 0
+        });
+      } else {
+        console.log('Geolocation is not supported by this browser.');
+        // Обновляем информацию на экране
+        document.getElementById('latitude').textContent = 'не поддерживается';
+        document.getElementById('longitude').textContent = 'не поддерживается';
+        document.getElementById('accuracy').textContent = 'не поддерживается';
+        document.getElementById('altitude').textContent = 'не поддерживается';
+        document.getElementById('speed').textContent = 'не поддерживается';
+      }
+
+      // Выводим информацию об устройстве
+      console.log('Device Info:', {
+        userAgent: navigator.userAgent,
+        platform: navigator.platform,
+        vendor: navigator.vendor,
+        language: navigator.language,
+        screenSize: {
+          width: window.innerWidth,
+          height: window.innerHeight
+        },
+        devicePixelRatio: window.devicePixelRatio,
+        orientation: window.screen.orientation ? window.screen.orientation.type : 'unknown',
+        geolocation: 'available' in navigator.geolocation ? 'available' : 'not available'
+      });
       // Создаем аудио элемент
       audioElement = new Audio('./hhhh.mp3');
       audioElement.loop = false;
@@ -96,6 +187,33 @@
       camera = new THREE.PerspectiveCamera(90, window.innerWidth / window.innerHeight, 0.01, 20);
       camera.position.set(0, 0, 3);
 
+
+      // Выводим начальные координаты камеры
+      console.log('Initial Camera Position:', {
+        x: camera.position.x.toFixed(2),
+        y: camera.position.y.toFixed(2),
+        z: camera.position.z.toFixed(2)
+      });
+
+      // Добавляем обработчик изменения ориентации устройства
+      window.addEventListener('deviceorientation', function(event) {
+        console.log('Device Orientation:', {
+          alpha: event.alpha ? event.alpha.toFixed(2) + '°' : 'not available',
+          beta: event.beta ? event.beta.toFixed(2) + '°' : 'not available',
+          gamma: event.gamma ? event.gamma.toFixed(2) + '°' : 'not available'
+        });
+      });
+
+      // Добавляем обработчик изменения положения устройства
+      window.addEventListener('devicemotion', function(event) {
+        if (event.acceleration) {
+          console.log('Device Motion:', {
+            x: event.acceleration.x ? event.acceleration.x.toFixed(2) + ' m/s²' : 'not available',
+            y: event.acceleration.y ? event.acceleration.y.toFixed(2) + ' m/s²' : 'not available',
+            z: event.acceleration.z ? event.acceleration.z.toFixed(2) + ' m/s²' : 'not available'
+          });
+        }
+      });
       // Создаем рендерер
       renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
       renderer.setPixelRatio(window.devicePixelRatio);
@@ -122,15 +240,116 @@
       const infoDiv = document.createElement('div');
       infoDiv.id = 'info';
       infoDiv.innerHTML = `
-        <h3>AR Котики</h3>
+         <h3>AR Котики</h3>
         <p>Статус: <span id="status">Загрузка...</span></p>
         <p>Анимации: <span id="animations">Проверка...</span></p>
         <p>AR статус: <span id="ar-status">Ожидание...</span></p>
+        <p>Информация об устройстве:</p>
+        <p>Платформа: <span id="platform">-</span></p>
+        <p>Браузер: <span id="browser">-</span></p>
+        <p>Версия: <span id="version">-</span></p>
+        <p>Мобильное: <span id="is-mobile">-</span></p>
+        <p>GPU: <span id="gpu">-</span></p>
+        <p>Производитель: <span id="vendor">-</span></p>
+        <p>Модель: <span id="model">-</span></p>
+        <p>Координаты:</p>
+        <p>Широта: <span id="latitude">-</span></p>
+        <p>Долгота: <span id="longitude">-</span></p>
+        <p>Точность: <span id="accuracy">-</span></p>
+        <p>Высота: <span id="altitude">-</span></p>
+        <p>Скорость: <span id="speed">-</span></p>
         <p>Управление:</p>
         <p>- Перетаскивание: Вращение</p>
         <p>- Двойной тап: Пауза/Воспроизведение</p>
       `;
       document.body.appendChild(infoDiv);
+
+      function getBrowserInfo() {
+        const ua = navigator.userAgent;
+        let browserName;
+        let browserVersion;
+
+        if (ua.includes('Chrome')) {
+          browserName = 'Chrome';
+          browserVersion = ua.match(/Chrome\/(\d+\.\d+\.\d+\.\d+)/)[1];
+        } else if (ua.includes('Firefox')) {
+          browserName = 'Firefox';
+          browserVersion = ua.match(/Firefox\/(\d+\.\d+)/)[1];
+        } else if (ua.includes('Safari')) {
+          browserName = 'Safari';
+          browserVersion = ua.match(/Version\/(\d+\.\d+\.\d+)/)[1];
+        } else if (ua.includes('Edge')) {
+          browserName = 'Edge';
+          browserVersion = ua.match(/Edge\/(\d+\.\d+\.\d+\.\d+)/)[1];
+        } else {
+          browserName = 'Неизвестный';
+          browserVersion = 'Неизвестная';
+        }
+
+        return { browserName, browserVersion };
+      }
+
+      // Добавляем функцию получения информации об устройстве через WebGL
+      function getDeviceInfo() {
+        const canvas = document.createElement('canvas');
+        const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+
+        if (!gl) {
+          return {
+            renderer: 'WebGL не поддерживается',
+            vendor: 'Неизвестно',
+            model: 'Неизвестно'
+          };
+        }
+
+        const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
+        if (!debugInfo) {
+          return {
+            renderer: 'Информация недоступна',
+            vendor: 'Неизвестно',
+            model: 'Неизвестно'
+          };
+        }
+
+        const renderer = gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL);
+        const vendor = gl.getParameter(debugInfo.UNMASKED_VENDOR_WEBGL);
+
+        // Определяем модель устройства на основе информации о GPU
+        let model = 'Неизвестно';
+        if (renderer.includes('Adreno')) {
+          // Qualcomm GPU
+          if (renderer.includes('Adreno 650')) model = 'Snapdragon 865/870';
+          else if (renderer.includes('Adreno 660')) model = 'Snapdragon 888';
+          else if (renderer.includes('Adreno 730')) model = 'Snapdragon 8 Gen 1';
+          else if (renderer.includes('Adreno 740')) model = 'Snapdragon 8 Gen 2';
+        } else if (renderer.includes('Mali')) {
+          // ARM GPU
+          if (renderer.includes('Mali-G78')) model = 'Exynos 2100';
+          else if (renderer.includes('Mali-G710')) model = 'Dimensity 9000';
+        } else if (renderer.includes('Apple')) {
+          // Apple GPU
+          if (renderer.includes('Apple A15')) model = 'iPhone 13/14';
+          else if (renderer.includes('Apple A16')) model = 'iPhone 14 Pro';
+          else if (renderer.includes('Apple A17')) model = 'iPhone 15 Pro';
+        }
+
+        return {
+          renderer: renderer,
+          vendor: vendor,
+          model: model
+        };
+      }
+
+      // После создания infoDiv добавляем:
+      const browserInfo = getBrowserInfo();
+      const deviceInfo = getDeviceInfo();
+      document.getElementById('platform').textContent = navigator.platform;
+      document.getElementById('browser').textContent = browserInfo.browserName;
+      document.getElementById('version').textContent = browserInfo.browserVersion;
+      document.getElementById('is-mobile').textContent = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ? 'Да' : 'Нет';
+      document.getElementById('gpu').textContent = deviceInfo.renderer;
+      document.getElementById('vendor').textContent = deviceInfo.vendor;
+      document.getElementById('model').textContent = deviceInfo.model;
 
       // Загружаем модель
       const loader = new GLTFLoader();
@@ -194,6 +413,14 @@
 
                   // Запрашиваем hit test source
                   const session = renderer.xr.getSession();
+                  if (session) {
+                    console.log('XR Device Info:', {
+                      device: session.inputSources[0]?.handedness || 'unknown',
+                      sessionMode: session.mode,
+                      enabledFeatures: session.enabledFeatures,
+                      renderState: session.renderState
+                    });
+                  }
                   session.requestReferenceSpace('viewer').then((referenceSpace) => {
                     session.requestHitTestSource({ space: referenceSpace }).then((source) => {
                       hitTestSource = source;
@@ -315,7 +542,69 @@
                   const tellAnimation = mixer2.clipAction(gltf.animations[0]);
                   tellAnimation.setLoop(THREE.LoopRepeat);
                   tellAnimation.clampWhenFinished = false;
+                  tellAnimation.timeScale = 32.0;
                   tellAnimation.play();
+                }
+              }
+      );
+
+      // Загрузка модели поворота налево
+      loader.load(
+              './left.glb',
+              function (gltf) {
+                modelLeft = gltf.scene;
+                modelLeft.scale.set(2.5, 2.5, 2.5);
+                modelLeft.position.set(0, -10, -16);
+                modelLeft.visible = false;
+
+                modelLeft.traverse((child) => {
+                  if (child.isMesh && child.material) {
+                    const material = child.material;
+                    material.roughness = 1.0;
+                    material.metalness = 0.0;
+                    material.envMapIntensity = 0.0;
+                    material.needsUpdate = true;
+                    child.castShadow = true;
+                    child.receiveShadow = true;
+                  }
+                });
+
+                scene.add(modelLeft);
+
+                mixerLeft = new THREE.AnimationMixer(modelLeft);
+                if (gltf.animations && gltf.animations.length > 0) {
+                  animationsLeft = gltf.animations;
+                  console.log('Left animations loaded:', animationsLeft.length);
+                }
+              }
+      );
+
+      loader.load(
+              './right.glb',
+              function (gltf) {
+                modelRight = gltf.scene;
+                modelRight.scale.set(2.5, 2.5, 2.5);
+                modelRight.position.set(0, -10, -16);
+                modelRight.visible = false;
+
+                modelRight.traverse((child) => {
+                  if (child.isMesh && child.material) {
+                    const material = child.material;
+                    material.roughness = 1.0;
+                    material.metalness = 0.0;
+                    material.envMapIntensity = 0.0;
+                    material.needsUpdate = true;
+                    child.castShadow = true;
+                    child.receiveShadow = true;
+                  }
+                });
+
+                scene.add(modelRight);
+
+                mixerRight = new THREE.AnimationMixer(modelRight);
+                if (gltf.animations && gltf.animations.length > 0) {
+                  animationsRight = gltf.animations;
+                  console.log('Right animations loaded:', animationsRight.length);
                 }
               }
       );
@@ -375,25 +664,60 @@
           const delta = clock.getDelta();
           mixer2.update(delta);
         }
+        if (mixerLeft) {
+          const delta = clock.getDelta();
+          mixerLeft.update(delta);
+        }
+        if (mixerRight) {
+          const delta = clock.getDelta();
+          mixerRight.update(delta);
+        }
 
         // Двигаем модель в AR режиме
-        if (model && model2 && renderer.xr.isPresenting) {
+        if (model && model2 && modelLeft && modelRight && renderer.xr.isPresenting) {
           if (elapsedTime < 1.5) {
             // Движение влево
             currentModel = 'walk';
             model.visible = true;
             model2.visible = false;
+            modelLeft.visible = false;
+            modelRight.visible = false;
             model.rotation.y = Math.PI / 2 + Math.PI;
             model.position.x -= moveSpeed;
-          } else if (elapsedTime < 3.5) {
-            // Пауза и поворот к зрителю
+          } else if (elapsedTime < 2.5) {
+            // Поворот налево
+            currentModel = 'left';
+            model.visible = false;
+            model2.visible = false;
+            modelLeft.visible = true;
+            modelRight.visible = false;
+            modelLeft.position.copy(model.position);
+            modelLeft.rotation.y = model.rotation.y;
+
+            if (mixerLeft && animationsLeft.length > 0) {
+              const leftAnimation = mixerLeft.clipAction(animationsLeft[0]);
+              if (!leftAnimation.isRunning()) {
+                leftAnimation.reset();
+                leftAnimation.setLoop(THREE.LoopOnce);
+                leftAnimation.clampWhenFinished = true;
+                leftAnimation.timeScale = 6.0;
+                leftAnimation.play();
+              }
+              mixerLeft.update(clock.getDelta());
+            }
+          } else if (elapsedTime < 7.0) {
+            // Говорение
             currentModel = 'tell';
             model.visible = false;
             model2.visible = true;
+            modelLeft.visible = false;
+            modelRight.visible = false;
+            model2.position.copy(modelLeft.position);
             model2.rotation.y = 0;
-            model2.position.copy(model.position);
 
             if (mixer2) {
+              const tellAnimation = mixer2.clipAction(animations[0]);
+              tellAnimation.timeScale = 32.0;
               mixer2.update(clock.getDelta());
             }
 
@@ -403,23 +727,92 @@
                 console.error('Ошибка воспроизведения звука:', error);
               });
             }
-          } else if (elapsedTime < 5) {
+          } else if (elapsedTime < 8.5) {
+            // Поворот направо
+            currentModel = 'right';
+            model.visible = false;
+            model2.visible = false;
+            modelLeft.visible = false;
+            modelRight.visible = true;
+            modelRight.position.copy(model2.position);
+            modelRight.rotation.y = 0;
+
+            if (mixerRight && animationsRight.length > 0) {
+              const rightAnimation = mixerRight.clipAction(animationsRight[0]);
+              if (!rightAnimation.isRunning()) {
+                rightAnimation.reset();
+                rightAnimation.setLoop(THREE.LoopOnce);
+                rightAnimation.clampWhenFinished = true;
+                rightAnimation.timeScale = 10.0;
+                rightAnimation.play();
+              }
+              mixerRight.update(clock.getDelta());
+            }
+          } else if (elapsedTime < 10.0) {
             // Движение вправо
             currentModel = 'walk';
             model.visible = true;
             model2.visible = false;
+            modelLeft.visible = false;
+            modelRight.visible = false;
             model.rotation.y = -Math.PI / 2 + Math.PI;
             model.position.x += moveSpeed;
-          } else if (elapsedTime < 7) {
-            // Пауза и поворот к зрителю
+          } else if (elapsedTime < 11.0) {
+            // Поворот направо
+            currentModel = 'right';
+            model.visible = false;
+            model2.visible = false;
+            modelLeft.visible = false;
+            modelRight.visible = true;
+            modelRight.position.copy(model.position);
+            modelRight.rotation.y = model.rotation.y;
+
+            if (mixerRight && animationsRight.length > 0) {
+              const rightAnimation = mixerRight.clipAction(animationsRight[0]);
+              if (!rightAnimation.isRunning()) {
+                rightAnimation.reset();
+                rightAnimation.setLoop(THREE.LoopOnce);
+                rightAnimation.clampWhenFinished = true;
+                rightAnimation.timeScale = 10.0;
+                rightAnimation.play();
+              }
+              mixerRight.update(clock.getDelta());
+            }
+          } else if (elapsedTime < 12.5) {
+            // Говорение
             currentModel = 'tell';
             model.visible = false;
             model2.visible = true;
+            modelLeft.visible = false;
+            modelRight.visible = false;
+            model2.position.copy(modelRight.position);
             model2.rotation.y = 0;
-            model2.position.copy(model.position);
 
             if (mixer2) {
+              const tellAnimation = mixer2.clipAction(animations[0]);
+              tellAnimation.timeScale = 32.0;
               mixer2.update(clock.getDelta());
+            }
+          } else if (elapsedTime < 13.5) {
+            // Поворот налево
+            currentModel = 'left';
+            model.visible = false;
+            model2.visible = false;
+            modelLeft.visible = true;
+            modelRight.visible = false;
+            modelLeft.position.copy(model2.position);
+            modelLeft.rotation.y = 0;
+
+            if (mixerLeft && animationsLeft.length > 0) {
+              const leftAnimation = mixerLeft.clipAction(animationsLeft[0]);
+              if (!leftAnimation.isRunning()) {
+                leftAnimation.reset();
+                leftAnimation.setLoop(THREE.LoopOnce);
+                leftAnimation.clampWhenFinished = true;
+                leftAnimation.timeScale = 6.0;
+                leftAnimation.play();
+              }
+              mixerLeft.update(clock.getDelta());
             }
           } else {
             startTime = Date.now();

@@ -793,6 +793,7 @@
               tellAnimation.timeScale = 32.0;
               mixer2.update(clock.getDelta());
             }
+            // ... existing code ...
           } else if (elapsedTime < 13.5) {
             // Поворот налево
             currentModel = 'left';
@@ -809,10 +810,116 @@
                 leftAnimation.reset();
                 leftAnimation.setLoop(THREE.LoopOnce);
                 leftAnimation.clampWhenFinished = true;
-                leftAnimation.timeScale = 6.0;
+                leftAnimation.timeScale = 2.25;
                 leftAnimation.play();
               }
               mixerLeft.update(clock.getDelta());
+            }
+          } else if (elapsedTime < 17.5) {  // +4 секунды
+            // Движение по диагонали вдаль
+            currentModel = 'walk';
+            model.visible = true;
+            model2.visible = false;
+            modelLeft.visible = false;
+            modelRight.visible = false;
+            model.rotation.y = Math.PI / 4;  // 45 градусов
+            model.position.x += moveSpeed * 0.7;  // Движение по X
+            model.position.z -= moveSpeed * 0.7;  // Движение по Z
+
+            if (mixer && animations && animations.length > 0) {
+              const walkAnimation = mixer.clipAction(animations[0]);
+              if (!walkAnimation.isRunning()) {
+                walkAnimation.reset();
+                walkAnimation.setLoop(THREE.LoopRepeat);
+                walkAnimation.timeScale = 1.0;
+                walkAnimation.play();
+              }
+              mixer.update(clock.getDelta());
+            }
+          } else if (elapsedTime < 18.5) {  // +1 секунда
+            // Поворот к зрителю черезлево
+            currentModel = 'left';
+            model.visible = false;
+            model2.visible = false;
+            modelLeft.visible = true;
+            modelRight.visible = false;
+            modelLeft.position.copy(model.position);
+            modelLeft.rotation.y = model.rotation.y;
+
+            if (mixerLeft && animationsLeft.length > 0) {
+              const leftAnimation = mixerLeft.clipAction(animationsLeft[0]);
+              if (!leftAnimation.isRunning()) {
+                leftAnimation.reset();
+                leftAnimation.setLoop(THREE.LoopOnce);
+                leftAnimation.clampWhenFinished = true;
+                leftAnimation.timeScale = 2.25;
+                leftAnimation.play();
+              }
+              mixerLeft.update(clock.getDelta());
+            }
+          } else if (elapsedTime < 48.5) {  // +30 секунд
+            // Говорение
+            currentModel = 'tell';
+            model.visible = false;
+            model2.visible = true;
+            modelLeft.visible = false;
+            modelRight.visible = false;
+            model2.position.copy(modelLeft.position);
+            model2.rotation.y = 0;
+
+            if (mixer2) {
+              const tellAnimation = mixer2.clipAction(animations[0]);
+              tellAnimation.timeScale = 16.0;
+              mixer2.update(clock.getDelta());
+            }
+
+            if (audioElement && audioElement.paused) {
+              audioElement.currentTime = 0;
+              audioElement.play().catch(error => {
+                console.error('Ошибка воспроизведения звука:', error);
+              });
+            }
+          } else if (elapsedTime < 50.5) {  // +2 секунды
+            // Движение прямо на зрителя
+            currentModel = 'walk';
+            model.visible = true;
+            model2.visible = false;
+            modelLeft.visible = false;
+            modelRight.visible = false;
+            model.rotation.y = Math.PI;  // Поворот к зрителю
+            model.position.z += moveSpeed;  // Движение по Z
+
+            if (mixer && animations && animations.length > 0) {
+              const walkAnimation = mixer.clipAction(animations[0]);
+              if (!walkAnimation.isRunning()) {
+                walkAnimation.reset();
+                walkAnimation.setLoop(THREE.LoopRepeat);
+                walkAnimation.timeScale = 1.0;
+                walkAnimation.play();
+              }
+              mixer.update(clock.getDelta());
+            }
+          } else if (elapsedTime < 170.5) {  // +120 секунд (2 минуты)
+            // Финальное говорение
+            currentModel = 'tell';
+            model.visible = false;
+            model2.visible = true;
+            modelLeft.visible = false;
+            modelRight.visible = false;
+            model2.position.copy(model.position);
+            model2.rotation.y = 0;
+
+            if (mixer2) {
+              const tellAnimation = mixer2.clipAction(animations[0]);
+              tellAnimation.timeScale = 16.0;
+              mixer2.update(clock.getDelta());
+            }
+
+            if (audioElement && audioElement.paused) {
+              audioElement.currentTime = 0;
+              audioElement.play().catch(error => {
+                console.error('Ошибка воспроизведения звука:', error);
+              });
             }
           } else {
             startTime = Date.now();
