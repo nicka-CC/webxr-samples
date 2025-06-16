@@ -542,7 +542,7 @@
                   const tellAnimation = mixer2.clipAction(gltf.animations[0]);
                   tellAnimation.setLoop(THREE.LoopRepeat);
                   tellAnimation.clampWhenFinished = false;
-                  tellAnimation.timeScale = 2.0;
+                  tellAnimation.timeScale = 4.0;
                   tellAnimation.play();
                 }
               }
@@ -718,7 +718,7 @@
 
             if (mixer2) {
               const tellAnimation = mixer2.clipAction(animations[0]);
-              tellAnimation.timeScale = 8.0;
+              tellAnimation.timeScale = 16.0;
               mixer2.update(clock.getDelta());
             }
 
@@ -791,7 +791,7 @@
 
             if (mixer2) {
               const tellAnimation = mixer2.clipAction(animations[0]);
-              tellAnimation.timeScale = 8.0;
+              tellAnimation.timeScale = 16.0;
               mixer2.update(clock.getDelta());
             }
           } else if (elapsedTime < 10.5) {
