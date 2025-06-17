@@ -80,6 +80,7 @@
     let lookAtViewerTime = 0;
     let movementState = 'moving';
     let currentModel = 'walk';
+    let animations2 = [];
 
     init();
     animate();
@@ -539,10 +540,11 @@
 
                 mixer2 = new THREE.AnimationMixer(model2);
                 if (gltf.animations && gltf.animations.length > 0) {
-                  const tellAnimation = mixer2.clipAction(gltf.animations[0]);
+                  animations2 = gltf.animations;
+                  const tellAnimation = mixer2.clipAction(animations2[0]);
                   tellAnimation.setLoop(THREE.LoopRepeat);
                   tellAnimation.clampWhenFinished = false;
-                  tellAnimation.timeScale = 32.0;
+                  tellAnimation.timeScale = 64.0;
                   tellAnimation.play();
                 }
               }
@@ -716,7 +718,7 @@
             model2.rotation.y = 0;
 
             if (mixer2) {
-              const tellAnimation = mixer2.clipAction(animations[0]);
+              const tellAnimation = mixer2.clipAction(animations2[0]);
               if (!tellAnimation.isRunning()) {
                 tellAnimation.reset();  // Сбрасываем анимацию
                 tellAnimation.setLoop(THREE.LoopRepeat);  // Устанавливаем повторение
