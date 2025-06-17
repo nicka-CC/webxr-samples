@@ -180,7 +180,7 @@
         geolocation: 'available' in navigator.geolocation ? 'available' : 'not available'
       });
       // Создаем аудио элемент
-      audioElement = new Audio('./hhhh.mp3');
+      audioElement = new Audio('./mp3.mp3');
       audioElement.loop = false;
       audioElement.volume = 1.0;
 
@@ -796,7 +796,7 @@
             model2.rotation.y = 0;
 
             if (mixer2) {
-              const tellAnimation = mixer2.clipAction(animations[0]);
+              const tellAnimation = mixer2.clipAction(animations2[0]);
               if (!tellAnimation.isRunning()) {
                 tellAnimation.reset();  // Сбрасываем анимацию
                 tellAnimation.setLoop(THREE.LoopRepeat);  // Устанавливаем повторение
@@ -880,7 +880,7 @@
             model2.rotation.y = 0;
 
             if (mixer2) {
-              const tellAnimation = mixer2.clipAction(animations[0]);
+              const tellAnimation = mixer2.clipAction(animations2[0]);
               if (!tellAnimation.isRunning()) {
                 tellAnimation.reset();  // Сбрасываем анимацию
                 tellAnimation.setLoop(THREE.LoopRepeat);  // Устанавливаем повторение
@@ -927,7 +927,7 @@
             model2.rotation.y = 0;
 
             if (mixer2) {
-              const tellAnimation = mixer2.clipAction(animations[0]);
+              const tellAnimation = mixer2.clipAction(animations2[0]);
               if (!tellAnimation.isRunning()) {
                 tellAnimation.reset();  // Сбрасываем анимацию
                 tellAnimation.setLoop(THREE.LoopRepeat);  // Устанавливаем повторение
