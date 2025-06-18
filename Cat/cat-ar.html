@@ -699,6 +699,7 @@
             if (mixerLeft && animationsLeft.length > 0) {
               const leftAnimation = mixerLeft.clipAction(animationsLeft[0]);
               if (!leftAnimation.isRunning()) {
+                leftAnimation.stop()
                 leftAnimation.reset();
                 leftAnimation.setLoop(THREE.LoopOnce);
                 leftAnimation.clampWhenFinished = true;
@@ -748,6 +749,7 @@
             if (mixerRight && animationsRight.length > 0) {
               const rightAnimation = mixerRight.clipAction(animationsRight[0]);
               if (!rightAnimation.isRunning()) {
+                leftAnimation.stop()
                 rightAnimation.reset();
                 rightAnimation.setLoop(THREE.LoopOnce);
                 rightAnimation.clampWhenFinished = true;
@@ -779,6 +781,7 @@
             if (mixerRight && animationsRight.length > 0) {
               const rightAnimation = mixerRight.clipAction(animationsRight[0]);
               if (!rightAnimation.isRunning()) {
+                leftAnimation.stop()
                 rightAnimation.reset();
                 rightAnimation.setLoop(THREE.LoopOnce);
                 rightAnimation.clampWhenFinished = true;
@@ -822,6 +825,7 @@
             if (mixerLeft && animationsLeft.length > 0) {
               const leftAnimation = mixerLeft.clipAction(animationsLeft[0]);
               if (!leftAnimation.isRunning()) {
+                leftAnimation.stop()
                 leftAnimation.reset();
                 leftAnimation.setLoop(THREE.LoopOnce);
                 leftAnimation.clampWhenFinished = true;
@@ -865,6 +869,7 @@
             if (mixerLeft && animationsLeft.length > 0) {
               const leftAnimation = mixerLeft.clipAction(animationsLeft[0]);
               if (!leftAnimation.isRunning()) {
+                leftAnimation.stop()
                 leftAnimation.reset();
                 leftAnimation.setLoop(THREE.LoopOnce);
                 leftAnimation.clampWhenFinished = true;
