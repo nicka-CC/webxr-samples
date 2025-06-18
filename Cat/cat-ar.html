@@ -793,8 +793,8 @@
           model2.visible = false;
           modelLeft.visible = false;
           modelRight.visible = true;
-          modelRight.position.copy(modelRight.position); // Продолжаем с той же позиции
-          modelRight.rotation.y = modelRight.rotation.y; // Продолжаем с того же поворота
+          // modelRight.position.copy(modelRight.position); // Продолжаем с той же позиции
+          // modelRight.rotation.y = modelRight.rotation.y; // Продолжаем с того же поворота
 
           if (mixerRight && animationsRight.length > 0) {
             const rightAnimation = mixerRight.clipAction(animationsRight[0]);
