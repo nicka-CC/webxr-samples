@@ -81,6 +81,8 @@
     let movementState = 'moving';
     let currentModel = 'walk';
     let animations2 = [];
+    let firstRightTurnDone = false;
+    let secondRightTurnDone = false;
 
     init();
     animate();
@@ -746,7 +748,7 @@
             modelRight.visible = true;
             modelRight.position.copy(model2.position);
             modelRight.rotation.y = 0;
-            if (mixerRight && animationsRight.length > 0) {
+            if (mixerRight && animationsRight.length > 0 && !firstRightTurnDone) {
               const rightAnimation = mixerRight.clipAction(animationsRight[0]);
               if (!rightAnimation.isRunning()) {
                 rightAnimation.stop()
@@ -757,6 +759,9 @@
                 rightAnimation.time = 0; // Сбрасываем время анимации
                 rightAnimation.play();
               }
+              if (rightAnimation.time >= rightAnimation.getClip().duration) {
+                firstRightTurnDone = true;
+              }
               mixerRight.update(clock.getDelta());
             }
           }else if (elapsedTime < 21.0) {
@@ -766,9 +771,9 @@
             model2.visible = false;
             modelLeft.visible = false;
             modelRight.visible = true;
-            modelRight.position.copy(model2.position);
-            modelRight.rotation.y = 0;
-            if (mixerRight && animationsRight.length > 0) {
+            modelRight.position.copy(model.position);
+            modelRight.rotation.y = model.rotation.y;
+            if (mixerRight && animationsRight.length > 0 && !secondRightTurnDone) {
               const rightAnimation = mixerRight.clipAction(animationsRight[0]);
               if (!rightAnimation.isRunning()) {
                 rightAnimation.stop()
@@ -778,6 +783,9 @@
                 rightAnimation.timeScale = 10.0;
                 rightAnimation.time = 0; // Сбрасываем время анимации
                 rightAnimation.play();
+              }
+              if (rightAnimation.time >= rightAnimation.getClip().duration) {
+                secondRightTurnDone = true;
               }
               mixerRight.update(clock.getDelta());
             }
