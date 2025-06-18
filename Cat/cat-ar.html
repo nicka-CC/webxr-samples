@@ -739,7 +739,7 @@
                 console.error('Ошибка воспроизведения звука:', error);
               });
             }
-          } else if (elapsedTime < 19.0) {
+          } else if (elapsedTime < 21.0) {
             // Поворот направо
             currentModel = 'right';
             model.visible = false;
@@ -764,32 +764,34 @@
               }
               mixerRight.update(clock.getDelta());
             }
-          }else if (elapsedTime < 21.0) {
-            // Поворот направо
-            currentModel = 'right';
-            model.visible = false;
-            model2.visible = false;
-            modelLeft.visible = false;
-            modelRight.visible = true;
-            modelRight.position.copy(model.position);
-            modelRight.rotation.y = model.rotation.y;
-            if (mixerRight && animationsRight.length > 0 && !secondRightTurnDone) {
-              const rightAnimation = mixerRight.clipAction(animationsRight[0]);
-              if (!rightAnimation.isRunning()) {
-                rightAnimation.stop()
-                rightAnimation.reset();
-                rightAnimation.setLoop(THREE.LoopOnce);
-                rightAnimation.clampWhenFinished = true;
-                rightAnimation.timeScale = 19.0;
-                rightAnimation.time = 0; // Сбрасываем время анимации
-                rightAnimation.play();
-              }
-              if (rightAnimation.time >= rightAnimation.getClip().duration) {
-                secondRightTurnDone = true;
-              }
-              mixerRight.update(clock.getDelta());
-            }
-          } else if (elapsedTime < 23.0) {
+          }
+          // else if (elapsedTime < 21.0) {
+          //   // Поворот направо
+          //   currentModel = 'right';
+          //   model.visible = false;
+          //   model2.visible = false;
+          //   modelLeft.visible = false;
+          //   modelRight.visible = true;
+          //   modelRight.position.copy(model.position);
+          //   modelRight.rotation.y = model.rotation.y;
+          //   if (mixerRight && animationsRight.length > 0 && !secondRightTurnDone) {
+          //     const rightAnimation = mixerRight.clipAction(animationsRight[0]);
+          //     if (!rightAnimation.isRunning()) {
+          //       rightAnimation.stop()
+          //       rightAnimation.reset();
+          //       rightAnimation.setLoop(THREE.LoopOnce);
+          //       rightAnimation.clampWhenFinished = true;
+          //       rightAnimation.timeScale = 19.0;
+          //       rightAnimation.time = 0; // Сбрасываем время анимации
+          //       rightAnimation.play();
+          //     }
+          //     if (rightAnimation.time >= rightAnimation.getClip().duration) {
+          //       secondRightTurnDone = true;
+          //     }
+          //     mixerRight.update(clock.getDelta());
+          //   }
+          // }
+          else if (elapsedTime < 23.0) {
             // Движение вправо
             currentModel = 'walk';
             model.visible = true;
