@@ -803,7 +803,7 @@
               if (!tellAnimation.isRunning()) {
                 tellAnimation.reset();  // Сбрасываем анимацию
                 tellAnimation.setLoop(THREE.LoopRepeat);  // Устанавливаем повторение
-                tellAnimation.timeScale = 32.0;  // Устанавливаем скорость
+                tellAnimation.timeScale = 33.0;  // Устанавливаем скорость
                 tellAnimation.play();  // Запускаем заново
               }
               mixer2.update(clock.getDelta());
@@ -868,7 +868,7 @@
                 leftAnimation.reset();
                 leftAnimation.setLoop(THREE.LoopOnce);
                 leftAnimation.clampWhenFinished = true;
-                leftAnimation.timeScale = 10;
+                leftAnimation.timeScale = 7;
                 leftAnimation.time = 0;
                 leftAnimation.play();
               }
