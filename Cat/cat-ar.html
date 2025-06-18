@@ -739,7 +739,7 @@
                 console.error('Ошибка воспроизведения звука:', error);
               });
             }
-          } else if (elapsedTime < 20.0) {
+          } else if (elapsedTime < 19.0) {
             // Поворот направо
             currentModel = 'right';
             model.visible = false;
@@ -755,7 +755,7 @@
                 rightAnimation.reset();
                 rightAnimation.setLoop(THREE.LoopOnce);
                 rightAnimation.clampWhenFinished = true;
-                rightAnimation.timeScale = 7.0;
+                rightAnimation.timeScale = 8.0;
                 rightAnimation.time = 0; // Сбрасываем время анимации
                 rightAnimation.play();
               }
