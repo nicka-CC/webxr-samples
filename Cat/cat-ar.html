@@ -749,7 +749,7 @@
             if (mixerRight && animationsRight.length > 0) {
               const rightAnimation = mixerRight.clipAction(animationsRight[0]);
               if (!rightAnimation.isRunning()) {
-                leftAnimation.stop()
+                rightAnimation.stop()
                 rightAnimation.reset();
                 rightAnimation.setLoop(THREE.LoopOnce);
                 rightAnimation.clampWhenFinished = true;
@@ -781,7 +781,7 @@
             if (mixerRight && animationsRight.length > 0) {
               const rightAnimation = mixerRight.clipAction(animationsRight[0]);
               if (!rightAnimation.isRunning()) {
-                leftAnimation.stop()
+                rightAnimation.stop()
                 rightAnimation.reset();
                 rightAnimation.setLoop(THREE.LoopOnce);
                 rightAnimation.clampWhenFinished = true;
