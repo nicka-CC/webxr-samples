@@ -785,16 +785,15 @@
                 rightAnimation.play();
               }
               mixerRight.update(clock.getDelta());
-            }
-          } else if (elapsedTime < 22.0) {
+            }} else if (elapsedTime < 22.0) {
           // Поворот направо
           currentModel = 'right';
           model.visible = false;
           model2.visible = false;
           modelLeft.visible = false;
           modelRight.visible = true;
-          // modelRight.position.copy(modelRight.position); // Продолжаем с той же позиции
-          // modelRight.rotation.y = modelRight.rotation.y; // Продолжаем с того же поворота
+          modelRight.position.copy(modelRight.position); // Продолжаем с той же позиции
+          modelRight.rotation.y = modelRight.rotation.y; // Продолжаем с того же поворота
 
           if (mixerRight && animationsRight.length > 0) {
             const rightAnimation = mixerRight.clipAction(animationsRight[0]);
