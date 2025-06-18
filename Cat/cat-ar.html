@@ -746,7 +746,7 @@
             modelRight.visible = true;
             modelRight.position.copy(model2.position);
             modelRight.rotation.y = 0;
-
+            mixerRight.stopAllAction();
             if (mixerRight && animationsRight.length > 0) {
               const rightAnimation = mixerRight.clipAction(animationsRight[0]);
               if (!rightAnimation.isRunning()) {
@@ -779,6 +779,7 @@
             modelRight.position.copy(model.position);
             modelRight.rotation.y = model.rotation.y;
 
+            mixerRight.stopAllAction();
             if (mixerRight && animationsRight.length > 0) {
               const rightAnimation = mixerRight.clipAction(animationsRight[0]);
               if (!rightAnimation.isRunning()) {
