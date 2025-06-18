@@ -739,7 +739,8 @@
                 console.error('Ошибка воспроизведения звука:', error);
               });
             }
-          } else if (elapsedTime < 19.0) {
+            // Первый поворот направо (19.0-20.0) - 90 градусов
+          } else if (elapsedTime < 20.0) {
             // Поворот направо
             currentModel = 'right';
             model.visible = false;
@@ -748,48 +749,66 @@
             modelRight.visible = true;
             modelRight.position.copy(model2.position);
             modelRight.rotation.y = 0;
-            if (mixerRight && animationsRight.length > 0 && !firstRightTurnDone) {
+
+            if (mixerRight && animationsRight.length > 0) {
               const rightAnimation = mixerRight.clipAction(animationsRight[0]);
               if (!rightAnimation.isRunning()) {
-                rightAnimation.stop()
+                rightAnimation.stop();
                 rightAnimation.reset();
                 rightAnimation.setLoop(THREE.LoopOnce);
                 rightAnimation.clampWhenFinished = true;
                 rightAnimation.timeScale = 10.0;
-                rightAnimation.time = 0; // Сбрасываем время анимации
+                rightAnimation.time = 0;
                 rightAnimation.play();
-              }
-              if (rightAnimation.time >= rightAnimation.getClip().duration) {
-                firstRightTurnDone = true;
               }
               mixerRight.update(clock.getDelta());
             }
-          }else if (elapsedTime < 21.0) {
+          } else if (elapsedTime < 21.0) {
             // Поворот направо
             currentModel = 'right';
             model.visible = false;
             model2.visible = false;
             modelLeft.visible = false;
             modelRight.visible = true;
-            modelRight.position.copy(model.position);
-            modelRight.rotation.y = model.rotation.y;
-            if (mixerRight && animationsRight.length > 0 && !secondRightTurnDone) {
+            modelRight.position.copy(modelRight.position); // Продолжаем с той же позиции
+            modelRight.rotation.y = modelRight.rotation.y; // Продолжаем с того же поворота
+
+            if (mixerRight && animationsRight.length > 0) {
               const rightAnimation = mixerRight.clipAction(animationsRight[0]);
               if (!rightAnimation.isRunning()) {
-                rightAnimation.stop()
+                rightAnimation.stop();
                 rightAnimation.reset();
                 rightAnimation.setLoop(THREE.LoopOnce);
                 rightAnimation.clampWhenFinished = true;
-                rightAnimation.timeScale = 15.0;
-                rightAnimation.time = 0; // Сбрасываем время анимации
+                rightAnimation.timeScale = 10.0;
+                rightAnimation.time = 0;
                 rightAnimation.play();
               }
-              if (rightAnimation.time >= rightAnimation.getClip().duration) {
-                secondRightTurnDone = true;
-              }
               mixerRight.update(clock.getDelta());
+            }} else if (elapsedTime < 22.0) {
+          // Поворот направо
+          currentModel = 'right';
+          model.visible = false;
+          model2.visible = false;
+          modelLeft.visible = false;
+          modelRight.visible = true;
+          modelRight.position.copy(modelRight.position); // Продолжаем с той же позиции
+          modelRight.rotation.y = modelRight.rotation.y; // Продолжаем с того же поворота
+
+          if (mixerRight && animationsRight.length > 0) {
+            const rightAnimation = mixerRight.clipAction(animationsRight[0]);
+            if (!rightAnimation.isRunning()) {
+              rightAnimation.stop();
+              rightAnimation.reset();
+              rightAnimation.setLoop(THREE.LoopOnce);
+              rightAnimation.clampWhenFinished = true;
+              rightAnimation.timeScale = 10.0;
+              rightAnimation.time = 0;
+              rightAnimation.play();
             }
-          } else if (elapsedTime < 23.0) {
+            mixerRight.update(clock.getDelta());
+          }
+        } else if (elapsedTime < 23.0) {
             // Движение вправо
             currentModel = 'walk';
             model.visible = true;
@@ -805,8 +824,8 @@
             model2.visible = false;
             modelLeft.visible = false;
             modelRight.visible = true;
-            modelRight.position.copy(model.position);
-            modelRight.rotation.y = model.rotation.y;
+            modelRight.position.copy(modelRight.position);
+            modelRight.rotation.y = modelRight.rotation.y;
 
 
             if (mixerRight && animationsRight.length > 0) {
