@@ -702,7 +702,8 @@
                 leftAnimation.reset();
                 leftAnimation.setLoop(THREE.LoopOnce);
                 leftAnimation.clampWhenFinished = true;
-                leftAnimation.timeScale = 10.0;
+                leftAnimation.timeScale = 10;
+                leftAnimation.time = 0;
                 leftAnimation.play();
               }
               mixerLeft.update(clock.getDelta());
@@ -751,6 +752,7 @@
                 rightAnimation.setLoop(THREE.LoopOnce);
                 rightAnimation.clampWhenFinished = true;
                 rightAnimation.timeScale = 10.0;
+                rightAnimation.time = 0; // Сбрасываем время анимации
                 rightAnimation.play();
               }
               mixerRight.update(clock.getDelta());
@@ -781,6 +783,7 @@
                 rightAnimation.setLoop(THREE.LoopOnce);
                 rightAnimation.clampWhenFinished = true;
                 rightAnimation.timeScale = 10.0;
+                rightAnimation.time = 0; // Сбрасываем время анимации
                 rightAnimation.play();
               }
               mixerRight.update(clock.getDelta());
@@ -823,6 +826,7 @@
                 leftAnimation.setLoop(THREE.LoopOnce);
                 leftAnimation.clampWhenFinished = true;
                 leftAnimation.timeScale = 7;
+                leftAnimation.time = 0;
                 leftAnimation.play();
               }
               mixerLeft.update(clock.getDelta());
@@ -865,6 +869,7 @@
                 leftAnimation.setLoop(THREE.LoopOnce);
                 leftAnimation.clampWhenFinished = true;
                 leftAnimation.timeScale = 10;
+                leftAnimation.time = 0;
                 leftAnimation.play();
               }
               mixerLeft.update(clock.getDelta());
