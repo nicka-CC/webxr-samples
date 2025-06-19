@@ -715,7 +715,7 @@
           return;
         }
 
-        if (renderer.xr.isPresenting) {
+        if (renderer.xr.isPresenting && catPlaced) {
           if (elapsedTime < 1.5) {
             // Движение влево
             currentModel = 'walk';
