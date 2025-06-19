@@ -430,13 +430,9 @@
                       enabledFeatures: session.enabledFeatures,
                       renderState: session.renderState
                     });
-                    session.addEventListener('select', function() {
-                      if (!catPlaced && reticleVisible) {
-                        model.position.copy(placementPosition);
-                        model.visible = true;
-                        catPlaced = true;
-                        reticle.visible = false;
-                        startTime = Date.now();
+                    session.addEventListener('select', function(event) {
+                      if (renderer.xr.isPresenting && !catPlaced && transientHitTestSource && event.inputSource) {
+                        pendingTouch = event.inputSource;
                       }
                     });
                     // transient input hit-test для касаний
@@ -1060,27 +1056,25 @@
           }
         }
 
-        // transient input hit-test по координатам касания
+        // transient input hit-test по inputSource select
         if (renderer.xr.isPresenting && transientHitTestSource && pendingTouch && frame) {
           const hitTestResults = frame.getHitTestResultsForTransientInput(transientHitTestSource);
           if (hitTestResults && hitTestResults.length > 0) {
             for (const hit of hitTestResults) {
-              if (hit.inputSource && hit.inputSource.targetRayMode === 'screen') {
-                if (hit.results.length > 0) {
-                  const pose = hit.results[0].getPose(renderer.xr.getReferenceSpace());
-                  if (pose) {
-                    model.position.set(
-                      pose.transform.position.x,
-                      pose.transform.position.y,
-                      pose.transform.position.z
-                    );
-                    model.visible = true;
-                    catPlaced = true;
-                    reticle.visible = false;
-                    startTime = Date.now();
-                    pendingTouch = null;
-                    break;
-                  }
+              if (hit.inputSource === pendingTouch && hit.results.length > 0) {
+                const pose = hit.results[0].getPose(renderer.xr.getReferenceSpace());
+                if (pose) {
+                  model.position.set(
+                    pose.transform.position.x,
+                    pose.transform.position.y,
+                    pose.transform.position.z
+                  );
+                  model.visible = true;
+                  catPlaced = true;
+                  reticle.visible = false;
+                  startTime = Date.now();
+                  pendingTouch = null;
+                  break;
                 }
               }
             }
@@ -1090,17 +1084,6 @@
         renderer.render(scene, camera);
       });
     }
-
-    // Обработка тапа для размещения кота по касанию
-    renderer.domElement.addEventListener('click', function(event) {
-      if (renderer.xr.isPresenting && !catPlaced) {
-        // Сохраняем координаты касания
-        pendingTouch = {
-          x: event.clientX,
-          y: event.clientY
-        };
-      }
-    });
   </script>
 </head>
 <body>
