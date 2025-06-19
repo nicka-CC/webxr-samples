@@ -489,7 +489,7 @@
       );
 
       // Добавляем кнопку AR
-      document.body.appendChild(ARButton.createButton(renderer));
+      document.body.appendChild(ARButton.createButton(renderer, { requiredFeatures: ['hit-test'] }));
 
       // Обработка жестов для анимаций
       let lastTapTime = 0;
