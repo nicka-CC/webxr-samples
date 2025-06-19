@@ -87,8 +87,6 @@
     let reticle = null; // Индикатор точки размещения
     let reticleVisible = false;
     let placementPosition = new THREE.Vector3();
-    let transientHitTestSource = null;
-    let pendingTouch = null;
 
     init();
     animate();
@@ -273,12 +271,6 @@
       `;
       document.body.appendChild(infoDiv);
 
-      // В infoDiv добавим отдельный блок для статуса размещения кота
-      const placementStatus = document.createElement('p');
-      placementStatus.id = 'placement-status';
-      placementStatus.textContent = 'Ожидание размещения кота...';
-      document.getElementById('info').appendChild(placementStatus);
-
       function getBrowserInfo() {
         const ua = navigator.userAgent;
         let browserName;
@@ -436,35 +428,15 @@
                       enabledFeatures: session.enabledFeatures,
                       renderState: session.renderState
                     });
-                    session.addEventListener('select', function(event) {
-                      let statusMsg = '';
-                      if (renderer.xr.isPresenting && !catPlaced) {
-                        if (transientHitTestSource && event.inputSource) {
-                          pendingTouch = event.inputSource;
-                          statusMsg = 'select: transient hit-test (ждём результат)...';
-                        } else if (reticleVisible) {
-                          model.position.copy(placementPosition);
-                          model.visible = true;
-                          catPlaced = true;
-                          reticle.visible = false;
-                          startTime = Date.now();
-                          statusMsg = `Кот размещён по reticle: x=${placementPosition.x.toFixed(2)}, y=${placementPosition.y.toFixed(2)}, z=${placementPosition.z.toFixed(2)}`;
-                        } else {
-                          statusMsg = 'select: reticle не виден, кот не размещён';
-                        }
-                      } else {
-                        statusMsg = 'select: кот уже размещён или не AR';
+                    session.addEventListener('select', function() {
+                      if (!catPlaced && reticleVisible) {
+                        model.position.copy(placementPosition);
+                        model.visible = true;
+                        catPlaced = true;
+                        reticle.visible = false;
+                        startTime = Date.now();
                       }
-                      document.getElementById('placement-status').textContent = statusMsg;
                     });
-                    // transient input hit-test для касаний
-                    if (session.requestHitTestSourceForTransientInput) {
-                      session.requestHitTestSourceForTransientInput({ profile: 'generic-touchscreen' })
-                        .then(source => {
-                          transientHitTestSource = source;
-                        })
-                        .catch(e => { console.warn('transient hit-test не поддерживается:', e); });
-                    }
                   }
                   session.requestReferenceSpace('viewer').then((referenceSpace) => {
                     session.requestHitTestSource({ space: referenceSpace }).then((source) => {
@@ -487,8 +459,6 @@
                   isRotating = false;
                   lastHitPosition = null;
                   clock.stop();
-                  transientHitTestSource = null;
-                  pendingTouch = null;
                 });
 
                 // Обработка жестов в AR
@@ -1078,35 +1048,21 @@
           }
         }
 
-        // transient input hit-test по inputSource select
-        if (renderer.xr.isPresenting && transientHitTestSource && pendingTouch && frame) {
-          const hitTestResults = frame.getHitTestResultsForTransientInput(transientHitTestSource);
-          if (hitTestResults && hitTestResults.length > 0) {
-            for (const hit of hitTestResults) {
-              if (hit.inputSource === pendingTouch && hit.results.length > 0) {
-                const pose = hit.results[0].getPose(renderer.xr.getReferenceSpace());
-                if (pose) {
-                  model.position.set(
-                    pose.transform.position.x,
-                    pose.transform.position.y,
-                    pose.transform.position.z
-                  );
-                  model.visible = true;
-                  catPlaced = true;
-                  reticle.visible = false;
-                  startTime = Date.now();
-                  document.getElementById('placement-status').textContent = `Кот размещён по transient hit-test: x=${pose.transform.position.x.toFixed(2)}, y=${pose.transform.position.y.toFixed(2)}, z=${pose.transform.position.z.toFixed(2)}`;
-                  pendingTouch = null;
-                  break;
-                }
-              }
-            }
-          }
-        }
-
         renderer.render(scene, camera);
       });
     }
+
+    // Обработка тапа для размещения кота
+    renderer.domElement.addEventListener('click', function(event) {
+      if (renderer.xr.isPresenting && !catPlaced && reticleVisible) {
+        // Размещаем кота в позиции reticle
+        model.position.copy(placementPosition);
+        model.visible = true;
+        catPlaced = true;
+        reticle.visible = false;
+        startTime = Date.now(); // Запускаем сценарий
+      }
+    });
   </script>
 </head>
 <body>
