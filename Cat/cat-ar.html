@@ -431,8 +431,17 @@
                       renderState: session.renderState
                     });
                     session.addEventListener('select', function(event) {
-                      if (renderer.xr.isPresenting && !catPlaced && transientHitTestSource && event.inputSource) {
-                        pendingTouch = event.inputSource;
+                      if (renderer.xr.isPresenting && !catPlaced) {
+                        if (transientHitTestSource && event.inputSource) {
+                          pendingTouch = event.inputSource;
+                        } else if (reticleVisible) {
+                          // Fallback: если нет transient hit-test, размещаем по reticle
+                          model.position.copy(placementPosition);
+                          model.visible = true;
+                          catPlaced = true;
+                          reticle.visible = false;
+                          startTime = Date.now();
+                        }
                       }
                     });
                     // transient input hit-test для касаний
