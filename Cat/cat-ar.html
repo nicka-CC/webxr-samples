@@ -273,6 +273,12 @@
       `;
       document.body.appendChild(infoDiv);
 
+      // В infoDiv добавим отдельный блок для статуса размещения кота
+      const placementStatus = document.createElement('p');
+      placementStatus.id = 'placement-status';
+      placementStatus.textContent = 'Ожидание размещения кота...';
+      document.getElementById('info').appendChild(placementStatus);
+
       function getBrowserInfo() {
         const ua = navigator.userAgent;
         let browserName;
@@ -431,18 +437,25 @@
                       renderState: session.renderState
                     });
                     session.addEventListener('select', function(event) {
+                      let statusMsg = '';
                       if (renderer.xr.isPresenting && !catPlaced) {
                         if (transientHitTestSource && event.inputSource) {
                           pendingTouch = event.inputSource;
+                          statusMsg = 'select: transient hit-test (ждём результат)...';
                         } else if (reticleVisible) {
-                          // Fallback: если нет transient hit-test, размещаем по reticle
                           model.position.copy(placementPosition);
                           model.visible = true;
                           catPlaced = true;
                           reticle.visible = false;
                           startTime = Date.now();
+                          statusMsg = `Кот размещён по reticle: x=${placementPosition.x.toFixed(2)}, y=${placementPosition.y.toFixed(2)}, z=${placementPosition.z.toFixed(2)}`;
+                        } else {
+                          statusMsg = 'select: reticle не виден, кот не размещён';
                         }
+                      } else {
+                        statusMsg = 'select: кот уже размещён или не AR';
                       }
+                      document.getElementById('placement-status').textContent = statusMsg;
                     });
                     // transient input hit-test для касаний
                     if (session.requestHitTestSourceForTransientInput) {
@@ -1082,6 +1095,7 @@
                   catPlaced = true;
                   reticle.visible = false;
                   startTime = Date.now();
+                  document.getElementById('placement-status').textContent = `Кот размещён по transient hit-test: x=${pose.transform.position.x.toFixed(2)}, y=${pose.transform.position.y.toFixed(2)}, z=${pose.transform.position.z.toFixed(2)}`;
                   pendingTouch = null;
                   break;
                 }
