@@ -428,6 +428,15 @@
                       enabledFeatures: session.enabledFeatures,
                       renderState: session.renderState
                     });
+                    session.addEventListener('select', function() {
+                      if (!catPlaced && reticleVisible) {
+                        model.position.copy(placementPosition);
+                        model.visible = true;
+                        catPlaced = true;
+                        reticle.visible = false;
+                        startTime = Date.now();
+                      }
+                    });
                   }
                   session.requestReferenceSpace('viewer').then((referenceSpace) => {
                     session.requestHitTestSource({ space: referenceSpace }).then((source) => {
