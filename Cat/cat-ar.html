@@ -83,6 +83,7 @@
     let animations2 = [];
     let firstRightTurnDone = false;
     let secondRightTurnDone = false;
+    let catPlaced = false; // Флаг: кот размещён
 
     init();
     animate();
@@ -678,7 +679,30 @@
         }
 
         // Двигаем модель в AR режиме
-        if (model && model2 && modelLeft && modelRight && renderer.xr.isPresenting) {
+        if (renderer.xr.isPresenting && hitTestSource && !catPlaced) {
+          const session = renderer.xr.getSession();
+          const referenceSpace = renderer.xr.getReferenceSpace();
+          const frame = renderer.xr.getFrame ? renderer.xr.getFrame() : null;
+          if (session && referenceSpace && frame) {
+            const hitTestResults = frame.getHitTestResults(hitTestSource);
+            if (hitTestResults.length > 0) {
+              const hit = hitTestResults[0];
+              const pose = hit.getPose(referenceSpace);
+              if (pose) {
+                // Устанавливаем позицию кота в точку попадания
+                model.position.set(pose.transform.position.x, pose.transform.position.y, pose.transform.position.z);
+                model.visible = true;
+                catPlaced = true;
+                startTime = Date.now(); // Запускаем сценарий движения
+              }
+            }
+          }
+          // Показываем reticle или подсказку (опционально)
+          renderer.render(scene, camera);
+          return; // Ждём размещения кота, не запускаем основной сценарий
+        }
+
+        if (renderer.xr.isPresenting) {
           if (elapsedTime < 1.5) {
             // Движение влево
             currentModel = 'walk';
@@ -765,32 +789,6 @@
               mixerRight.update(clock.getDelta());
             }
           }
-          // else if (elapsedTime < 21.0) {
-          //   // Поворот направо
-          //   currentModel = 'right';
-          //   model.visible = false;
-          //   model2.visible = false;
-          //   modelLeft.visible = false;
-          //   modelRight.visible = true;
-          //   modelRight.position.copy(modelRight.position);
-          //   modelRight.rotation.y = modelRight.rotation.y;
-          //   if (mixerRight && animationsRight.length > 0 && !secondRightTurnDone) {
-          //     const rightAnimation = mixerRight.clipAction(animationsRight[0]);
-          //     if (!rightAnimation.isRunning()) {
-          //       rightAnimation.stop()
-          //       rightAnimation.reset();
-          //       rightAnimation.setLoop(THREE.LoopOnce);
-          //       rightAnimation.clampWhenFinished = true;
-          //       rightAnimation.timeScale = 19.0;
-          //       rightAnimation.time = 0; // Сбрасываем время анимации
-          //       rightAnimation.play();
-          //     }
-          //     if (rightAnimation.time >= rightAnimation.getClip().duration) {
-          //       secondRightTurnDone = true;
-          //     }
-          //     mixerRight.update(clock.getDelta());
-          //   }
-          // }
           else if (elapsedTime < 23.0) {
             // Движение вправо
             currentModel = 'walk';

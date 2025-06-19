@@ -80,6 +80,9 @@
     let lookAtViewerTime = 0;
     let movementState = 'moving';
     let currentModel = 'walk';
+    let animations2 = [];
+    let firstRightTurnDone = false;
+    let secondRightTurnDone = false;
 
     init();
     animate();
@@ -179,12 +182,12 @@
         geolocation: 'available' in navigator.geolocation ? 'available' : 'not available'
       });
       // Создаем аудио элемент
-      audioElement = new Audio('./hhhh.mp3');
+      audioElement = new Audio('./mp3.mp3');
       audioElement.loop = false;
       audioElement.volume = 1.0;
 
       // Создаем камеру
-      camera = new THREE.PerspectiveCamera(90, window.innerWidth / window.innerHeight, 0.01, 20);
+      camera = new THREE.PerspectiveCamera(90, window.innerWidth / window.innerHeight, 0.01, 120);
       camera.position.set(0, 0, 3);
 
 
@@ -539,10 +542,11 @@
 
                 mixer2 = new THREE.AnimationMixer(model2);
                 if (gltf.animations && gltf.animations.length > 0) {
-                  const tellAnimation = mixer2.clipAction(gltf.animations[0]);
+                  animations2 = gltf.animations;
+                  const tellAnimation = mixer2.clipAction(animations2[0]);
                   tellAnimation.setLoop(THREE.LoopRepeat);
                   tellAnimation.clampWhenFinished = false;
-                  tellAnimation.timeScale = 32.0;
+                  tellAnimation.timeScale = 30.0;
                   tellAnimation.play();
                 }
               }
@@ -684,7 +688,7 @@
             modelRight.visible = false;
             model.rotation.y = Math.PI / 2 + Math.PI;
             model.position.x -= moveSpeed;
-          } else if (elapsedTime < 2.5) {
+          } else if (elapsedTime < 3.5) {
             // Поворот налево
             currentModel = 'left';
             model.visible = false;
@@ -697,15 +701,17 @@
             if (mixerLeft && animationsLeft.length > 0) {
               const leftAnimation = mixerLeft.clipAction(animationsLeft[0]);
               if (!leftAnimation.isRunning()) {
+                leftAnimation.stop()
                 leftAnimation.reset();
                 leftAnimation.setLoop(THREE.LoopOnce);
                 leftAnimation.clampWhenFinished = true;
-                leftAnimation.timeScale = 6.0;
+                leftAnimation.timeScale = 10;
+                leftAnimation.time = 0;
                 leftAnimation.play();
               }
               mixerLeft.update(clock.getDelta());
             }
-          } else if (elapsedTime < 7.0) {
+          } else if (elapsedTime < 17.0) {
             // Говорение
             currentModel = 'tell';
             model.visible = false;
@@ -716,8 +722,14 @@
             model2.rotation.y = 0;
 
             if (mixer2) {
-              const tellAnimation = mixer2.clipAction(animations[0]);
-              tellAnimation.timeScale = 32.0;
+              const tellAnimation = mixer2.clipAction(animations2[0]);
+              if (!tellAnimation.isRunning()) {
+                tellAnimation.stop();
+                tellAnimation.reset();
+                tellAnimation.setLoop(THREE.LoopRepeat);  // Устанавливаем повторение
+                tellAnimation.timeScale = 60.0;  // Устанавливаем скорость
+                tellAnimation.play();  // Запускаем заново
+              }
               mixer2.update(clock.getDelta());
             }
 
@@ -727,7 +739,7 @@
                 console.error('Ошибка воспроизведения звука:', error);
               });
             }
-          } else if (elapsedTime < 8.5) {
+          } else if (elapsedTime < 19.0) {
             // Поворот направо
             currentModel = 'right';
             model.visible = false;
@@ -736,19 +748,50 @@
             modelRight.visible = true;
             modelRight.position.copy(model2.position);
             modelRight.rotation.y = 0;
-
-            if (mixerRight && animationsRight.length > 0) {
+            if (mixerRight && animationsRight.length > 0 && !firstRightTurnDone) {
               const rightAnimation = mixerRight.clipAction(animationsRight[0]);
               if (!rightAnimation.isRunning()) {
+                rightAnimation.stop()
                 rightAnimation.reset();
                 rightAnimation.setLoop(THREE.LoopOnce);
                 rightAnimation.clampWhenFinished = true;
-                rightAnimation.timeScale = 10.0;
+                rightAnimation.timeScale = 8.0;
+                rightAnimation.time = 0; // Сбрасываем время анимации
                 rightAnimation.play();
+              }
+              if (rightAnimation.time >= rightAnimation.getClip().duration) {
+                firstRightTurnDone = true;
               }
               mixerRight.update(clock.getDelta());
             }
-          } else if (elapsedTime < 10.0) {
+          }
+                  // else if (elapsedTime < 21.0) {
+                  //   // Поворот направо
+                  //   currentModel = 'right';
+                  //   model.visible = false;
+                  //   model2.visible = false;
+                  //   modelLeft.visible = false;
+                  //   modelRight.visible = true;
+                  //   modelRight.position.copy(modelRight.position);
+                  //   modelRight.rotation.y = modelRight.rotation.y;
+                  //   if (mixerRight && animationsRight.length > 0 && !secondRightTurnDone) {
+                  //     const rightAnimation = mixerRight.clipAction(animationsRight[0]);
+                  //     if (!rightAnimation.isRunning()) {
+                  //       rightAnimation.stop()
+                  //       rightAnimation.reset();
+                  //       rightAnimation.setLoop(THREE.LoopOnce);
+                  //       rightAnimation.clampWhenFinished = true;
+                  //       rightAnimation.timeScale = 19.0;
+                  //       rightAnimation.time = 0; // Сбрасываем время анимации
+                  //       rightAnimation.play();
+                  //     }
+                  //     if (rightAnimation.time >= rightAnimation.getClip().duration) {
+                  //       secondRightTurnDone = true;
+                  //     }
+                  //     mixerRight.update(clock.getDelta());
+                  //   }
+          // }
+          else if (elapsedTime < 23.0) {
             // Движение вправо
             currentModel = 'walk';
             model.visible = true;
@@ -757,7 +800,7 @@
             modelRight.visible = false;
             model.rotation.y = -Math.PI / 2 + Math.PI;
             model.position.x += moveSpeed;
-          } else if (elapsedTime < 11.0) {
+          } else if (elapsedTime < 26.0) {
             // Поворот направо
             currentModel = 'right';
             model.visible = false;
@@ -767,18 +810,21 @@
             modelRight.position.copy(model.position);
             modelRight.rotation.y = model.rotation.y;
 
+
             if (mixerRight && animationsRight.length > 0) {
               const rightAnimation = mixerRight.clipAction(animationsRight[0]);
               if (!rightAnimation.isRunning()) {
+                rightAnimation.stop()
                 rightAnimation.reset();
                 rightAnimation.setLoop(THREE.LoopOnce);
                 rightAnimation.clampWhenFinished = true;
-                rightAnimation.timeScale = 10.0;
+                rightAnimation.timeScale = 7.0;
+                rightAnimation.time = 0; // Сбрасываем время анимации
                 rightAnimation.play();
               }
               mixerRight.update(clock.getDelta());
             }
-          } else if (elapsedTime < 12.5) {
+          } else if (elapsedTime < 32.0) {
             // Говорение
             currentModel = 'tell';
             model.visible = false;
@@ -789,11 +835,18 @@
             model2.rotation.y = 0;
 
             if (mixer2) {
-              const tellAnimation = mixer2.clipAction(animations[0]);
-              tellAnimation.timeScale = 32.0;
+              const tellAnimation = mixer2.clipAction(animations2[0]);
+              if (!tellAnimation.isRunning()) {
+                tellAnimation.stop();
+                tellAnimation.reset();
+                tellAnimation.setLoop(THREE.LoopRepeat);  // Устанавливаем повторение
+                tellAnimation.timeScale = 20.0;  // Устанавливаем скорость
+                tellAnimation.play();  // Запускаем заново
+              }
               mixer2.update(clock.getDelta());
             }
-          } else if (elapsedTime < 13.5) {
+            // ... existing code ...
+          } else if (elapsedTime < 34.0) {
             // Поворот налево
             currentModel = 'left';
             model.visible = false;
@@ -806,13 +859,135 @@
             if (mixerLeft && animationsLeft.length > 0) {
               const leftAnimation = mixerLeft.clipAction(animationsLeft[0]);
               if (!leftAnimation.isRunning()) {
+                leftAnimation.stop()
                 leftAnimation.reset();
                 leftAnimation.setLoop(THREE.LoopOnce);
                 leftAnimation.clampWhenFinished = true;
-                leftAnimation.timeScale = 6.0;
+                leftAnimation.timeScale = 8;
+                leftAnimation.time = 0;
                 leftAnimation.play();
               }
               mixerLeft.update(clock.getDelta());
+            }
+          } else if (elapsedTime < 36.0) {  // +4 секунды
+            // Движение по диагонали вдаль
+            currentModel = 'walk';
+            model.visible = true;
+            model2.visible = false;
+            modelLeft.visible = false;
+            modelRight.visible = false;
+            model.rotation.y = -Math.PI * 3 / 4;  // 45 градусов
+            model.position.x -= moveSpeed * 0.7;  // Движение по X
+            model.position.z -= moveSpeed * 0.7;  // Движение по Z
+
+            if (mixer && animations && animations.length > 0) {
+              const walkAnimation = mixer.clipAction(animations[0]);
+              if (!walkAnimation.isRunning()) {
+                walkAnimation.reset();
+                walkAnimation.setLoop(THREE.LoopRepeat);
+                walkAnimation.timeScale = 1.0;
+                walkAnimation.play();
+              }
+              mixer.update(clock.getDelta());
+            }
+          } else if (elapsedTime < 38) {  // +1 секунда
+            // Поворот к зрителю черезлево
+            currentModel = 'left';
+            model.visible = false;
+            model2.visible = false;
+            modelLeft.visible = true;
+            modelRight.visible = false;
+            modelLeft.position.copy(model.position);
+            modelLeft.rotation.y = model.rotation.y;
+
+            if (mixerLeft && animationsLeft.length > 0) {
+              const leftAnimation = mixerLeft.clipAction(animationsLeft[0]);
+              if (!leftAnimation.isRunning()) {
+                leftAnimation.stop()
+                leftAnimation.reset();
+                leftAnimation.setLoop(THREE.LoopOnce);
+                leftAnimation.clampWhenFinished = true;
+                leftAnimation.timeScale = 7;
+                leftAnimation.time = 0;
+                leftAnimation.play();
+              }
+              mixerLeft.update(clock.getDelta());
+            }
+          } else if (elapsedTime < 68) {  // +30 секунд
+            // Говорение
+            currentModel = 'tell';
+            model.visible = false;
+            model2.visible = true;
+            modelLeft.visible = false;
+            modelRight.visible = false;
+            model2.position.copy(modelLeft.position);
+            model2.rotation.y = 0;
+
+            if (mixer2) {
+              const tellAnimation = mixer2.clipAction(animations2[0]);
+              if (!tellAnimation.isRunning()) {
+                tellAnimation.stop();
+                tellAnimation.reset();
+                tellAnimation.setLoop(THREE.LoopRepeat);  // Устанавливаем повторение
+                tellAnimation.timeScale = 20.0;  // Устанавливаем скорость
+                tellAnimation.play();  // Запускаем заново
+              }
+              mixer2.update(clock.getDelta());
+            }
+
+            if (audioElement && audioElement.paused) {
+              audioElement.currentTime = 0;
+              audioElement.play().catch(error => {
+                console.error('Ошибка воспроизведения звука:', error);
+              });
+            }
+          } else if (elapsedTime < 70) {  // +2 секунды
+            // Движение прямо на зрителя
+            currentModel = 'walk';
+            model.visible = true;
+            model2.visible = false;
+            modelLeft.visible = false;
+            modelRight.visible = false;
+            model.rotation.y = 0;  // Поворот к зрителю
+            model.position.z += moveSpeed;  // Движение по Z
+
+            if (mixer && animations && animations.length > 0) {
+              const walkAnimation = mixer.clipAction(animations[0]);
+              if (!walkAnimation.isRunning()) {
+                walkAnimation.reset();
+                walkAnimation.setLoop(THREE.LoopRepeat);
+                walkAnimation.timeScale = 1.0;
+                walkAnimation.play();
+              }
+              mixer.update(clock.getDelta());
+            }
+          } else if (elapsedTime < 190) {  // +120 секунд (2 минуты)
+            // Финальное говорение
+            currentModel = 'tell';
+            model.visible = false;
+            model2.visible = true;
+            modelLeft.visible = false;
+            modelRight.visible = false;
+            model2.position.copy(model.position);
+            model2.rotation.y = 0;
+
+            if (mixer2) {
+              const tellAnimation = mixer2.clipAction(animations2[0]);
+              if (!tellAnimation.isRunning()) {
+                tellAnimation.stop();
+                tellAnimation.reset();
+                tellAnimation.setLoop(THREE.LoopRepeat);  // Устанавливаем повторение
+                tellAnimation.timeScale = 20.0;  // Устанавливаем скорость
+                tellAnimation.play();  // Запускаем заново
+              }
+              mixer2.update(clock.getDelta());
+            }
+
+            if (audioElement && audioElement.paused) {
+              audioElement.currentTime = 0;
+              audioElement.play().catch(error => {
+                console.error('Ошибка воспроизведения звука:', error);
+              });
             }
           } else {
             startTime = Date.now();
