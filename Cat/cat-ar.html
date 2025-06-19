@@ -87,6 +87,8 @@
     let reticle = null; // Индикатор точки размещения
     let reticleVisible = false;
     let placementPosition = new THREE.Vector3();
+    let transientHitTestSource = null;
+    let pendingTouch = null;
 
     init();
     animate();
@@ -437,6 +439,14 @@
                         startTime = Date.now();
                       }
                     });
+                    // transient input hit-test для касаний
+                    if (session.requestHitTestSourceForTransientInput) {
+                      session.requestHitTestSourceForTransientInput({ profile: 'generic-touchscreen' })
+                        .then(source => {
+                          transientHitTestSource = source;
+                        })
+                        .catch(e => { console.warn('transient hit-test не поддерживается:', e); });
+                    }
                   }
                   session.requestReferenceSpace('viewer').then((referenceSpace) => {
                     session.requestHitTestSource({ space: referenceSpace }).then((source) => {
@@ -459,6 +469,8 @@
                   isRotating = false;
                   lastHitPosition = null;
                   clock.stop();
+                  transientHitTestSource = null;
+                  pendingTouch = null;
                 });
 
                 // Обработка жестов в AR
@@ -1048,19 +1060,45 @@
           }
         }
 
+        // transient input hit-test по координатам касания
+        if (renderer.xr.isPresenting && transientHitTestSource && pendingTouch && frame) {
+          const hitTestResults = frame.getHitTestResultsForTransientInput(transientHitTestSource);
+          if (hitTestResults && hitTestResults.length > 0) {
+            for (const hit of hitTestResults) {
+              if (hit.inputSource && hit.inputSource.targetRayMode === 'screen') {
+                if (hit.results.length > 0) {
+                  const pose = hit.results[0].getPose(renderer.xr.getReferenceSpace());
+                  if (pose) {
+                    model.position.set(
+                      pose.transform.position.x,
+                      pose.transform.position.y,
+                      pose.transform.position.z
+                    );
+                    model.visible = true;
+                    catPlaced = true;
+                    reticle.visible = false;
+                    startTime = Date.now();
+                    pendingTouch = null;
+                    break;
+                  }
+                }
+              }
+            }
+          }
+        }
+
         renderer.render(scene, camera);
       });
     }
 
-    // Обработка тапа для размещения кота
+    // Обработка тапа для размещения кота по касанию
     renderer.domElement.addEventListener('click', function(event) {
-      if (renderer.xr.isPresenting && !catPlaced && reticleVisible) {
-        // Размещаем кота в позиции reticle
-        model.position.copy(placementPosition);
-        model.visible = true;
-        catPlaced = true;
-        reticle.visible = false;
-        startTime = Date.now(); // Запускаем сценарий
+      if (renderer.xr.isPresenting && !catPlaced) {
+        // Сохраняем координаты касания
+        pendingTouch = {
+          x: event.clientX,
+          y: event.clientY
+        };
       }
     });
   </script>
