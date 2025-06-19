@@ -84,6 +84,9 @@
     let firstRightTurnDone = false;
     let secondRightTurnDone = false;
     let catPlaced = false; // Флаг: кот размещён
+    let reticle = null; // Индикатор точки размещения
+    let reticleVisible = false;
+    let placementPosition = new THREE.Vector3();
 
     init();
     animate();
@@ -613,6 +616,14 @@
                 }
               }
       );
+
+      // Создаём reticle (кольцо)
+      const ringGeometry = new THREE.RingGeometry(0.12, 0.15, 32).rotateX(-Math.PI / 2);
+      const ringMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00, side: THREE.DoubleSide, transparent: true, opacity: 0.7 });
+      reticle = new THREE.Mesh(ringGeometry, ringMaterial);
+      reticle.matrixAutoUpdate = false;
+      reticle.visible = false;
+      scene.add(reticle);
     }
 
     function onWindowResize() {
@@ -689,17 +700,19 @@
               const hit = hitTestResults[0];
               const pose = hit.getPose(referenceSpace);
               if (pose) {
-                // Устанавливаем позицию кота в точку попадания
-                model.position.set(pose.transform.position.x, pose.transform.position.y, pose.transform.position.z);
-                model.visible = true;
-                catPlaced = true;
-                startTime = Date.now(); // Запускаем сценарий движения
+                // Показываем reticle в точке попадания
+                reticle.visible = true;
+                reticle.matrix.fromArray(pose.transform.matrix);
+                reticleVisible = true;
+                placementPosition.set(pose.transform.position.x, pose.transform.position.y, pose.transform.position.z);
               }
+            } else {
+              reticle.visible = false;
+              reticleVisible = false;
             }
           }
-          // Показываем reticle или подсказку (опционально)
           renderer.render(scene, camera);
-          return; // Ждём размещения кота, не запускаем основной сценарий
+          return;
         }
 
         if (renderer.xr.isPresenting) {
@@ -1032,6 +1045,18 @@
         renderer.render(scene, camera);
       });
     }
+
+    // Обработка тапа для размещения кота
+    renderer.domElement.addEventListener('click', function(event) {
+      if (renderer.xr.isPresenting && !catPlaced && reticleVisible) {
+        // Размещаем кота в позиции reticle
+        model.position.copy(placementPosition);
+        model.visible = true;
+        catPlaced = true;
+        reticle.visible = false;
+        startTime = Date.now(); // Запускаем сценарий
+      }
+    });
   </script>
 </head>
 <body>
