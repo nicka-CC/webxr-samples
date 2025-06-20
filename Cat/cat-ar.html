@@ -366,7 +366,8 @@
                 model = gltf.scene;
                 model.scale.set(0.5,0.5, 0.5);
                 model.position.set(0, -10, -16); // Устанавливаем начальную позицию
-                model.visible = false; // Кот невидим до размещения через hit-test
+                model.visible = false;
+                model.poition.y = -0.4;// Кот невидим до размещения через hit-test
 
                 // Проверяем материалы модели
                 model.traverse((child) => {
