@@ -1061,6 +1061,7 @@
       if (renderer.xr.isPresenting && !catPlaced && reticleVisible) {
         // Размещаем кота в позиции reticle
         model.position.copy(placementPosition);
+        model.position.y = -5;
         model.visible = true;
         catPlaced = true;
         reticle.visible = false;
