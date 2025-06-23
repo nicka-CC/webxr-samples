@@ -581,6 +581,30 @@
           const delta = clock.getDelta();
           mixer.update(delta);
         }
+        // --- ВОССТАНАВЛИВАЕМ reticle (зелёный круг) ---
+        if (renderer.xr.isPresenting && hitTestSource && !catPlaced && frame) {
+          const referenceSpace = renderer.xr.getReferenceSpace();
+          const hitTestResults = frame.getHitTestResults(hitTestSource);
+          if (hitTestResults.length > 0) {
+            const hit = hitTestResults[0];
+            const pose = hit.getPose(referenceSpace);
+            if (pose) {
+              reticle.visible = true;
+              reticle.matrix.fromArray(pose.transform.matrix);
+              reticleVisible = true;
+              placementPosition.set(
+                pose.transform.position.x,
+                pose.transform.position.y,
+                pose.transform.position.z
+              );
+            }
+          } else {
+            reticle.visible = false;
+            reticleVisible = false;
+          }
+          renderer.render(scene, camera);
+          return;
+        }
         // === Сценарий ===
         if (renderer.xr.isPresenting && catPlaced) {
           if (elapsedTime < 1.5) {
