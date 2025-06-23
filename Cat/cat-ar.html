@@ -74,7 +74,7 @@
     let isRotating = false;
     let lastHitPosition = null;
     let rotationSpeed = 15;
-    let moveSpeed = 0.025;
+    let moveSpeed = 0.05;
     let startTime = 0;
     let audioElement = null;
     let lookAtViewerTime = 0;
@@ -1065,7 +1065,7 @@
         model.visible = true;
         catPlaced = true;
         reticle.visible = false;
-
+        startTime = Date.now(); // Запускаем сценарий
       }
     });
   </script>
