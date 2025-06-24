@@ -657,7 +657,7 @@
             model.rotation.y -= Math.PI / 2 * clock.getDelta();
           } else if (elapsedTime < 32.0) {
             currentModel = 'tell';
-            playAnimationIfNeeded(1, THREE.LoopRepeat, 2.0);
+            playAnimationIfNeeded(3, THREE.LoopRepeat, 2.0);
             model.rotation.y = 0;
             if (audioElement && audioElement.paused) {
               audioElement.currentTime = 0;
