@@ -383,10 +383,17 @@
           // === Ищем кость правой передней лапы ===
           let rightHandBone = null;
           model.traverse((obj) => {
-            if (obj.isBone && obj.name === 'hand.r') {
-              rightHandBone = obj;
+            if (obj.isBone) {
+              if (obj.name === 'mixamorigRightHand_037') {
+                rightHandBone = obj;
+              }
             }
           });
+          if (rightHandBone) {
+            console.log('Кость mixamorigRightHand_037 найдена:', rightHandBone);
+          } else {
+            console.warn('Кость mixamorigRightHand_037 не найдена!');
+          }
           scene.add(model);
           // === Сохраняем кость для анимации ===
           window.rightHandBone = rightHandBone; // для отладки
