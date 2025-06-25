@@ -83,6 +83,11 @@
     let reticleVisible = false;
     let placementPosition = new THREE.Vector3();
     let lastAnimationIndex = null;
+    let circleMode = false;
+let circleRadius = 2.5; // радиус окружности
+let circleCenter = new THREE.Vector3(0, 0, 0); // центр окружности (можно изменить)
+let circleAngle = 0; // текущий угол (в радианах)
+let circleSpeed = Math.PI / 4; // скорость обхода (рад/сек)
 
     init();
     animate();
@@ -626,10 +631,10 @@
             model.visible = true;
             model.rotation.y = Math.PI / 2 + Math.PI;
             model.position.x -= moveSpeed;
-            playAnimationIfNeeded(4, THREE.LoopRepeat, 1.0); // Walking
+            playAnimationIfNeeded(3, THREE.LoopRepeat, 1.0); // Walking
           } else if (elapsedTime < 3.5) {
             currentModel = 'left';
-            playAnimationIfNeeded(1, THREE.LoopRepeat, 1.0); // Idle
+            playAnimationIfNeeded(4, THREE.LoopRepeat, 1.0); // Idle
             model.rotation.y += Math.PI / 2 * clock.getDelta();
           } else if (elapsedTime < 17.0) {
             currentModel = 'tell';
@@ -643,21 +648,21 @@
             }
           } else if (elapsedTime < 19.0) {
             currentModel = 'right';
-            playAnimationIfNeeded(1, THREE.LoopRepeat, 1.0); // Idle
+            playAnimationIfNeeded(4, THREE.LoopRepeat, 1.0); // Idle
             model.rotation.y -= Math.PI / 2 * clock.getDelta();
           } else if (elapsedTime < 23.0) {
             currentModel = 'walk';
             model.visible = true;
             model.rotation.y = -Math.PI / 2 + Math.PI;
             model.position.x += moveSpeed;
-            playAnimationIfNeeded(4, THREE.LoopRepeat, 1.0); // Walking
+            playAnimationIfNeeded(3, THREE.LoopRepeat, 1.0); // Walking
           } else if (elapsedTime < 26.0) {
             currentModel = 'right';
-            playAnimationIfNeeded(1, THREE.LoopRepeat, 1.0); // Idle
+            playAnimationIfNeeded(4, THREE.LoopRepeat, 1.0); // Idle
             model.rotation.y -= Math.PI / 2 * clock.getDelta();
           } else if (elapsedTime < 32.0) {
             currentModel = 'tell';
-            playAnimationIfNeeded(3, THREE.LoopRepeat, 2.0);
+            playAnimationIfNeeded(1, THREE.LoopRepeat, 2.0);
             model.rotation.y = 0;
             if (audioElement && audioElement.paused) {
               audioElement.currentTime = 0;
@@ -667,7 +672,7 @@
             }
           } else if (elapsedTime < 34.0) {
             currentModel = 'left';
-            playAnimationIfNeeded(1, THREE.LoopRepeat, 1.0);
+            playAnimationIfNeeded(4, THREE.LoopRepeat, 1.0);
             model.rotation.y += Math.PI / 2 * clock.getDelta();
           } else if (elapsedTime < 36.0) {
             currentModel = 'walk';
@@ -675,10 +680,10 @@
             model.rotation.y = -Math.PI * 3 / 4;
             model.position.x -= moveSpeed * 0.7;
             model.position.z -= moveSpeed * 0.7;
-            playAnimationIfNeeded(4, THREE.LoopRepeat, 1.0);
+            playAnimationIfNeeded(3, THREE.LoopRepeat, 1.0);
           } else if (elapsedTime < 38) {
             currentModel = 'left';
-            playAnimationIfNeeded(1, THREE.LoopRepeat, 1.0);
+            playAnimationIfNeeded(4, THREE.LoopRepeat, 1.0);
             model.rotation.y += Math.PI / 2 * clock.getDelta();
           } else if (elapsedTime < 68) {
             currentModel = 'tell';
@@ -696,7 +701,7 @@
             model.rotation.y = 0;
             model.position.z += moveSpeed;
             playAnimationIfNeeded(4, THREE.LoopRepeat, 1.0);
-          } else if (elapsedTime < 190) {
+          } else if (elapsedTime < 100) {
             currentModel = 'tell';
             playAnimationIfNeeded(1, THREE.LoopRepeat, 2.0);
             model.rotation.y = 0;
@@ -706,7 +711,26 @@
                 console.error('Ошибка воспроизведения звука:', error);
               });
             }
-          } else {
+          } else if (!circleMode) {
+  // Переход в режим движения по окружности
+  circleMode = true;
+  // Можно задать центр окружности в текущей позиции кота:
+  circleCenter.copy(model.position);
+  circleAngle = 0;
+  lastAnimationIndex = null;
+  currentModel = 'walk';
+  playAnimationIfNeeded(4, THREE.LoopRepeat, 1.0);
+} else if (circleMode) {
+  // Движение по окружности
+  let delta = clock.getDelta();
+  circleAngle += circleSpeed * delta;
+  model.position.x = circleCenter.x + circleRadius * Math.cos(circleAngle);
+  model.position.z = circleCenter.z + circleRadius * Math.sin(circleAngle);
+  // Поворачиваем кота по ходу движения
+  model.rotation.y = -circleAngle + Math.PI / 2;
+  currentModel = 'walk';
+  playAnimationIfNeeded(4, THREE.LoopRepeat, 1.0);
+} else {
             startTime = Date.now();
             lastAnimationIndex = null;
           }
