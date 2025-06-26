@@ -633,6 +633,7 @@ let circleSpeed = Math.PI / 4; // скорость обхода (рад/сек)
             model.rotation.y = Math.PI / 2 + Math.PI;
             model.position.x -= moveSpeed;
             playAnimationIfNeeded(3, THREE.LoopRepeat, 1.0); // Walking
+            playAnimation(2, THREE.LoopRepeat, 1.0);
           } else if (elapsedTime < 3.5) {
             currentModel = 'left';
             playAnimationIfNeeded(4, THREE.LoopRepeat, 1.0); // Idle
