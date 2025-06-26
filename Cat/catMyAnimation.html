@@ -520,9 +520,10 @@
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Accept': 'application/json'  // Добавляем Accept заголовок
+            'Accept': 'application/json',
+            'api_key': 'analyticTh1vgqq6t4HaOmayyt3JT74CfjzB0dR714ka4C8UUcOyfZp3BN9rskgN'// Добавляем Accept заголовок
           },
-          credentials: 'include',  // Добавляем для работы с куками
+           // Добавляем для работы с куками
         })
                 .then(response => {
                   if (!response.ok) {  // Добавляем проверку статуса
