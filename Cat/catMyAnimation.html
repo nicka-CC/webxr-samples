@@ -665,8 +665,8 @@
           window.middleHandBone.rotation.z = Math.sin(t) * 0.7;
         }
         if(renderer.xr.isPresenting && catPlaced && window.mixamorigRightArm){
-          const t = performance.now() * 0.00005;
-          window.mixamorigRightArm.rotation.z = Math.sin(t) * 0.5;
+          const t = performance.now() * 0.05;
+          window.mixamorigRightArm.rotation.z = Math.sin(t) * 0.7;
         }
         renderer.render(scene, camera);
       });
