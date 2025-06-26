@@ -511,7 +511,36 @@
       );
 
       // Добавляем кнопку AR
-      document.body.appendChild(ARButton.createButton(renderer, { requiredFeatures: ['hit-test'] }));
+      // Создаём AR-кнопку и добавляем на страницу
+      const arBtn = ARButton.createButton(renderer, { requiredFeatures: ['hit-test'] });
+      document.body.appendChild(arBtn);
+
+      arBtn.addEventListener('click', () => {
+        fetch('https://analytic.iwater-crm.online/webxr/create?browser=Yandex', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'  // Добавляем Accept заголовок
+          },
+          credentials: 'include',  // Добавляем для работы с куками
+        })
+                .then(response => {
+                  if (!response.ok) {  // Добавляем проверку статуса
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                  }
+                  return response.json();
+                })
+                .then(result => {
+                  console.log('Успешный ответ:', result);
+                })
+                .catch(error => {
+                  console.error('Ошибка fetch:', error);
+                  // Добавляем более подробный вывод ошибки
+                  if (error instanceof TypeError) {
+                    console.error('Возможно проблема с CORS или сервер не доступен');
+                  }
+                });
+      });
 
       // Обработка жестов для анимаций
       let lastTapTime = 0;
