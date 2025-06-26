@@ -384,6 +384,7 @@
           let rightHandBone = null;
           let middleHandLeftNone = null;
           let mixamorigRightArm = null;
+          let mixamorigLeftFoot_00 = null;
           model.traverse((obj) => {
             if (obj.isBone) {
               if (obj.name === 'mixamorigRightHand_037') {
@@ -394,6 +395,9 @@
               }
               if(obj.name === 'mixamorigRightArm_035') {
                 mixamorigRightArm = obj;
+              }
+              if(obj.name === 'mixamorigLeftFoot_00') {
+                mixamorigLeftFoot_00 = obj;
               }
             }
           });
@@ -407,6 +411,7 @@
           window.rightHandBone = rightHandBone; // для отладки
           window.middleHandBone = middleHandLeftNone;
           window.mixamorigRightArm = mixamorigRightArm;
+          window.mixamorigLeftFoot_00 = mixamorigLeftFoot_00;
           // Проверка наличия skinned mesh и костей
           model.traverse(obj => { if (obj.isSkinnedMesh) console.log('SkinnedMesh:', obj.name); });
           model.traverse(obj => { if (obj.isBone) console.log('Bone:', obj.name); });
@@ -668,6 +673,11 @@
           const t = performance.now() * 0.0005;
           window.mixamorigRightArm.rotation.z = Math.sin(t) * 0.7;
         }
+        if(renderer.xr.isPresenting && catPlaced && window.mixamorigLeftFoot_00){
+          const t = performance.now() * 0.0005;
+          window.mixamorigLeftFoot_00.rotation.z = Math.sin(t) * 0.7;
+        }
+
         renderer.render(scene, camera);
       });
     }
