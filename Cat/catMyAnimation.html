@@ -382,10 +382,14 @@
           });
           // === Ищем кость правой передней лапы ===
           let rightHandBone = null;
+          let middleHandLeftNone = null;
           model.traverse((obj) => {
             if (obj.isBone) {
               if (obj.name === 'mixamorigRightHand_037') {
                 rightHandBone = obj;
+              }
+              if(obj.name === 'mixamorigLeftHandIndex1_018') {
+                middleHandLeftNone = obj;
               }
             }
           });
@@ -397,6 +401,7 @@
           scene.add(model);
           // === Сохраняем кость для анимации ===
           window.rightHandBone = rightHandBone; // для отладки
+          window.middleHandBone = middleHandLeftNone;
           // Проверка наличия skinned mesh и костей
           model.traverse(obj => { if (obj.isSkinnedMesh) console.log('SkinnedMesh:', obj.name); });
           model.traverse(obj => { if (obj.isBone) console.log('Bone:', obj.name); });
@@ -620,6 +625,10 @@
           // Махание лапой: плавное вращение по синусоиде
           const t = performance.now() * 0.002;
           window.rightHandBone.rotation.z = Math.sin(t) * 0.7; // амплитуда маха
+        }
+        if(renderer.xr.isPresenting && catPlaced && window.middleHandBone ){
+          const t = perfomance.now() * 1;
+          window.middleHandBone.rotation.z = Math.sin(t) * 0.7;
         }
         renderer.render(scene, camera);
       });
