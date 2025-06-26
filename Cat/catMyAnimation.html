@@ -627,7 +627,7 @@
           window.rightHandBone.rotation.z = Math.sin(t) * 0.7; // амплитуда маха
         }
         if(renderer.xr.isPresenting && catPlaced && window.middleHandBone ){
-          const t = perfomance.now() * 1;
+          const t = performance.now() * 0.0005;
           window.middleHandBone.rotation.z = Math.sin(t) * 0.7;
         }
         renderer.render(scene, camera);
