@@ -74,7 +74,7 @@
     let isRotating = false;
     let lastHitPosition = null;
     let rotationSpeed = 15;
-    let moveSpeed = 0.05;
+    let moveSpeed = 0.15;
     let startTime = 0;
     let audioElement = null;
     let lookAtViewerTime = 0;
@@ -83,10 +83,6 @@
     let animations2 = [];
     let firstRightTurnDone = false;
     let secondRightTurnDone = false;
-    let catPlaced = false; // Флаг: кот размещён
-    let reticle = null; // Индикатор точки размещения
-    let reticleVisible = false;
-    let placementPosition = new THREE.Vector3();
 
     init();
     animate();
@@ -191,7 +187,7 @@
       audioElement.volume = 1.0;
 
       // Создаем камеру
-      camera = new THREE.PerspectiveCamera(110, window.innerWidth / window.innerHeight, 0.001, 500);
+      camera = new THREE.PerspectiveCamera(90, window.innerWidth / window.innerHeight, 0.01, 120);
       camera.position.set(0, 0, 3);
 
 
@@ -247,7 +243,7 @@
       const infoDiv = document.createElement('div');
       infoDiv.id = 'info';
       infoDiv.innerHTML = `
-        <h3>AR Котики</h3>
+         <h3>AR Котики</h3>
         <p>Статус: <span id="status">Загрузка...</span></p>
         <p>Анимации: <span id="animations">Проверка...</span></p>
         <p>AR статус: <span id="ar-status">Ожидание...</span></p>
@@ -361,13 +357,11 @@
       // Загружаем модель
       const loader = new GLTFLoader();
       loader.load(
-              './walk3.glb',
+              './walk2.glb',
               function (gltf) {
                 model = gltf.scene;
-                model.scale.set(0.3,0.3, 0.3);
+                model.scale.set(2.5,2.5, 2.5);
                 model.position.set(0, -10, -16); // Устанавливаем начальную позицию
-                model.visible = false;
-                model.position.y = -5;// Кот невидим до размещения через hit-test
 
                 // Проверяем материалы модели
                 model.traverse((child) => {
@@ -428,15 +422,6 @@
                       sessionMode: session.mode,
                       enabledFeatures: session.enabledFeatures,
                       renderState: session.renderState
-                    });
-                    session.addEventListener('select', function() {
-                      if (!catPlaced && reticleVisible) {
-                        model.position.copy(placementPosition);
-                        model.visible = true;
-                        catPlaced = true;
-                        reticle.visible = false;
-                        startTime = Date.now();
-                      }
                     });
                   }
                   session.requestReferenceSpace('viewer').then((referenceSpace) => {
@@ -499,8 +484,37 @@
       );
 
       // Добавляем кнопку AR
-      document.body.appendChild(ARButton.createButton(renderer, { requiredFeatures: ['hit-test'] }));
 
+      const arBtn = ARButton.createButton(renderer);
+      document.body.appendChild(arBtn);
+
+      arBtn.addEventListener('click', () => {
+        fetch('https://analytic.iwater-crm.online/webxr/create?browser=Yandex', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'api_key': 'analyticTh1vgqq6t4HaOmayyt3JT74CfjzB0dR714ka4C8UUcOyfZp3BN9rskgN'// Добавляем Accept заголовок
+          },
+          // Добавляем для работы с куками
+        })
+                .then(response => {
+                  if (!response.ok) {  // Добавляем проверку статуса
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                  }
+                  return response.json();
+                })
+                .then(result => {
+                  console.log('Успешный ответ:', result);
+                })
+                .catch(error => {
+                  console.error('Ошибка fetch:', error);
+                  // Добавляем более подробный вывод ошибки
+                  if (error instanceof TypeError) {
+                    console.error('Возможно проблема с CORS или сервер не доступен');
+                  }
+                });
+      });
       // Обработка жестов для анимаций
       let lastTapTime = 0;
       renderer.domElement.addEventListener('click', function(event) {
@@ -537,10 +551,9 @@
               './tell2.glb',
               function (gltf) {
                 model2 = gltf.scene;
-                model2.scale.set(0.3, 0.3, 0.3);
+                model2.scale.set(2.5, 2.5, 2.5);
                 model2.position.set(0, -10, -16);
                 model2.visible = false;
-                model.position.y = -5;
 
                 model2.traverse((child) => {
                   if (child.isMesh && child.material) {
@@ -573,10 +586,9 @@
               './left.glb',
               function (gltf) {
                 modelLeft = gltf.scene;
-                modelLeft.scale.set(0.3, 0.3, 0.3);
+                modelLeft.scale.set(2.5, 2.5, 2.5);
                 modelLeft.position.set(0, -10, -16);
                 modelLeft.visible = false;
-                model.position.y = -5;
 
                 modelLeft.traverse((child) => {
                   if (child.isMesh && child.material) {
@@ -604,10 +616,9 @@
               './right.glb',
               function (gltf) {
                 modelRight = gltf.scene;
-                modelRight.scale.set(0.3, 0.3, 0.3);
+                modelRight.scale.set(2.5, 2.5, 2.5);
                 modelRight.position.set(0, -10, -16);
                 modelRight.visible = false;
-                model.position.y = -5;
 
                 modelRight.traverse((child) => {
                   if (child.isMesh && child.material) {
@@ -630,14 +641,6 @@
                 }
               }
       );
-
-      // Создаём reticle (кольцо)
-      const ringGeometry = new THREE.RingGeometry(0.12, 0.15, 32).rotateX(-Math.PI / 2);
-      const ringMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00, side: THREE.DoubleSide, transparent: true, opacity: 0.7 });
-      reticle = new THREE.Mesh(ringGeometry, ringMaterial);
-      reticle.matrixAutoUpdate = false;
-      reticle.visible = false;
-      scene.add(reticle);
     }
 
     function onWindowResize() {
@@ -681,7 +684,7 @@
     }
 
     function animate() {
-      renderer.setAnimationLoop(function(timestamp, frame) {
+      renderer.setAnimationLoop(function() {
         const currentTime = Date.now();
         const elapsedTime = (currentTime - startTime) / 1000;
 
@@ -704,28 +707,7 @@
         }
 
         // Двигаем модель в AR режиме
-        if (renderer.xr.isPresenting && hitTestSource && !catPlaced && frame) {
-          const referenceSpace = renderer.xr.getReferenceSpace();
-          const hitTestResults = frame.getHitTestResults(hitTestSource);
-          if (hitTestResults.length > 0) {
-            const hit = hitTestResults[0];
-            const pose = hit.getPose(referenceSpace);
-            if (pose) {
-              // Показываем reticle в точке попадания
-              reticle.visible = true;
-              reticle.matrix.fromArray(pose.transform.matrix);
-              reticleVisible = true;
-              placementPosition.set(pose.transform.position.x, pose.transform.position.y, pose.transform.position.z);
-            }
-          } else {
-            reticle.visible = false;
-            reticleVisible = false;
-          }
-          renderer.render(scene, camera);
-          return;
-        }
-
-        if (renderer.xr.isPresenting && catPlaced) {
+        if (model && model2 && modelLeft && modelRight && renderer.xr.isPresenting) {
           if (elapsedTime < 1.5) {
             // Движение влево
             currentModel = 'walk';
@@ -812,6 +794,32 @@
               mixerRight.update(clock.getDelta());
             }
           }
+                  // else if (elapsedTime < 21.0) {
+                  //   // Поворот направо
+                  //   currentModel = 'right';
+                  //   model.visible = false;
+                  //   model2.visible = false;
+                  //   modelLeft.visible = false;
+                  //   modelRight.visible = true;
+                  //   modelRight.position.copy(modelRight.position);
+                  //   modelRight.rotation.y = modelRight.rotation.y;
+                  //   if (mixerRight && animationsRight.length > 0 && !secondRightTurnDone) {
+                  //     const rightAnimation = mixerRight.clipAction(animationsRight[0]);
+                  //     if (!rightAnimation.isRunning()) {
+                  //       rightAnimation.stop()
+                  //       rightAnimation.reset();
+                  //       rightAnimation.setLoop(THREE.LoopOnce);
+                  //       rightAnimation.clampWhenFinished = true;
+                  //       rightAnimation.timeScale = 19.0;
+                  //       rightAnimation.time = 0; // Сбрасываем время анимации
+                  //       rightAnimation.play();
+                  //     }
+                  //     if (rightAnimation.time >= rightAnimation.getClip().duration) {
+                  //       secondRightTurnDone = true;
+                  //     }
+                  //     mixerRight.update(clock.getDelta());
+                  //   }
+          // }
           else if (elapsedTime < 23.0) {
             // Движение вправо
             currentModel = 'walk';
@@ -1055,19 +1063,6 @@
         renderer.render(scene, camera);
       });
     }
-
-    // Обработка тапа для размещения кота
-    renderer.domElement.addEventListener('click', function(event) {
-      if (renderer.xr.isPresenting && !catPlaced && reticleVisible) {
-        // Размещаем кота в позиции reticle
-        model.position.copy(placementPosition);
-        // model.position.y = -5;
-        model.visible = true;
-        catPlaced = true;
-        reticle.visible = false;
-        startTime = Date.now(); // Запускаем сценарий
-      }
-    });
   </script>
 </head>
 <body>
