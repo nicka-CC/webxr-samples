@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="JetClientState">
+    <option name="folders">
+      <list>
+        <folderState>
+          <option name="environmentGroups">
+            <list>
+              <environmentGroupState>
+                <option name="name" value="Default" />
+              </environmentGroupState>
+            </list>
+          </option>
+          <option name="folders">
+            <list>
+              <folderState>
+                <option name="id" value="7991f81e-041e-4251-8a5a-1c1e6c9db5d3" />
+                <option name="name" value="New Folder" />
+                <option name="requests">
+                  <list>
+                    <requestState>
+                      <option name="headers">
+                        <list>
+                          <headerState>
+                            <option name="key" value="api_key" />
+                            <option name="value" value="analyticTh1vgqq6t4HaOmayyt3JT74CfjzB0dR714ka4C8UUcOyfZp3BN9rskgN" />
+                          </headerState>
+                        </list>
+                      </option>
+                      <option name="id" value="91cc5e22-a5ea-4288-aa88-569d60988ad0" />
+                      <option name="method" value="POST" />
+                      <option name="name" value="New Request" />
+                      <option name="queryParams">
+                        <list>
+                          <queryParamState>
+                            <option name="key" value="browser" />
+                            <option name="value" value="Yandex" />
+                          </queryParamState>
+                        </list>
+                      </option>
+                      <option name="sortWeight" value="1000000" />
+                      <option name="url" value="https://analytic.iwater-crm.online/webxr/create?browser=Yandex" />
+                    </requestState>
+                  </list>
+                </option>
+                <option name="sortWeight" value="1000000" />
+              </folderState>
+            </list>
+          </option>
+          <option name="id" value="7a1e207d-6335-45ef-b547-7aff42181a48" />
+          <option name="name" value="New Project" />
+          <option name="selectedEnvironmentIds">
+            <map>
+              <entry key="default" />
+            </map>
+          </option>
+          <option name="syncProperties">
+            <synchronizationPropertiesState>
+              <option name="autoSync" value="true" />
+              <option name="folderPath" value="D:\Documents\DEV\endi\samples\.jetclient" />
+            </synchronizationPropertiesState>
+          </option>
+        </folderState>
+      </list>
+    </option>
+    <option name="id" value="b005dd59-fd48-4859-83b4-7bc0b9ee120f" />
+    <option name="version" value="6" />
+  </component>
+</project>

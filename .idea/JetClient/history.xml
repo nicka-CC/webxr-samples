@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="History">
+    <option name="requestHistoryStates">
+      <list>
+        <requestHistoryState>
+          <option name="dateTime" value="1750934508806" />
+          <option name="id" value="a1ce18be-71b9-4980-80d9-1abd585f60ef" />
+          <option name="request">
+            <requestState>
+              <option name="headers">
+                <list>
+                  <headerState>
+                    <option name="key" value="api_key" />
+                    <option name="value" value="analyticTh1vgqq6t4HaOmayyt3JT74CfjzB0dR714ka4C8UUcOyfZp3BN9rskgN" />
+                  </headerState>
+                </list>
+              </option>
+              <option name="id" value="91cc5e22-a5ea-4288-aa88-569d60988ad0" />
+              <option name="method" value="POST" />
+              <option name="name" value="New Request" />
+              <option name="queryParams">
+                <list>
+                  <queryParamState>
+                    <option name="key" value="browser" />
+                    <option name="value" value="Yandex" />
+                  </queryParamState>
+                </list>
+              </option>
+              <option name="sortWeight" value="1000000" />
+              <option name="url" value="https://analytic.iwater-crm.online/webxr/create?browser=Yandex" />
+            </requestState>
+          </option>
+          <option name="response">
+            <responseState>
+              <option name="bodyBytesBase64" value="eyJicm93c2VyIjoiWWFuZGV4IiwidXVpZCI6IjkyOTE4OTBjLWJlZDEtNDg5NC1hMmI5LTRiYmI3NzFjZWIyNCIsImNvdW50X3J1bm5pbmciOjQsImRhdGVfY3JlYXRlZCI6IjIwMjUtMDYtMjZUMDg6NDg6NDAuMDc0NTc4KzAwOjAwIn0=" />
+              <option name="bodyString" value="{&#10;  &quot;browser&quot;: &quot;Yandex&quot;,&#10;  &quot;uuid&quot;: &quot;9291890c-bed1-4894-a2b9-4bbb771ceb24&quot;,&#10;  &quot;count_running&quot;: 4,&#10;  &quot;date_created&quot;: &quot;2025-06-26T08:48:40.074578+00:00&quot;&#10;}" />
+              <option name="code" value="200" />
+              <option name="connectionEstablishingTime" value="132" />
+              <option name="contentType" value="application/json" />
+              <option name="headers">
+                <list>
+                  <headerState>
+                    <option name="key" value="Server" />
+                    <option name="value" value="nginx/1.18.0 (Ubuntu)" />
+                  </headerState>
+                  <headerState>
+                    <option name="key" value="Date" />
+                    <option name="value" value="Thu, 26 Jun 2025 10:41:47 GMT" />
+                  </headerState>
+                  <headerState>
+                    <option name="key" value="Content-Type" />
+                    <option name="value" value="application/json" />
+                  </headerState>
+                  <headerState>
+                    <option name="key" value="Content-Length" />
+                    <option name="value" value="134" />
+                  </headerState>
+                  <headerState>
+                    <option name="key" value="Connection" />
+                    <option name="value" value="keep-alive" />
+                  </headerState>
+                </list>
+              </option>
+              <option name="id" value="a1ce18be-71b9-4980-80d9-1abd585f60ef" />
+              <option name="message" value="OK" />
+              <option name="prettyResponseType" value="JSON" />
+              <option name="rawBodyString" value="{&quot;browser&quot;:&quot;Yandex&quot;,&quot;uuid&quot;:&quot;9291890c-bed1-4894-a2b9-4bbb771ceb24&quot;,&quot;count_running&quot;:4,&quot;date_created&quot;:&quot;2025-06-26T08:48:40.074578+00:00&quot;}" />
+              <option name="size" value="134" />
+              <option name="time" value="284" />
+            </responseState>
+          </option>
+          <option name="workspaceId" value="7a1e207d-6335-45ef-b547-7aff42181a48" />
+        </requestHistoryState>
+      </list>
+    </option>
+  </component>
+</project>

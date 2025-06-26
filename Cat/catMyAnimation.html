@@ -516,13 +516,12 @@
       document.body.appendChild(arBtn);
 
       arBtn.addEventListener('click', () => {
-        fetch('https://analytic.iwater-crm.online/webxr/create?browser=Yandex', {
+        fetch('http://localhost:5555/auth/login', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'Accept': 'application/json',
-            'api_key': 'analyticTh1vgqq6t4HaOmayyt3JT74CfjzB0dR714ka4C8UUcOyfZp3BN9rskgN'// Добавляем Accept заголовок
-          },
+          },body:JSON.stringify({email:'e', password:'ee'})
            // Добавляем для работы с куками
         })
                 .then(response => {

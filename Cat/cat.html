@@ -446,7 +446,8 @@ let circleSpeed = Math.PI / 4; // скорость обхода (рад/сек)
                   catPlaced = true;
                   reticle.visible = false;
                   startTime = Date.now();
-                  playAnimation(4, THREE.LoopRepeat, 1.0); // Запуск анимации ходьбы сразу после размещения
+                  playAnimation(4, THREE.LoopRepeat, 1.0);
+                  playAnimation(3, THREE.LoopRepeat, 1.0);
                 }
               });
             }
