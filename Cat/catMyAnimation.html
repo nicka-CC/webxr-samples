@@ -525,33 +525,6 @@
       const arBtn = ARButton.createButton(renderer, { requiredFeatures: ['hit-test'] });
       document.body.appendChild(arBtn);
 
-      arBtn.addEventListener('click', () => {
-        fetch('http://localhost:5555/auth/login', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-          },body:JSON.stringify({email:'e', password:'ee'})
-           // Добавляем для работы с куками
-        })
-                .then(response => {
-                  if (!response.ok) {  // Добавляем проверку статуса
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                  }
-                  return response.json();
-                })
-                .then(result => {
-                  console.log('Успешный ответ:', result);
-                })
-                .catch(error => {
-                  console.error('Ошибка fetch:', error);
-                  // Добавляем более подробный вывод ошибки
-                  if (error instanceof TypeError) {
-                    console.error('Возможно проблема с CORS или сервер не доступен');
-                  }
-                });
-      });
-
       // Обработка жестов для анимаций
       let lastTapTime = 0;
       renderer.domElement.addEventListener('click', function(event) {
