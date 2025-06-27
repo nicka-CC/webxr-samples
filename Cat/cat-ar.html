@@ -1062,10 +1062,13 @@
         // Размещаем кота в позиции reticle
         model.position.copy(placementPosition);
         // model.position.y = -5;
+        const cameraRotation = new THREE.Euler().setFromQuaternion(camera.quaternion, 'YXZ');
+        model.rotation.y = cameraRotation.y;
+
         model.visible = true;
         catPlaced = true;
         reticle.visible = false;
-        startTime = Date.now(); // Запускаем сценарий
+        startTime = Date.now();  // Запускаем сценарий
       }
     });
   </script>
