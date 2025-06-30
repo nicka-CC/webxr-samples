@@ -709,11 +709,7 @@
           const hitTestResults = frame.getHitTestResults(hitTestSource);
           if (hitTestResults.length > 0) {
             const hit = hitTestResults[0];
-            const viewerPose = frame.getViewerPose(referenceSpace);
-            if (viewerPose) {
-              const pos = viewerPose.transform.position;
-              lastViewerPosition.set(pos.x, pos.y, pos.z);
-            }
+            const pose = hit.getPose(referenceSpace);
             if (pose) {
               // Показываем reticle в точке попадания
               reticle.visible = true;
@@ -1066,13 +1062,9 @@
         // Размещаем кота в позиции reticle
         model.position.copy(placementPosition);
         // model.position.y = -5;
-        // const cameraRotation = new THREE.Euler().setFromQuaternion(camera.quaternion, 'YXZ');
-        // model.rotation.y = cameraRotation.y;
-        const dx = lastViewerPosition.x - placementPosition.x;
-        const dz = lastViewerPosition.z - placementPosition.z;
-        const angle = Math.atan2(dx, dz); // ВНИМАНИЕ: dx, dz (именно так!)
+        const cameraRotation = new THREE.Euler().setFromQuaternion(camera.quaternion, 'YXZ');
+        model.rotation.y = cameraRotation.y;
 
-        model.rotation.y = angle;
         model.visible = true;
         catPlaced = true;
         reticle.visible = false;
