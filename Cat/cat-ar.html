@@ -709,7 +709,11 @@
           const hitTestResults = frame.getHitTestResults(hitTestSource);
           if (hitTestResults.length > 0) {
             const hit = hitTestResults[0];
-            const pose = hit.getPose(referenceSpace);
+            const viewerPose = frame.getViewerPose(referenceSpace);
+            if (viewerPose) {
+              const pos = viewerPose.transform.position;
+              lastViewerPosition.set(pos.x, pos.y, pos.z);
+            }
             if (pose) {
               // Показываем reticle в точке попадания
               reticle.visible = true;
