@@ -1062,9 +1062,18 @@
         // Размещаем кота в позиции reticle
         model.position.copy(placementPosition);
         // model.position.y = -5;
-        const cameraRotation = new THREE.Euler().setFromQuaternion(camera.quaternion, 'YXZ');
+        // const cameraRotation = new THREE.Euler().setFromQuaternion(camera.quaternion, 'YXZ');
         // model.rotation.y = cameraRotation.y;
+        const catPos = placementPosition;
+        const camPos = new THREE.Vector3();
+        camera.getWorldPosition(camPos);
 
+        // Вычисляем угол между котом и камерой по горизонтали (Y)
+        const dx = camPos.x - catPos.x;
+        const dz = camPos.z - catPos.z;
+        const angle = Math.atan2(dx, dz); // ВНИМАНИЕ: dx, dz (именно так!)
+
+        model.rotation.y = angle;
         model.visible = true;
         catPlaced = true;
         reticle.visible = false;
