@@ -78,6 +78,7 @@
     let isRotating = false;
     let lastHitPosition = null;
     let rotationSpeed = 15;
+    let arSessionActive = false;
 
     init();
     animate();
@@ -146,13 +147,31 @@
             }
           });
           scene.add(model);
-          mixer = new THREE.AnimationMixer(model);
+          if (model.children && model.children.length > 0) {
+            mixer = new THREE.AnimationMixer(model.children[0]);
+            logToScreen('Mixer создан для model.children[0]: ' + model.children[0].name);
+          } else {
+            mixer = new THREE.AnimationMixer(model);
+            logToScreen('Mixer создан для model');
+          }
           animations = gltf.animations;
           logToScreen('Модель загружена, анимаций: ' + animations.length);
           if (animations && animations.length > 0) {
             animations.forEach((clip, idx) => {
               logToScreen('Клип #' + idx + ': ' + clip.name + ', треков: ' + clip.tracks.length);
               logToScreen('Треки: ' + clip.tracks.map(t => t.name).join(', '));
+            });
+          }
+          if (arSessionActive && mixer && animations && animations.length > 0) {
+            animations.forEach((clip, idx) => {
+              const action = mixer.clipAction(clip);
+              action.stop();
+              action.reset();
+              action.setLoop(THREE.LoopRepeat);
+              action.clampWhenFinished = false;
+              action.timeScale = 1.0;
+              action.play();
+              logToScreen('AR: Анимация #' + idx + ' (' + clip.name + ') сброшена и запущена с начала (после загрузки модели)');
             });
           }
           if (animations && animations.length > 0) {
@@ -213,6 +232,7 @@
         document.getElementById('ar-status').textContent = 'AR активен';
         startTime = Date.now();
         clock.start();
+        arSessionActive = true;
         if (audioElement && audioElement.paused) {
           audioElement.currentTime = 0;
           audioElement.play().catch(() => {});
@@ -227,7 +247,7 @@
             action.clampWhenFinished = false;
             action.timeScale = 1.0;
             action.play();
-            logToScreen('AR: Анимация #' + idx + ' (' + clip.name + ') сброшена и запущена с начала');
+            logToScreen('AR: Анимация #' + idx + ' (' + clip.name + ') сброшена и запущена с начала (sessionstart)');
           });
           logToScreen('mixer: ' + (mixer ? 'есть' : 'нет') + ', animations: ' + animations.length);
         } else {
@@ -293,23 +313,25 @@
         if (renderer.xr.isPresenting && model) {
           model.visible = true;
           model.position.set(0, -10, -16);
-          if (mixer && currentAnimation) {
-            if (!currentAnimation.isRunning()) {
-              currentAnimation.reset();
-              currentAnimation.play();
-            }
+          if (mixer) {
             const delta = clock.getDelta();
             mixer.update(delta);
           }
+          // Воспроизведение аудио
           if (audioElement && audioElement.paused) {
             audioElement.currentTime = 0;
             audioElement.play().catch(() => {});
           }
         } else if (model) {
+          // В не-AR режиме скрываем модель и останавливаем анимацию
           model.visible = false;
           model.position.set(0, -1000, -1000);
-          if (currentAnimation && currentAnimation.isRunning()) {
-            currentAnimation.stop();
+          // Остановить все анимации вне AR
+          if (mixer && animations && animations.length > 0) {
+            animations.forEach((clip) => {
+              const action = mixer.clipAction(clip);
+              action.stop();
+            });
           }
           if (audioElement && !audioElement.paused) {
             audioElement.pause();
