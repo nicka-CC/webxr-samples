@@ -484,37 +484,33 @@
       );
 
       // Добавляем кнопку AR
-
-      const arBtn = ARButton.createButton(renderer);
-      document.body.appendChild(arBtn);
-
-      arBtn.addEventListener('click', () => {
-        fetch('https://analytic.iwater-crm.online/webxr/create?browser=Yandex', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-            'api_key': 'analyticTh1vgqq6t4HaOmayyt3JT74CfjzB0dR714ka4C8UUcOyfZp3BN9rskgN'// Добавляем Accept заголовок
-          },
-          // Добавляем для работы с куками
-        })
-                .then(response => {
-                  if (!response.ok) {  // Добавляем проверку статуса
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                  }
-                  return response.json();
-                })
-                .then(result => {
-                  console.log('Успешный ответ:', result);
-                })
-                .catch(error => {
-                  console.error('Ошибка fetch:', error);
-                  // Добавляем более подробный вывод ошибки
-                  if (error instanceof TypeError) {
-                    console.error('Возможно проблема с CORS или сервер не доступен');
-                  }
-                });
-      });
+      // Новый универсальный блок для автозапуска AR
+      if (navigator.xr && navigator.xr.isSessionSupported) {
+        navigator.xr.isSessionSupported('immersive-ar').then(async (supported) => {
+          if (supported) {
+            try {
+              const session = await navigator.xr.requestSession('immersive-ar', { requiredFeatures: ['hit-test'] });
+              renderer.xr.setSession(session);
+              document.getElementById('ar-status').textContent = 'AR запущен автоматически';
+            } catch (e) {
+              // Если не удалось автозапустить — показываем кнопку
+              const arBtn = ARButton.createButton(renderer);
+              document.body.appendChild(arBtn);
+              document.getElementById('ar-status').textContent = 'AR доступен, нажмите кнопку';
+            }
+          } else {
+            // Если не поддерживается — показываем кнопку
+            const arBtn = ARButton.createButton(renderer);
+            document.body.appendChild(arBtn);
+            document.getElementById('ar-status').textContent = 'AR не поддерживается';
+          }
+        });
+      } else {
+        // Если WebXR вообще не поддерживается
+        const arBtn = ARButton.createButton(renderer);
+        document.body.appendChild(arBtn);
+        document.getElementById('ar-status').textContent = 'WebXR не поддерживается';
+      }
       // Обработка жестов для анимаций
       let lastTapTime = 0;
       renderer.domElement.addEventListener('click', function(event) {
@@ -794,32 +790,6 @@
               mixerRight.update(clock.getDelta());
             }
           }
-                  // else if (elapsedTime < 21.0) {
-                  //   // Поворот направо
-                  //   currentModel = 'right';
-                  //   model.visible = false;
-                  //   model2.visible = false;
-                  //   modelLeft.visible = false;
-                  //   modelRight.visible = true;
-                  //   modelRight.position.copy(modelRight.position);
-                  //   modelRight.rotation.y = modelRight.rotation.y;
-                  //   if (mixerRight && animationsRight.length > 0 && !secondRightTurnDone) {
-                  //     const rightAnimation = mixerRight.clipAction(animationsRight[0]);
-                  //     if (!rightAnimation.isRunning()) {
-                  //       rightAnimation.stop()
-                  //       rightAnimation.reset();
-                  //       rightAnimation.setLoop(THREE.LoopOnce);
-                  //       rightAnimation.clampWhenFinished = true;
-                  //       rightAnimation.timeScale = 19.0;
-                  //       rightAnimation.time = 0; // Сбрасываем время анимации
-                  //       rightAnimation.play();
-                  //     }
-                  //     if (rightAnimation.time >= rightAnimation.getClip().duration) {
-                  //       secondRightTurnDone = true;
-                  //     }
-                  //     mixerRight.update(clock.getDelta());
-                  //   }
-          // }
           else if (elapsedTime < 23.0) {
             // Движение вправо
             currentModel = 'walk';
@@ -874,7 +844,6 @@
               }
               mixer2.update(clock.getDelta());
             }
-            // ... existing code ...
           } else if (elapsedTime < 34.0) {
             // Поворот налево
             currentModel = 'left';
