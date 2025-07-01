@@ -202,13 +202,13 @@
         loader.load('./Cate.glb', function (gltf) {
           model = gltf.scene;
           model.scale.set(2.5, 2.5, 2.5);
-          model.position.set(10, -10, -60);
+          model.position.set(10, -10, -70);
           scene.add(model);
           // Добавить свет для новой модели
-          const light = new THREE.HemisphereLight(0xffffff, 0xbbbbff, 1.2);
+          const light = new THREE.HemisphereLight(0xffffff, 0xbbbbff, 1.0);
           light.position.set(0.5, 1, 0.25);
           scene.add(light);
-          const directionalLight = new THREE.DirectionalLight(0xffffff, 1.5);
+          const directionalLight = new THREE.DirectionalLight(0xffffff, 1.0);
           directionalLight.position.set(1, 1, 1);
           scene.add(directionalLight);
           // Убедиться, что у модели включены тени и материалы поддерживают освещение
