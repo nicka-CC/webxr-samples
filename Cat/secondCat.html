@@ -62,30 +62,18 @@
     import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
     import { ARButton } from 'three/addons/webxr/ARButton.js';
 
-    function logToScreen(msg) {
-      const info = document.getElementById('info');
-      if (info) {
-        info.innerHTML += `<p style="color:yellow">${msg}</p>`;
-      }
-    }
-
     let camera, scene, renderer;
-    let model, mixer, currentAnimation;
+    let model, mixer;
     let clock = new THREE.Clock();
-    let animations = [];
     let audioElement = null;
-    let startTime = 0;
-    let isRotating = false;
-    let lastHitPosition = null;
-    let rotationSpeed = 15;
-    let arSessionActive = false;
-    let mixerArmature = null;
-    let mixerRigCat = null;
+    let arSessionStarted = false;
+    let gltfAnimations = [];
 
     init();
     animate();
 
     function init() {
+      // Создаем сцену
       scene = new THREE.Scene();
       scene.background = new THREE.Color(0x000000);
 
@@ -96,7 +84,7 @@
 
       // Камера
       camera = new THREE.PerspectiveCamera(90, window.innerWidth / window.innerHeight, 0.01, 120);
-      camera.position.set(0, 0, 3);
+      camera.position.set(0, 0, 35);
 
       // Рендерер
       renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
@@ -132,116 +120,76 @@
       // Модель и анимации
       const loader = new GLTFLoader();
       loader.load(
-        './Cate.glb',
-        function (gltf) {
-          model = gltf.scene;
-          model.scale.set(2.5, 2.5, 2.5);
-          model.position.set(0, -1000, -1000);
-          model.visible = false;
-          model.traverse((child) => {
-            if (child.isMesh && child.material) {
-              child.material.roughness = 1.0;
-              child.material.metalness = 0.0;
-              child.material.envMapIntensity = 0.0;
-              child.material.needsUpdate = true;
-              child.castShadow = true;
-              child.receiveShadow = true;
-            }
-          });
-          scene.add(model);
-          // Вывести имена всех объектов для диагностики
-          let allNames = [];
-          model.traverse((child) => {
-            allNames.push(child.name);
-          });
-          logToScreen('Имена всех объектов: ' + allNames.join(', '));
-          // Найти Armature и Rig_Cat
-          let armature = model.getObjectByName('Armature');
-          let rigCat = model.getObjectByName('Rig_Cat');
-          if (armature) {
-            mixerArmature = new THREE.AnimationMixer(armature);
-            logToScreen('Mixer создан для Armature');
-          }
-          if (rigCat) {
-            mixerRigCat = new THREE.AnimationMixer(rigCat);
-            logToScreen('Mixer создан для Rig_Cat');
-          }
-          animations = gltf.animations;
-          logToScreen('Модель загружена, анимаций: ' + animations.length);
-          if (animations && animations.length > 0) {
-            animations.forEach((clip, idx) => {
-              logToScreen('Клип #' + idx + ': ' + clip.name + ', треков: ' + clip.tracks.length);
-              logToScreen('Треки: ' + clip.tracks.map(t => t.name).join(', '));
-            });
-          }
-          // Если AR уже активен — сразу запускаем анимации
-          if (arSessionActive && animations && animations.length > 0) {
-            animations.forEach((clip, idx) => {
-              if (clip.tracks.some(t => t.name.startsWith('Armature'))) {
-                if (mixerArmature) {
-                  const action = mixerArmature.clipAction(clip);
-                  action.stop();
-                  action.reset();
-                  action.setLoop(THREE.LoopRepeat);
-                  action.clampWhenFinished = false;
-                  action.timeScale = 1.0;
-                  action.play();
-                  logToScreen('AR: Анимация #' + idx + ' (' + clip.name + ') запущена на Armature (после загрузки модели)');
+              './Cate.glb',
+              function (gltf) {
+                model = gltf.scene;
+                model.scale.set(0.3, 0.3, 0.3);
+                model.position.set(0, 0, -1);
+                model.traverse((child) => {
+                  if (child.isMesh && child.material) {
+                    child.material.roughness = 1.0;
+                    child.material.metalness = 0.0;
+                    child.material.envMapIntensity = 0.0;
+                    child.material.needsUpdate = true;
+                    child.castShadow = true;
+                    child.receiveShadow = true;
+                  }
+                });
+                scene.add(model);
+                mixer = new THREE.AnimationMixer(model);
+                gltfAnimations = gltf.animations;
+                if (gltfAnimations && gltfAnimations.length > 0) {
+                  document.getElementById('animations').textContent = `Найдено: ${gltfAnimations.length}`;
+                  document.getElementById('status').textContent = 'Готово';
+                } else {
+                  document.getElementById('animations').textContent = 'Не найдено';
+                  document.getElementById('status').textContent = 'Нет анимаций';
                 }
-              } else if (clip.tracks.some(t => t.name.startsWith('Rig_Cat'))) {
-                if (mixerRigCat) {
-                  const action = mixerRigCat.clipAction(clip);
-                  action.stop();
-                  action.reset();
-                  action.setLoop(THREE.LoopRepeat);
-                  action.clampWhenFinished = false;
-                  action.timeScale = 1.0;
-                  action.play();
-                  logToScreen('AR: Анимация #' + idx + ' (' + clip.name + ') запущена на Rig_Cat (после загрузки модели)');
-                }
+              },
+              function (xhr) {
+                document.getElementById('status').textContent = `Загрузка: ${(xhr.loaded / xhr.total * 100).toFixed(0)}%`;
+              },
+              function (error) {
+                document.getElementById('status').textContent = 'Ошибка загрузки';
               }
-            });
-          }
-          if (animations && animations.length > 0) {
-            document.getElementById('animations').textContent = `Найдено: ${animations.length}`;
-            document.getElementById('status').textContent = 'Готово';
-            // Запускаем все анимации синхронно
-            animations.forEach((clip, idx) => {
-              const action = mixer.clipAction(clip);
-              action.reset();
-              action.setLoop(THREE.LoopRepeat);
-              action.clampWhenFinished = false;
-              action.timeScale = 1.0;
-              action.play();
-              logToScreen('Анимация #' + idx + ' (' + clip.name + ') запущена');
-            });
-          } else {
-            document.getElementById('animations').textContent = 'Не найдено';
-            document.getElementById('status').textContent = 'Нет анимаций';
-            logToScreen('Анимаций не найдено!');
-          }
-
-          // Жесты
-          renderer.domElement.addEventListener('touchstart', onTouchStart, false);
-          renderer.domElement.addEventListener('touchmove', onTouchMove, false);
-          renderer.domElement.addEventListener('touchend', onTouchEnd, false);
-        },
-        function (xhr) {
-          document.getElementById('status').textContent = `Загрузка: ${(xhr.loaded / xhr.total * 100).toFixed(0)}%`;
-        },
-        function (error) {
-          document.getElementById('status').textContent = 'Ошибка загрузки';
-          logToScreen('Ошибка загрузки модели: ' + error);
-        }
       );
 
-      // ARButton
+      // ARButton (оставляем как есть)
       if (navigator.xr && navigator.xr.isSessionSupported) {
-        navigator.xr.isSessionSupported('immersive-ar').then((supported) => {
+        navigator.xr.isSessionSupported('immersive-ar').then(async (supported) => {
           if (supported) {
-            const arBtn = ARButton.createButton(renderer);
-            document.body.appendChild(arBtn);
-            document.getElementById('ar-status').textContent = 'AR доступен, нажмите кнопку';
+            try {
+              const session = await navigator.xr.requestSession('immersive-ar', { requiredFeatures: ['hit-test'] });
+              renderer.xr.setSession(session);
+              document.getElementById('ar-status').textContent = 'AR запущен автоматически';
+              // Слушаем старт AR-сессии
+              session.addEventListener('selectstart', startARAnimations, { once: true });
+              session.addEventListener('sessionstart', startARAnimations, { once: true });
+              // На всякий случай запускаем при старте сессии
+              function startARAnimations() {
+                if (arSessionStarted) return;
+                arSessionStarted = true;
+                if (mixer && gltfAnimations && gltfAnimations.length > 0) {
+                  gltfAnimations.forEach((clip) => {
+                    const action = mixer.clipAction(clip);
+                    action.reset();
+                    action.setLoop(THREE.LoopRepeat);
+                    action.clampWhenFinished = false;
+                    action.play();
+                  });
+                }
+                if (audioElement) {
+                  audioElement.currentTime = 0;
+                  audioElement.play().catch(e => {
+                    document.getElementById('status').textContent = 'Ошибка аудио';
+                  });
+                }
+              }
+            } catch (e) {
+              const arBtn = ARButton.createButton(renderer);
+              document.body.appendChild(arBtn);
+              document.getElementById('ar-status').textContent = 'AR доступен, нажмите кнопку';
+            }
           } else {
             const arBtn = ARButton.createButton(renderer);
             document.body.appendChild(arBtn);
@@ -253,77 +201,6 @@
         document.body.appendChild(arBtn);
         document.getElementById('ar-status').textContent = 'WebXR не поддерживается';
       }
-
-      // После создания renderer добавляем обработчики событий AR
-      renderer.xr.addEventListener('sessionstart', function() {
-        logToScreen('AR sessionstart');
-        document.getElementById('ar-status').textContent = 'AR активен';
-        startTime = Date.now();
-        clock.start();
-        arSessionActive = true;
-        if (audioElement && audioElement.paused) {
-          audioElement.currentTime = 0;
-          audioElement.play().catch(() => {});
-        }
-        // Сброс и запуск всех анимаций с начала
-        if (animations && animations.length > 0) {
-          animations.forEach((clip, idx) => {
-            if (clip.tracks.some(t => t.name.startsWith('Armature'))) {
-              if (mixerArmature) {
-                const action = mixerArmature.clipAction(clip);
-                action.stop();
-                action.reset();
-                action.setLoop(THREE.LoopRepeat);
-                action.clampWhenFinished = false;
-                action.timeScale = 1.0;
-                action.play();
-                logToScreen('AR: Анимация #' + idx + ' (' + clip.name + ') сброшена и запущена на Armature (sessionstart)');
-              }
-            } else if (clip.tracks.some(t => t.name.startsWith('Rig_Cat'))) {
-              if (mixerRigCat) {
-                const action = mixerRigCat.clipAction(clip);
-                action.stop();
-                action.reset();
-                action.setLoop(THREE.LoopRepeat);
-                action.clampWhenFinished = false;
-                action.timeScale = 1.0;
-                action.play();
-                logToScreen('AR: Анимация #' + idx + ' (' + clip.name + ') сброшена и запущена на Rig_Cat (sessionstart)');
-              }
-            }
-          });
-        } else {
-          logToScreen('AR: animations не определены');
-        }
-      });
-      renderer.xr.addEventListener('sessionend', function() {
-        logToScreen('AR sessionend');
-        document.getElementById('ar-status').textContent = 'AR неактивен';
-        clock.stop();
-        // Остановить все анимации
-        if (mixerArmature && animations && animations.length > 0) {
-          animations.forEach((clip) => {
-            if (clip.tracks.some(t => t.name.startsWith('Armature'))) {
-              const action = mixerArmature.clipAction(clip);
-              action.stop();
-            }
-          });
-          logToScreen('AR: Все анимации остановлены на Armature');
-        }
-        if (mixerRigCat && animations && animations.length > 0) {
-          animations.forEach((clip) => {
-            if (clip.tracks.some(t => t.name.startsWith('Rig_Cat'))) {
-              const action = mixerRigCat.clipAction(clip);
-              action.stop();
-            }
-          });
-          logToScreen('AR: Все анимации остановлены на Rig_Cat');
-        }
-        if (audioElement && !audioElement.paused) {
-          audioElement.pause();
-        }
-      });
-
       window.addEventListener('resize', onWindowResize);
     }
 
@@ -333,71 +210,11 @@
       renderer.setSize(window.innerWidth, window.innerHeight);
     }
 
-    function onTouchStart(event) {
-      event.preventDefault();
-      isRotating = true;
-      lastHitPosition = {
-        x: event.touches[0].clientX,
-        y: event.touches[0].clientY
-      };
-    }
-    function onTouchMove(event) {
-      event.preventDefault();
-      if (!isRotating || !model) return;
-      const touch = event.touches[0];
-      const deltaX = touch.clientX - lastHitPosition.x;
-      const deltaY = touch.clientY - lastHitPosition.y;
-      model.rotation.y += deltaX * rotationSpeed;
-      model.rotation.x += deltaY * rotationSpeed;
-      model.rotation.x = Math.max(-Math.PI/2, Math.min(Math.PI/2, model.rotation.x));
-      lastHitPosition = {
-        x: touch.clientX,
-        y: touch.clientY
-      };
-    }
-    function onTouchEnd(event) {
-      event.preventDefault();
-      isRotating = false;
-    }
-
     function animate() {
       renderer.setAnimationLoop(function() {
-        logToScreen('animate: xr.isPresenting=' + renderer.xr.isPresenting + ', mixerArmature=' + (mixerArmature ? 'есть' : 'нет') + ', mixerRigCat=' + (mixerRigCat ? 'есть' : 'нет'));
-        if (renderer.xr.isPresenting && model) {
-          model.visible = true;
-          model.position.set(0, -10, -16);
+        if (mixer) {
           const delta = clock.getDelta();
-          if (mixerArmature) mixerArmature.update(delta);
-          if (mixerRigCat) mixerRigCat.update(delta);
-          // Воспроизведение аудио
-          if (audioElement && audioElement.paused) {
-            audioElement.currentTime = 0;
-            audioElement.play().catch(() => {});
-          }
-        } else if (model) {
-          // В не-AR режиме скрываем модель и останавливаем анимацию
-          model.visible = false;
-          model.position.set(0, -1000, -1000);
-          // Остановить все анимации вне AR
-          if (mixerArmature && animations && animations.length > 0) {
-            animations.forEach((clip) => {
-              if (clip.tracks.some(t => t.name.startsWith('Armature'))) {
-                const action = mixerArmature.clipAction(clip);
-                action.stop();
-              }
-            });
-          }
-          if (mixerRigCat && animations && animations.length > 0) {
-            animations.forEach((clip) => {
-              if (clip.tracks.some(t => t.name.startsWith('Rig_Cat'))) {
-                const action = mixerRigCat.clipAction(clip);
-                action.stop();
-              }
-            });
-          }
-          if (audioElement && !audioElement.paused) {
-            audioElement.pause();
-          }
+          mixer.update(delta);
         }
         renderer.render(scene, camera);
       });
