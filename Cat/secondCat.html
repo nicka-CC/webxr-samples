@@ -62,6 +62,13 @@
     import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
     import { ARButton } from 'three/addons/webxr/ARButton.js';
 
+    function logToScreen(msg) {
+      const info = document.getElementById('info');
+      if (info) {
+        info.innerHTML += `<p style="color:yellow">${msg}</p>`;
+      }
+    }
+
     let camera, scene, renderer;
     let model, mixer, currentAnimation;
     let clock = new THREE.Clock();
@@ -141,6 +148,13 @@
           scene.add(model);
           mixer = new THREE.AnimationMixer(model);
           animations = gltf.animations;
+          logToScreen('Модель загружена, анимаций: ' + animations.length);
+          if (animations && animations.length > 0) {
+            animations.forEach((clip, idx) => {
+              logToScreen('Клип #' + idx + ': ' + clip.name + ', треков: ' + clip.tracks.length);
+              logToScreen('Треки: ' + clip.tracks.map(t => t.name).join(', '));
+            });
+          }
           if (animations && animations.length > 0) {
             document.getElementById('animations').textContent = `Найдено: ${animations.length}`;
             document.getElementById('status').textContent = 'Готово';
@@ -152,11 +166,12 @@
               action.clampWhenFinished = false;
               action.timeScale = 1.0;
               action.play();
-              console.log(`Анимация #${idx} (${clip.name}) запущена`);
+              logToScreen('Анимация #' + idx + ' (' + clip.name + ') запущена');
             });
           } else {
             document.getElementById('animations').textContent = 'Не найдено';
             document.getElementById('status').textContent = 'Нет анимаций';
+            logToScreen('Анимаций не найдено!');
           }
 
           // Жесты
@@ -169,6 +184,7 @@
         },
         function (error) {
           document.getElementById('status').textContent = 'Ошибка загрузки';
+          logToScreen('Ошибка загрузки модели: ' + error);
         }
       );
 
@@ -181,6 +197,7 @@
               renderer.xr.setSession(session);
               document.getElementById('ar-status').textContent = 'AR запущен автоматически';
               renderer.xr.addEventListener('sessionstart', function() {
+                logToScreen('AR sessionstart');
                 document.getElementById('ar-status').textContent = 'AR активен';
                 startTime = Date.now();
                 clock.start();
@@ -198,11 +215,15 @@
                     action.clampWhenFinished = false;
                     action.timeScale = 1.0;
                     action.play();
-                    console.log(`Анимация #${idx} (${clip.name}) сброшена и запущена с начала`);
+                    logToScreen('AR: Анимация #' + idx + ' (' + clip.name + ') сброшена и запущена с начала');
                   });
+                  logToScreen('mixer: ' + (mixer ? 'есть' : 'нет') + ', animations: ' + animations.length);
+                } else {
+                  logToScreen('AR: mixer или animations не определены');
                 }
               });
               renderer.xr.addEventListener('sessionend', function() {
+                logToScreen('AR sessionend');
                 document.getElementById('ar-status').textContent = 'AR неактивен';
                 clock.stop();
                 // Остановить все анимации
@@ -211,12 +232,14 @@
                     const action = mixer.clipAction(clip);
                     action.stop();
                   });
+                  logToScreen('AR: Все анимации остановлены');
                 }
                 if (audioElement && !audioElement.paused) {
                   audioElement.pause();
                 }
               });
             } catch (e) {
+              logToScreen('Ошибка запуска AR: ' + e);
               const arBtn = ARButton.createButton(renderer);
               document.body.appendChild(arBtn);
               document.getElementById('ar-status').textContent = 'AR доступен, нажмите кнопку';
@@ -270,6 +293,7 @@
 
     function animate() {
       renderer.setAnimationLoop(function() {
+        logToScreen('animate: xr.isPresenting=' + renderer.xr.isPresenting + ', mixer=' + (mixer ? 'есть' : 'нет'));
         if (renderer.xr.isPresenting && model) {
           model.visible = true;
           model.position.set(0, -10, -16);
