@@ -217,14 +217,21 @@
     function startARAnimations() {
       if (arSessionStarted && modelLoaded) {
         if (mixer && gltfAnimations.length > 0) {
-          gltfAnimations.forEach((clip) => {
+          gltfAnimations.forEach((clip, idx) => {
             const action = mixer.clipAction(clip);
+            action.stop();
             action.reset();
             action.setLoop(THREE.LoopRepeat);
             action.clampWhenFinished = false;
             action.play();
+            console.log(`Анимация #${idx} (${clip.name}) запущена`);
           });
+          console.log('Анимации запущены после старта AR');
+        } else {
+          console.log('Нет анимаций для запуска');
         }
+      } else {
+        console.log('Ждём: arSessionStarted=', arSessionStarted, 'modelLoaded=', modelLoaded);
       }
     }
   </script>
