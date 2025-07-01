@@ -141,8 +141,7 @@
           mixer = new THREE.AnimationMixer(model);
           gltfAnimations = gltf.animations;
           modelLoaded = true;
-          // НЕ запускаем анимации в предпросмотре!
-          startARAnimations(); // если AR уже активен, запустит анимации
+          startARAnimations(); // запуск анимаций, если AR уже активен
           if (gltfAnimations && gltfAnimations.length > 0) {
             document.getElementById('animations').textContent = `Найдено: ${gltfAnimations.length}`;
             document.getElementById('status').textContent = 'Готово';
@@ -169,8 +168,7 @@
               document.getElementById('ar-status').textContent = 'AR запущен автоматически';
               renderer.xr.addEventListener('sessionstart', function() {
                 arSessionStarted = true;
-                reloadModelAndAnimations();
-                startARAnimations(); // на случай, если потребуется запускать звук и т.д.
+                startARAnimations(); // только запуск анимаций, не перезагрузка модели!
               });
             } catch (e) {
               const arBtn = ARButton.createButton(renderer);
@@ -235,49 +233,6 @@
       } else {
         console.log('Ждём: arSessionStarted=', arSessionStarted, 'modelLoaded=', modelLoaded);
       }
-    }
-
-    function reloadModelAndAnimations() {
-      // Удаляем старую модель из сцены
-      if (model && scene) {
-        scene.remove(model);
-        model = null;
-        mixer = null;
-        gltfAnimations = [];
-        modelLoaded = false;
-      }
-      // Загружаем модель заново
-      const loader = new GLTFLoader();
-      loader.load('./Cate.glb', function (gltf) {
-        model = gltf.scene;
-        model.scale.set(0.3, 0.3, 0.3);
-        model.position.set(0, 0, -1);
-        model.traverse((child) => {
-          if (child.isMesh && child.material) {
-            child.material.roughness = 1.0;
-            child.material.metalness = 0.0;
-            child.material.envMapIntensity = 0.0;
-            child.material.needsUpdate = true;
-            child.castShadow = true;
-            child.receiveShadow = true;
-          }
-        });
-        scene.add(model);
-        mixer = new THREE.AnimationMixer(model);
-        gltfAnimations = gltf.animations;
-        modelLoaded = true;
-        // Запуск анимаций
-        if (gltfAnimations.length > 0) {
-          gltfAnimations.forEach((clip, idx) => {
-            const action = mixer.clipAction(clip);
-            action.reset();
-            action.setLoop(THREE.LoopRepeat);
-            action.clampWhenFinished = false;
-            action.play();
-            console.log(`Анимация AR #${idx} (${clip.name}) перезапущена с новой моделью`);
-          });
-        }
-      });
     }
   </script>
 </head>
