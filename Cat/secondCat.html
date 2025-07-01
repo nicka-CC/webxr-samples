@@ -69,6 +69,7 @@
     let arSessionStarted = false;
     let modelLoaded = false;
     let gltfAnimations = [];
+    let audioPlayed = false;
 
     init();
     animate();
@@ -200,6 +201,15 @@
           const delta = clock.getDelta();
           mixer.update(delta);
         }
+        if (renderer.xr.isPresenting && !audioPlayed) {
+          audioPlayed = true;
+          if (audioElement) {
+            audioElement.currentTime = 0;
+            audioElement.play().catch(e => {
+              document.getElementById('status').textContent = 'Ошибка аудио';
+            });
+          }
+        }
         renderer.render(scene, camera);
       });
     }
@@ -213,12 +223,6 @@
             action.setLoop(THREE.LoopRepeat);
             action.clampWhenFinished = false;
             action.play();
-          });
-        }
-        if (audioElement) {
-          audioElement.currentTime = 0;
-          audioElement.play().catch(e => {
-            document.getElementById('status').textContent = 'Ошибка аудио';
           });
         }
       }
