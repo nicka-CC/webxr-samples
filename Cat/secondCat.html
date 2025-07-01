@@ -232,6 +232,8 @@
     function animate() {
       renderer.setAnimationLoop(function() {
         if (mixer) {
+          // Временный лог для проверки
+          console.log('mixer обновляется');
           const delta = clock.getDelta();
           mixer.update(delta);
         }
@@ -239,6 +241,8 @@
       });
     }
   </script>
+  <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
+  <script>eruda.init();</script>
 </head>
 <body>
 </body>
