@@ -202,7 +202,7 @@
         loader.load('./Cate.glb', function (gltf) {
           model = gltf.scene;
           model.scale.set(2.5, 2.5, 2.5);
-          model.position.set(0, -10, -30);
+          model.position.set(10, -10, -50);
           scene.add(model);
           mixer = new THREE.AnimationMixer(model);
           animations = gltf.animations;
