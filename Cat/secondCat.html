@@ -63,19 +63,19 @@
     import { ARButton } from 'three/addons/webxr/ARButton.js';
 
     let camera, scene, renderer;
-    let model, mixer;
+    let model, mixer, currentAnimation;
     let clock = new THREE.Clock();
+    let animations = [];
     let audioElement = null;
-    let arSessionStarted = false;
-    let modelLoaded = false;
-    let gltfAnimations = [];
-    let audioPlayed = false;
+    let startTime = 0;
+    let isRotating = false;
+    let lastHitPosition = null;
+    let rotationSpeed = 15;
 
     init();
     animate();
 
     function init() {
-      // Создаем сцену
       scene = new THREE.Scene();
       scene.background = new THREE.Color(0x000000);
 
@@ -86,7 +86,7 @@
 
       // Камера
       camera = new THREE.PerspectiveCamera(90, window.innerWidth / window.innerHeight, 0.01, 120);
-      camera.position.set(0, 0, 35);
+      camera.position.set(0, 0, 3);
 
       // Рендерер
       renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
@@ -125,8 +125,9 @@
         './Cate.glb',
         function (gltf) {
           model = gltf.scene;
-          model.scale.set(0.3, 0.3, 0.3);
-          model.position.set(0, 0, -1);
+          model.scale.set(2.5, 2.5, 2.5);
+          model.position.set(0, -1000, -1000);
+          model.visible = false;
           model.traverse((child) => {
             if (child.isMesh && child.material) {
               child.material.roughness = 1.0;
@@ -139,16 +140,22 @@
           });
           scene.add(model);
           mixer = new THREE.AnimationMixer(model);
-          gltfAnimations = gltf.animations;
-          modelLoaded = true;
-          startARAnimations(); // запуск анимаций, если AR уже активен
-          if (gltfAnimations && gltfAnimations.length > 0) {
-            document.getElementById('animations').textContent = `Найдено: ${gltfAnimations.length}`;
+          animations = gltf.animations;
+          if (animations && animations.length > 0) {
+            document.getElementById('animations').textContent = `Найдено: ${animations.length}`;
             document.getElementById('status').textContent = 'Готово';
+            currentAnimation = mixer.clipAction(animations[0]);
+            currentAnimation.setLoop(THREE.LoopRepeat);
+            currentAnimation.clampWhenFinished = false;
           } else {
             document.getElementById('animations').textContent = 'Не найдено';
             document.getElementById('status').textContent = 'Нет анимаций';
           }
+
+          // Жесты
+          renderer.domElement.addEventListener('touchstart', onTouchStart, false);
+          renderer.domElement.addEventListener('touchmove', onTouchMove, false);
+          renderer.domElement.addEventListener('touchend', onTouchEnd, false);
         },
         function (xhr) {
           document.getElementById('status').textContent = `Загрузка: ${(xhr.loaded / xhr.total * 100).toFixed(0)}%`;
@@ -158,7 +165,7 @@
         }
       );
 
-      // ARButton (оставляем как есть)
+      // ARButton
       if (navigator.xr && navigator.xr.isSessionSupported) {
         navigator.xr.isSessionSupported('immersive-ar').then(async (supported) => {
           if (supported) {
@@ -167,8 +174,17 @@
               renderer.xr.setSession(session);
               document.getElementById('ar-status').textContent = 'AR запущен автоматически';
               renderer.xr.addEventListener('sessionstart', function() {
-                arSessionStarted = true;
-                startARAnimations(); // только запуск анимаций, не перезагрузка модели!
+                document.getElementById('ar-status').textContent = 'AR активен';
+                startTime = Date.now();
+                clock.start();
+                if (audioElement && audioElement.paused) {
+                  audioElement.currentTime = 0;
+                  audioElement.play().catch(() => {});
+                }
+              });
+              renderer.xr.addEventListener('sessionend', function() {
+                document.getElementById('ar-status').textContent = 'AR неактивен';
+                clock.stop();
               });
             } catch (e) {
               const arBtn = ARButton.createButton(renderer);
@@ -195,44 +211,62 @@
       renderer.setSize(window.innerWidth, window.innerHeight);
     }
 
+    function onTouchStart(event) {
+      event.preventDefault();
+      isRotating = true;
+      lastHitPosition = {
+        x: event.touches[0].clientX,
+        y: event.touches[0].clientY
+      };
+    }
+    function onTouchMove(event) {
+      event.preventDefault();
+      if (!isRotating || !model) return;
+      const touch = event.touches[0];
+      const deltaX = touch.clientX - lastHitPosition.x;
+      const deltaY = touch.clientY - lastHitPosition.y;
+      model.rotation.y += deltaX * rotationSpeed;
+      model.rotation.x += deltaY * rotationSpeed;
+      model.rotation.x = Math.max(-Math.PI/2, Math.min(Math.PI/2, model.rotation.x));
+      lastHitPosition = {
+        x: touch.clientX,
+        y: touch.clientY
+      };
+    }
+    function onTouchEnd(event) {
+      event.preventDefault();
+      isRotating = false;
+    }
+
     function animate() {
       renderer.setAnimationLoop(function() {
-        if (mixer) {
-          const delta = clock.getDelta();
-          mixer.update(delta);
-        }
-        if (renderer.xr.isPresenting && !audioPlayed) {
-          audioPlayed = true;
-          if (audioElement) {
+        if (renderer.xr.isPresenting && model) {
+          model.visible = true;
+          model.position.set(0, -10, -16);
+          if (mixer && currentAnimation) {
+            if (!currentAnimation.isRunning()) {
+              currentAnimation.reset();
+              currentAnimation.play();
+            }
+            const delta = clock.getDelta();
+            mixer.update(delta);
+          }
+          if (audioElement && audioElement.paused) {
             audioElement.currentTime = 0;
-            audioElement.play().catch(e => {
-              document.getElementById('status').textContent = 'Ошибка аудио';
-            });
+            audioElement.play().catch(() => {});
+          }
+        } else if (model) {
+          model.visible = false;
+          model.position.set(0, -1000, -1000);
+          if (currentAnimation && currentAnimation.isRunning()) {
+            currentAnimation.stop();
+          }
+          if (audioElement && !audioElement.paused) {
+            audioElement.pause();
           }
         }
         renderer.render(scene, camera);
       });
-    }
-
-    function startARAnimations() {
-      if (arSessionStarted && modelLoaded) {
-        if (mixer && gltfAnimations.length > 0) {
-          gltfAnimations.forEach((clip, idx) => {
-            const action = mixer.clipAction(clip);
-            action.stop();
-            action.reset();
-            action.setLoop(THREE.LoopRepeat);
-            action.clampWhenFinished = false;
-            action.play();
-            console.log(`Анимация AR #${idx} (${clip.name}) сброшена и запущена`);
-          });
-          console.log('Анимации сброшены и запущены после старта AR');
-        } else {
-          console.log('Нет анимаций для запуска');
-        }
-      } else {
-        console.log('Ждём: arSessionStarted=', arSessionStarted, 'modelLoaded=', modelLoaded);
-      }
     }
   </script>
 </head>
