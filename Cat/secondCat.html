@@ -67,6 +67,7 @@
     let clock = new THREE.Clock();
     let audioElement = null;
     let arSessionStarted = false;
+    let modelLoaded = false;
     let gltfAnimations = [];
 
     init();
@@ -138,6 +139,8 @@
           scene.add(model);
           mixer = new THREE.AnimationMixer(model);
           gltfAnimations = gltf.animations;
+          modelLoaded = true;
+          startARAnimations();
           if (gltfAnimations && gltfAnimations.length > 0) {
             document.getElementById('animations').textContent = `Найдено: ${gltfAnimations.length}`;
             document.getElementById('status').textContent = 'Готово';
@@ -162,29 +165,10 @@
               const session = await navigator.xr.requestSession('immersive-ar', { requiredFeatures: ['hit-test'] });
               renderer.xr.setSession(session);
               document.getElementById('ar-status').textContent = 'AR запущен автоматически';
-              // Слушаем старт AR-сессии
-              session.addEventListener('selectstart', startARAnimations, { once: true });
-              session.addEventListener('sessionstart', startARAnimations, { once: true });
-              // На всякий случай запускаем при старте сессии
-              function startARAnimations() {
-                if (arSessionStarted) return;
+              renderer.xr.addEventListener('sessionstart', function() {
                 arSessionStarted = true;
-                if (mixer && gltfAnimations && gltfAnimations.length > 0) {
-                  gltfAnimations.forEach((clip) => {
-                    const action = mixer.clipAction(clip);
-                    action.reset();
-                    action.setLoop(THREE.LoopRepeat);
-                    action.clampWhenFinished = false;
-                    action.play();
-                  });
-                }
-                if (audioElement) {
-                  audioElement.currentTime = 0;
-                  audioElement.play().catch(e => {
-                    document.getElementById('status').textContent = 'Ошибка аудио';
-                  });
-                }
-              }
+                startARAnimations();
+              });
             } catch (e) {
               const arBtn = ARButton.createButton(renderer);
               document.body.appendChild(arBtn);
@@ -218,6 +202,26 @@
         }
         renderer.render(scene, camera);
       });
+    }
+
+    function startARAnimations() {
+      if (arSessionStarted && modelLoaded) {
+        if (mixer && gltfAnimations.length > 0) {
+          gltfAnimations.forEach((clip) => {
+            const action = mixer.clipAction(clip);
+            action.reset();
+            action.setLoop(THREE.LoopRepeat);
+            action.clampWhenFinished = false;
+            action.play();
+          });
+        }
+        if (audioElement) {
+          audioElement.currentTime = 0;
+          audioElement.play().catch(e => {
+            document.getElementById('status').textContent = 'Ошибка аудио';
+          });
+        }
+      }
     }
   </script>
 </head>
