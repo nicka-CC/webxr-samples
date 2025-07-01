@@ -66,8 +66,6 @@
     let model, mixer;
     let clock = new THREE.Clock();
     let audioElement = null;
-    let arSessionStarted = false;
-    let gltfAnimations = [];
 
     init();
     animate();
@@ -123,8 +121,8 @@
               './Cate.glb',
               function (gltf) {
                 model = gltf.scene;
-                model.scale.set(0.3, 0.3, 0.3);
-                model.position.set(0, 0, -1);
+                model.scale.set(2.5, 2.5, 2.5);
+                model.position.set(0, -10, -16);
                 model.traverse((child) => {
                   if (child.isMesh && child.material) {
                     child.material.roughness = 1.0;
@@ -136,15 +134,29 @@
                   }
                 });
                 scene.add(model);
+
+                // Анимации
                 mixer = new THREE.AnimationMixer(model);
-                gltfAnimations = gltf.animations;
-                if (gltfAnimations && gltfAnimations.length > 0) {
-                  document.getElementById('animations').textContent = `Найдено: ${gltfAnimations.length}`;
+                const animations = gltf.animations;
+                if (animations && animations.length > 0) {
+                  document.getElementById('animations').textContent = `Найдено: ${animations.length}`;
                   document.getElementById('status').textContent = 'Готово';
+                  // Запускаем все анимации сразу
+                  animations.forEach((clip) => {
+                    const action = mixer.clipAction(clip);
+                    action.setLoop(THREE.LoopRepeat);
+                    action.clampWhenFinished = false;
+                    action.play();
+                  });
                 } else {
                   document.getElementById('animations').textContent = 'Не найдено';
                   document.getElementById('status').textContent = 'Нет анимаций';
                 }
+                // Воспроизведение аудио
+                audioElement.currentTime = 0;
+                audioElement.play().catch(e => {
+                  document.getElementById('status').textContent = 'Ошибка аудио';
+                });
               },
               function (xhr) {
                 document.getElementById('status').textContent = `Загрузка: ${(xhr.loaded / xhr.total * 100).toFixed(0)}%`;
@@ -162,29 +174,6 @@
               const session = await navigator.xr.requestSession('immersive-ar', { requiredFeatures: ['hit-test'] });
               renderer.xr.setSession(session);
               document.getElementById('ar-status').textContent = 'AR запущен автоматически';
-              // Слушаем старт AR-сессии
-              session.addEventListener('selectstart', startARAnimations, { once: true });
-              session.addEventListener('sessionstart', startARAnimations, { once: true });
-              // На всякий случай запускаем при старте сессии
-              function startARAnimations() {
-                if (arSessionStarted) return;
-                arSessionStarted = true;
-                if (mixer && gltfAnimations && gltfAnimations.length > 0) {
-                  gltfAnimations.forEach((clip) => {
-                    const action = mixer.clipAction(clip);
-                    action.reset();
-                    action.setLoop(THREE.LoopRepeat);
-                    action.clampWhenFinished = false;
-                    action.play();
-                  });
-                }
-                if (audioElement) {
-                  audioElement.currentTime = 0;
-                  audioElement.play().catch(e => {
-                    document.getElementById('status').textContent = 'Ошибка аудио';
-                  });
-                }
-              }
             } catch (e) {
               const arBtn = ARButton.createButton(renderer);
               document.body.appendChild(arBtn);
