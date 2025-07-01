@@ -63,7 +63,7 @@
     import { ARButton } from 'three/addons/webxr/ARButton.js';
 
     let camera, scene, renderer;
-    let model, mixer;
+    let model, mixer, animations;
     let clock = new THREE.Clock();
     let audioElement = null;
 
@@ -137,7 +137,7 @@
 
                 // Анимации
                 mixer = new THREE.AnimationMixer(model);
-                const animations = gltf.animations;
+                animations = gltf.animations;
                 if (animations && animations.length > 0) {
                   document.getElementById('animations').textContent = `Найдено: ${animations.length}`;
                   document.getElementById('status').textContent = 'Готово';
