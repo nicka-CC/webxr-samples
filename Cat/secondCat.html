@@ -193,18 +193,31 @@
 
       // После создания renderer добавляем обработчик sessionstart для сброса анимаций при входе в AR
       renderer.xr.addEventListener('sessionstart', function() {
-        if (model && animations && animations.length > 0) {
-          mixer = new THREE.AnimationMixer(model);
-          animations.forEach((clip) => {
-            const action = mixer.clipAction(clip);
-            action.reset();
-            action.enabled = true;
-            action.time = 0;
-            action.setLoop(THREE.LoopRepeat);
-            action.clampWhenFinished = false;
-            action.play();
-          });
+        if (model) {
+          scene.remove(model);
+          model = null;
+          mixer = null;
         }
+        const loader = new GLTFLoader();
+        loader.load('./Cate.glb', function (gltf) {
+          model = gltf.scene;
+          model.scale.set(2.5, 2.5, 2.5);
+          model.position.set(0, -10, -16);
+          scene.add(model);
+          mixer = new THREE.AnimationMixer(model);
+          animations = gltf.animations;
+          if (animations && animations.length > 0) {
+            animations.forEach((clip) => {
+              const action = mixer.clipAction(clip);
+              action.reset();
+              action.enabled = true;
+              action.time = 0;
+              action.setLoop(THREE.LoopRepeat);
+              action.clampWhenFinished = false;
+              action.play();
+            });
+          }
+        });
       });
 
       window.addEventListener('resize', onWindowResize);
