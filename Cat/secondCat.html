@@ -79,6 +79,8 @@
     let lastHitPosition = null;
     let rotationSpeed = 15;
     let arSessionActive = false;
+    let mixerArmature = null;
+    let mixerRigCat = null;
 
     init();
     animate();
@@ -147,12 +149,22 @@
             }
           });
           scene.add(model);
-          if (model.children && model.children.length > 0) {
-            mixer = new THREE.AnimationMixer(model.children[0]);
-            logToScreen('Mixer создан для model.children[0]: ' + model.children[0].name);
-          } else {
-            mixer = new THREE.AnimationMixer(model);
-            logToScreen('Mixer создан для model');
+          // Вывести имена всех объектов для диагностики
+          let allNames = [];
+          model.traverse((child) => {
+            allNames.push(child.name);
+          });
+          logToScreen('Имена всех объектов: ' + allNames.join(', '));
+          // Найти Armature и Rig_Cat
+          let armature = model.getObjectByName('Armature');
+          let rigCat = model.getObjectByName('Rig_Cat');
+          if (armature) {
+            mixerArmature = new THREE.AnimationMixer(armature);
+            logToScreen('Mixer создан для Armature');
+          }
+          if (rigCat) {
+            mixerRigCat = new THREE.AnimationMixer(rigCat);
+            logToScreen('Mixer создан для Rig_Cat');
           }
           animations = gltf.animations;
           logToScreen('Модель загружена, анимаций: ' + animations.length);
@@ -162,16 +174,32 @@
               logToScreen('Треки: ' + clip.tracks.map(t => t.name).join(', '));
             });
           }
-          if (arSessionActive && mixer && animations && animations.length > 0) {
+          // Если AR уже активен — сразу запускаем анимации
+          if (arSessionActive && animations && animations.length > 0) {
             animations.forEach((clip, idx) => {
-              const action = mixer.clipAction(clip);
-              action.stop();
-              action.reset();
-              action.setLoop(THREE.LoopRepeat);
-              action.clampWhenFinished = false;
-              action.timeScale = 1.0;
-              action.play();
-              logToScreen('AR: Анимация #' + idx + ' (' + clip.name + ') сброшена и запущена с начала (после загрузки модели)');
+              if (clip.tracks.some(t => t.name.startsWith('Armature'))) {
+                if (mixerArmature) {
+                  const action = mixerArmature.clipAction(clip);
+                  action.stop();
+                  action.reset();
+                  action.setLoop(THREE.LoopRepeat);
+                  action.clampWhenFinished = false;
+                  action.timeScale = 1.0;
+                  action.play();
+                  logToScreen('AR: Анимация #' + idx + ' (' + clip.name + ') запущена на Armature (после загрузки модели)');
+                }
+              } else if (clip.tracks.some(t => t.name.startsWith('Rig_Cat'))) {
+                if (mixerRigCat) {
+                  const action = mixerRigCat.clipAction(clip);
+                  action.stop();
+                  action.reset();
+                  action.setLoop(THREE.LoopRepeat);
+                  action.clampWhenFinished = false;
+                  action.timeScale = 1.0;
+                  action.play();
+                  logToScreen('AR: Анимация #' + idx + ' (' + clip.name + ') запущена на Rig_Cat (после загрузки модели)');
+                }
+              }
             });
           }
           if (animations && animations.length > 0) {
@@ -238,20 +266,34 @@
           audioElement.play().catch(() => {});
         }
         // Сброс и запуск всех анимаций с начала
-        if (mixer && animations && animations.length > 0) {
+        if (animations && animations.length > 0) {
           animations.forEach((clip, idx) => {
-            const action = mixer.clipAction(clip);
-            action.stop();
-            action.reset();
-            action.setLoop(THREE.LoopRepeat);
-            action.clampWhenFinished = false;
-            action.timeScale = 1.0;
-            action.play();
-            logToScreen('AR: Анимация #' + idx + ' (' + clip.name + ') сброшена и запущена с начала (sessionstart)');
+            if (clip.tracks.some(t => t.name.startsWith('Armature'))) {
+              if (mixerArmature) {
+                const action = mixerArmature.clipAction(clip);
+                action.stop();
+                action.reset();
+                action.setLoop(THREE.LoopRepeat);
+                action.clampWhenFinished = false;
+                action.timeScale = 1.0;
+                action.play();
+                logToScreen('AR: Анимация #' + idx + ' (' + clip.name + ') сброшена и запущена на Armature (sessionstart)');
+              }
+            } else if (clip.tracks.some(t => t.name.startsWith('Rig_Cat'))) {
+              if (mixerRigCat) {
+                const action = mixerRigCat.clipAction(clip);
+                action.stop();
+                action.reset();
+                action.setLoop(THREE.LoopRepeat);
+                action.clampWhenFinished = false;
+                action.timeScale = 1.0;
+                action.play();
+                logToScreen('AR: Анимация #' + idx + ' (' + clip.name + ') сброшена и запущена на Rig_Cat (sessionstart)');
+              }
+            }
           });
-          logToScreen('mixer: ' + (mixer ? 'есть' : 'нет') + ', animations: ' + animations.length);
         } else {
-          logToScreen('AR: mixer или animations не определены');
+          logToScreen('AR: animations не определены');
         }
       });
       renderer.xr.addEventListener('sessionend', function() {
@@ -259,12 +301,23 @@
         document.getElementById('ar-status').textContent = 'AR неактивен';
         clock.stop();
         // Остановить все анимации
-        if (mixer && animations && animations.length > 0) {
+        if (mixerArmature && animations && animations.length > 0) {
           animations.forEach((clip) => {
-            const action = mixer.clipAction(clip);
-            action.stop();
+            if (clip.tracks.some(t => t.name.startsWith('Armature'))) {
+              const action = mixerArmature.clipAction(clip);
+              action.stop();
+            }
           });
-          logToScreen('AR: Все анимации остановлены');
+          logToScreen('AR: Все анимации остановлены на Armature');
+        }
+        if (mixerRigCat && animations && animations.length > 0) {
+          animations.forEach((clip) => {
+            if (clip.tracks.some(t => t.name.startsWith('Rig_Cat'))) {
+              const action = mixerRigCat.clipAction(clip);
+              action.stop();
+            }
+          });
+          logToScreen('AR: Все анимации остановлены на Rig_Cat');
         }
         if (audioElement && !audioElement.paused) {
           audioElement.pause();
@@ -309,14 +362,13 @@
 
     function animate() {
       renderer.setAnimationLoop(function() {
-        logToScreen('animate: xr.isPresenting=' + renderer.xr.isPresenting + ', mixer=' + (mixer ? 'есть' : 'нет'));
+        logToScreen('animate: xr.isPresenting=' + renderer.xr.isPresenting + ', mixerArmature=' + (mixerArmature ? 'есть' : 'нет') + ', mixerRigCat=' + (mixerRigCat ? 'есть' : 'нет'));
         if (renderer.xr.isPresenting && model) {
           model.visible = true;
           model.position.set(0, -10, -16);
-          if (mixer) {
-            const delta = clock.getDelta();
-            mixer.update(delta);
-          }
+          const delta = clock.getDelta();
+          if (mixerArmature) mixerArmature.update(delta);
+          if (mixerRigCat) mixerRigCat.update(delta);
           // Воспроизведение аудио
           if (audioElement && audioElement.paused) {
             audioElement.currentTime = 0;
@@ -327,10 +379,20 @@
           model.visible = false;
           model.position.set(0, -1000, -1000);
           // Остановить все анимации вне AR
-          if (mixer && animations && animations.length > 0) {
+          if (mixerArmature && animations && animations.length > 0) {
             animations.forEach((clip) => {
-              const action = mixer.clipAction(clip);
-              action.stop();
+              if (clip.tracks.some(t => t.name.startsWith('Armature'))) {
+                const action = mixerArmature.clipAction(clip);
+                action.stop();
+              }
+            });
+          }
+          if (mixerRigCat && animations && animations.length > 0) {
+            animations.forEach((clip) => {
+              if (clip.tracks.some(t => t.name.startsWith('Rig_Cat'))) {
+                const action = mixerRigCat.clipAction(clip);
+                action.stop();
+              }
             });
           }
           if (audioElement && !audioElement.paused) {
