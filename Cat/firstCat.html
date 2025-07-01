@@ -565,10 +565,10 @@
 
                 scene.add(model2);
 
-                mixer2 = new THREE.AnimationMixer(model2);
+                mixer = new THREE.AnimationMixer(model);
                 if (gltf.animations && gltf.animations.length > 0) {
                   animations2 = gltf.animations;
-                  const tellAnimation = mixer2.clipAction(animations2[0]);
+                  const tellAnimation = mixer.clipAction(animations2[0]);
                   tellAnimation.setLoop(THREE.LoopRepeat);
                   tellAnimation.clampWhenFinished = false;
                   tellAnimation.timeScale = 30.0;
