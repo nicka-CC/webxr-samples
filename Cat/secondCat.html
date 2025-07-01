@@ -188,10 +188,33 @@
                   audioElement.currentTime = 0;
                   audioElement.play().catch(() => {});
                 }
+                // Сброс и запуск всех анимаций с начала
+                if (mixer && animations && animations.length > 0) {
+                  animations.forEach((clip, idx) => {
+                    const action = mixer.clipAction(clip);
+                    action.stop();
+                    action.reset();
+                    action.setLoop(THREE.LoopRepeat);
+                    action.clampWhenFinished = false;
+                    action.timeScale = 1.0;
+                    action.play();
+                    console.log(`Анимация #${idx} (${clip.name}) сброшена и запущена с начала`);
+                  });
+                }
               });
               renderer.xr.addEventListener('sessionend', function() {
                 document.getElementById('ar-status').textContent = 'AR неактивен';
                 clock.stop();
+                // Остановить все анимации
+                if (mixer && animations && animations.length > 0) {
+                  animations.forEach((clip) => {
+                    const action = mixer.clipAction(clip);
+                    action.stop();
+                  });
+                }
+                if (audioElement && !audioElement.paused) {
+                  audioElement.pause();
+                }
               });
             } catch (e) {
               const arBtn = ARButton.createButton(renderer);
