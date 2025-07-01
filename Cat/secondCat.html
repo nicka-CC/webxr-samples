@@ -190,6 +190,21 @@
         document.body.appendChild(arBtn);
         document.getElementById('ar-status').textContent = 'WebXR не поддерживается';
       }
+
+      // После создания renderer добавляем обработчик sessionstart для сброса анимаций при входе в AR
+      renderer.xr.addEventListener('sessionstart', function() {
+        if (mixer && animations && animations.length > 0) {
+          animations.forEach((clip) => {
+            const action = mixer.clipAction(clip);
+            action.stop();
+            action.reset();
+            action.setLoop(THREE.LoopRepeat);
+            action.clampWhenFinished = false;
+            action.play();
+          });
+        }
+      });
+
       window.addEventListener('resize', onWindowResize);
     }
 
