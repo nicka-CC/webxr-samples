@@ -144,9 +144,16 @@
           if (animations && animations.length > 0) {
             document.getElementById('animations').textContent = `Найдено: ${animations.length}`;
             document.getElementById('status').textContent = 'Готово';
-            currentAnimation = mixer.clipAction(animations[0]);
-            currentAnimation.setLoop(THREE.LoopRepeat);
-            currentAnimation.clampWhenFinished = false;
+            // Запускаем все анимации синхронно
+            animations.forEach((clip, idx) => {
+              const action = mixer.clipAction(clip);
+              action.reset();
+              action.setLoop(THREE.LoopRepeat);
+              action.clampWhenFinished = false;
+              action.timeScale = 1.0;
+              action.play();
+              console.log(`Анимация #${idx} (${clip.name}) запущена`);
+            });
           } else {
             document.getElementById('animations').textContent = 'Не найдено';
             document.getElementById('status').textContent = 'Нет анимаций';
