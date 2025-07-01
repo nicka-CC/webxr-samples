@@ -579,7 +579,7 @@
 
       // Загрузка модели поворота налево
       loader.load(
-              './left.glb',
+              './Cate.glb',
               function (gltf) {
                 modelLeft = gltf.scene;
                 modelLeft.scale.set(2.5, 2.5, 2.5);
@@ -704,16 +704,16 @@
 
         // Двигаем модель в AR режиме
         if (model && model2 && modelLeft && modelRight && renderer.xr.isPresenting) {
-          if (elapsedTime < 1.5) {
+          if (elapsedTime < 15) {
             // Движение влево
             currentModel = 'walk';
             model.visible = true;
             model2.visible = false;
             modelLeft.visible = false;
             modelRight.visible = false;
-            model.rotation.y = Math.PI / 2 + Math.PI;
-            model.position.x -= moveSpeed;
-          } else if (elapsedTime < 3.5) {
+            // model.rotation.y = Math.PI / 2 + Math.PI;
+            // model.position.x -= moveSpeed;
+          } else if (elapsedTime < 35) {
             // Поворот налево
             currentModel = 'left';
             model.visible = false;
