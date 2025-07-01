@@ -198,6 +198,8 @@
             const action = mixer.clipAction(clip);
             action.stop();
             action.reset();
+            action.enabled = true;
+            action.time = 0;
             action.setLoop(THREE.LoopRepeat);
             action.clampWhenFinished = false;
             action.play();
