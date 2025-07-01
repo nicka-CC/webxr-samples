@@ -141,7 +141,18 @@
           mixer = new THREE.AnimationMixer(model);
           gltfAnimations = gltf.animations;
           modelLoaded = true;
-          startARAnimations();
+          // Запуск анимаций для предпросмотра
+          if (gltfAnimations.length > 0) {
+            gltfAnimations.forEach((clip, idx) => {
+              const action = mixer.clipAction(clip);
+              action.reset();
+              action.setLoop(THREE.LoopRepeat);
+              action.clampWhenFinished = false;
+              action.play();
+              console.log(`Анимация предпросмотра #${idx} (${clip.name}) запущена`);
+            });
+          }
+          startARAnimations(); // на случай, если AR уже стартовал
           if (gltfAnimations && gltfAnimations.length > 0) {
             document.getElementById('animations').textContent = `Найдено: ${gltfAnimations.length}`;
             document.getElementById('status').textContent = 'Готово';
@@ -224,9 +235,9 @@
             action.setLoop(THREE.LoopRepeat);
             action.clampWhenFinished = false;
             action.play();
-            console.log(`Анимация #${idx} (${clip.name}) запущена`);
+            console.log(`Анимация AR #${idx} (${clip.name}) сброшена и запущена`);
           });
-          console.log('Анимации запущены после старта AR');
+          console.log('Анимации сброшены и запущены после старта AR');
         } else {
           console.log('Нет анимаций для запуска');
         }
