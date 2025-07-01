@@ -179,7 +179,8 @@
               document.getElementById('ar-status').textContent = 'AR запущен автоматически';
               renderer.xr.addEventListener('sessionstart', function() {
                 arSessionStarted = true;
-                startARAnimations();
+                reloadModelAndAnimations();
+                startARAnimations(); // на случай, если потребуется запускать звук и т.д.
               });
             } catch (e) {
               const arBtn = ARButton.createButton(renderer);
@@ -244,6 +245,49 @@
       } else {
         console.log('Ждём: arSessionStarted=', arSessionStarted, 'modelLoaded=', modelLoaded);
       }
+    }
+
+    function reloadModelAndAnimations() {
+      // Удаляем старую модель из сцены
+      if (model && scene) {
+        scene.remove(model);
+        model = null;
+        mixer = null;
+        gltfAnimations = [];
+        modelLoaded = false;
+      }
+      // Загружаем модель заново
+      const loader = new GLTFLoader();
+      loader.load('./Cate.glb', function (gltf) {
+        model = gltf.scene;
+        model.scale.set(0.3, 0.3, 0.3);
+        model.position.set(0, 0, -1);
+        model.traverse((child) => {
+          if (child.isMesh && child.material) {
+            child.material.roughness = 1.0;
+            child.material.metalness = 0.0;
+            child.material.envMapIntensity = 0.0;
+            child.material.needsUpdate = true;
+            child.castShadow = true;
+            child.receiveShadow = true;
+          }
+        });
+        scene.add(model);
+        mixer = new THREE.AnimationMixer(model);
+        gltfAnimations = gltf.animations;
+        modelLoaded = true;
+        // Запуск анимаций
+        if (gltfAnimations.length > 0) {
+          gltfAnimations.forEach((clip, idx) => {
+            const action = mixer.clipAction(clip);
+            action.reset();
+            action.setLoop(THREE.LoopRepeat);
+            action.clampWhenFinished = false;
+            action.play();
+            console.log(`Анимация AR #${idx} (${clip.name}) перезапущена с новой моделью`);
+          });
+        }
+      });
     }
   </script>
 </head>
