@@ -193,9 +193,8 @@
 
       // После создания renderer добавляем обработчик sessionstart для сброса анимаций при входе в AR
       renderer.xr.addEventListener('sessionstart', function() {
-        if (mixer && animations && animations.length > 0) {
-          mixer.stopAllAction();
-          mixer.time = 0;
+        if (model && animations && animations.length > 0) {
+          mixer = new THREE.AnimationMixer(model);
           animations.forEach((clip) => {
             const action = mixer.clipAction(clip);
             action.reset();
