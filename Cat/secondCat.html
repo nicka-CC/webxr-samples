@@ -131,6 +131,14 @@
                     child.material.needsUpdate = true;
                     child.castShadow = true;
                     child.receiveShadow = true;
+                    // Фикс для прозрачных частей (рот, глаза, зрачки, радужка)
+                    const n = child.name.toLowerCase();
+                    if (n.includes('mouth') || n.includes('eye') || n.includes('pupil') || n.includes('iris')) {
+                      child.material.transparent = true;
+                      child.material.depthWrite = false;
+                      child.material.depthTest = true;
+                      child.material.needsUpdate = true;
+                    }
                   }
                 });
                 scene.add(model);
@@ -220,6 +228,14 @@
               child.material.metalness = 0.0;
               child.material.envMapIntensity = 0.0;
               child.material.needsUpdate = true;
+              // Фикс для прозрачных частей (рот, глаза, зрачки, радужка)
+              const n = child.name.toLowerCase();
+              if (n.includes('mouth') || n.includes('eye') || n.includes('pupil') || n.includes('iris')) {
+                child.material.transparent = true;
+                child.material.depthWrite = false;
+                child.material.depthTest = true;
+                child.material.needsUpdate = true;
+              }
             }
           });
           mixer = new THREE.AnimationMixer(model);
