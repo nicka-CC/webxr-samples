@@ -210,7 +210,7 @@
         loader.load('./Cate.glb', function (gltf) {
           model = gltf.scene;
           model.scale.set(2.5, 2.5, 2.5);
-          model.position.set(10, -10, -75);
+          model.position.set(10, -10, -80);
           scene.add(model);
           // Добавить свет для новой модели
           const light = new THREE.HemisphereLight(0xffffff, 0xbbbbff, 1.0);
@@ -250,6 +250,11 @@
               action.clampWhenFinished = false;
               action.play();
             });
+          }
+          // Воспроизвести звук только если AR активен
+          if (renderer.xr.isPresenting && audioElement) {
+            audioElement.currentTime = 0;
+            audioElement.play().catch(() => {});
           }
         });
       });
