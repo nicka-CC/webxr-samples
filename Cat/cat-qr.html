@@ -1,19 +1,12 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>AR.js + three.js WebAR Cat</title>
+  <title>three.js + AR.js без маркеров</title>
   <script src="https://cdn.jsdelivr.net/npm/three@0.125.2/build/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.125.2/examples/js/loaders/GLTFLoader.js"></script>
   <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js/three.js/build/ar-threex.js"></script>
   <style>
-    html, body {
-      margin: 0;
-      padding: 0;
-      width: 100vw;
-      height: 100vh;
-      overflow: hidden;
-      background: #000;
-    }
+    html, body { margin: 0; padding: 0; width: 100vw; height: 100vh; overflow: hidden; background: #000; }
     canvas, video, #arjs-video {
       position: fixed !important;
       top: 0 !important;
@@ -49,7 +42,6 @@
   let arSource = new THREEx.ArToolkitSource({ sourceType: 'webcam' });
   arSource.init(function onReady() {
     onResize();
-    // Поправляем стили видео после инициализации
     setTimeout(() => {
       const arVideo = document.querySelector('video, #arjs-video');
       if (arVideo) {
@@ -72,9 +64,6 @@
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.domElement.style.width = '100vw';
     renderer.domElement.style.height = '100vh';
-    if (arContext.arController !== null) {
-      arSource.copyElementSizeTo(arContext.arController.canvas);
-    }
   }
 
   // 4. AR.js Context (используем локальный camera_para.dat)
@@ -86,26 +75,21 @@
     camera.projectionMatrix.copy(arContext.getProjectionMatrix());
   });
 
-  // 5. Маркер
-  let markerRoot = new THREE.Group();
-  scene.add(markerRoot);
-  let arMarker = new THREEx.ArMarkerControls(arContext, markerRoot, {
-    type: 'pattern',
-    patternUrl: 'pattern-qr.patt' // ваш паттерн
-    // или preset: 'hiro'
-  });
-
-  // 6. Свет
+  // 5. Свет
   let light = new THREE.HemisphereLight(0xffffff, 0xbbbbff, 1);
-  markerRoot.add(light);
+  scene.add(light);
+  let dirLight = new THREE.DirectionalLight(0xffffff, 0.7);
+  dirLight.position.set(1, 2, 1);
+  scene.add(dirLight);
 
-  // 7. Загрузка модели с анимацией
+  // 6. Загрузка модели с анимацией
   clock = new THREE.Clock();
   let loader = new THREE.GLTFLoader();
   loader.load('walk3.glb', function(gltf) {
     model = gltf.scene;
     model.scale.set(0.2, 0.2, 0.2);
-    markerRoot.add(model);
+    model.position.set(0, 0, -10); // 1 метр перед камерой
+    scene.add(model);
 
     // Анимация
     if (gltf.animations && gltf.animations.length > 0) {
@@ -115,7 +99,7 @@
     }
   });
 
-  // 8. Рендер-цикл
+  // 7. Рендер-цикл
   function animate() {
     requestAnimationFrame(animate);
     if (arSource.ready) arContext.update(arSource.domElement);
@@ -123,6 +107,13 @@
     renderer.render(scene, camera);
   }
   animate();
+
+  // 8. Адаптация под размер окна
+  window.addEventListener('resize', function() {
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.domElement.style.width = '100vw';
+    renderer.domElement.style.height = '100vh';
+  });
 </script>
 </body>
 </html>
