@@ -1,55 +1,62 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="utf-8">
-  <title>AR Котик через Onirix</title>
-  <script src="https://cdn.jsdelivr.net/npm/onirixplayer@1.16.0/dist/onirixplayer.js"></script>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AR.js Кот с анимацией и звуком</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://cdn.jsdelivr.net/npm/aframe@1.4.2/dist/aframe.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/ar-js@3.4.4/aframe/build/aframe-ar.js"></script>
   <style>
-    html, body { margin:0; padding:0; width:100vw; height:100vh; overflow:hidden; }
-    #onirix-container { width:100vw; height:100vh; }
-    #start-ar { position: absolute; top: 20px; left: 20px; z-index: 10; }
+    body { margin: 0; overflow: hidden; }
+    #ar-audio-btn {
+      position: absolute; top: 20px; left: 20px; z-index: 10;
+      background: #222; color: #fff; border: none; padding: 10px; border-radius: 5px;
+    }
   </style>
-
 </head>
 <body>
-  <div id="onirix-container"></div>
-  <button id="start-ar">Запустить AR</button>
-  <script>
-    let player;
-    let audio = new Audio('./mp3.mp3');
-    audio.loop = false;
-    audio.volume = 1.0;
+<button id="ar-audio-btn">Включить звук</button>
+<a-scene
+        embedded
+        arjs="sourceType: webcam; debugUIEnabled: false;"
+        renderer="logarithmicDepthBuffer: true;"
+>
+  <!-- Маркер Hiro (можно заменить на свой) -->
+  <a-marker preset="hiro" id="ar-marker">
+    <!-- 3D-модель кота с анимацией -->
+    <a-entity
+            id="cat-model"
+            gltf-model="url(Cate.glb)"
+            animation-mixer
+            scale="2.5 2.5 2.5"
+            position="0 0 0"
+    ></a-entity>
+  </a-marker>
+  <a-entity camera></a-entity>
+</a-scene>
+<audio id="cat-audio" src="mp3.mp3"></audio>
+<script>
+  // Воспроизведение звука при появлении модели на маркере
+  const marker = document.querySelector('#ar-marker');
+  const audio = document.getElementById('cat-audio');
+  const btn = document.getElementById('ar-audio-btn');
+  let audioPlayed = false;
 
-    document.getElementById('start-ar').onclick = async function() {
-      // Инициализация Onirix Player
-      player = new OX.Player({
-        container: document.getElementById('onirix-container'),
-        mode: 'ar',
-      });
+  btn.onclick = () => {
+    audio.currentTime = 0;
+    audio.play();
+  };
 
-      // Ждём готовности
-      await player.init();
-
-      // Добавляем локальную 3D-модель
-      const model = await player.addModel({
-        url: './Cate.glb',
-        scale: [2.5, 2.5, 2.5],
-        position: [0, 0, -1],
-        rotation: [0, 0, 0]
-      });
-
-      // Запускаем анимацию (если есть)
-      if (model.animations && model.animations.length > 0) {
-        model.playAnimation(0, true); // 0 — индекс анимации, true — зациклить
-      }
-
-      // Воспроизводим звук
+  marker.addEventListener('markerFound', () => {
+    if (!audioPlayed) {
       audio.currentTime = 0;
-      audio.play().catch(()=>{});
-    };
-  </script>
-  <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
-  <script>eruda.init();</script>
+      audio.play();
+      audioPlayed = true;
+    }
+  });
+  marker.addEventListener('markerLost', () => {
+    audio.pause();
+    audioPlayed = false;
+  });
+</script>
 </body>
 </html>
