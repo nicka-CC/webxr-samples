@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>three.js + AR.js без маркеров</title>
+  <title>three.js + AR.js без маркеров (естественный размер)</title>
   <script src="https://cdn.jsdelivr.net/npm/three@0.125.2/build/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.125.2/examples/js/loaders/GLTFLoader.js"></script>
   <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js/three.js/build/ar-threex.js"></script>
@@ -24,7 +24,8 @@
 
   // 1. Сцена и камера
   scene = new THREE.Scene();
-  camera = new THREE.Camera();
+  camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 100);
+  camera.position.set(0, 1, 3);
   scene.add(camera);
 
   // 2. Рендерер
@@ -59,11 +60,13 @@
     onResize();
   });
   function onResize() {
-    arSource.onResizeElement();
-    arSource.copyElementSizeTo(renderer.domElement);
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.domElement.style.width = '100vw';
     renderer.domElement.style.height = '100vh';
+    arSource.onResizeElement();
+    arSource.copyElementSizeTo(renderer.domElement);
   }
 
   // 4. AR.js Context (используем локальный camera_para.dat)
@@ -76,26 +79,54 @@
   });
 
   // 5. Свет
-  let light = new THREE.HemisphereLight(0xffffff, 0xbbbbff, 1);
+  const light = new THREE.HemisphereLight(0xffffff, 0xbbbbff, 1);
+  light.position.set(0.5, 1, 0.25);
   scene.add(light);
-  let dirLight = new THREE.DirectionalLight(0xffffff, 0.7);
-  dirLight.position.set(1, 2, 1);
-  scene.add(dirLight);
 
+  const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+  directionalLight.position.set(1, 1, 1);
+  scene.add(directionalLight);
+
+  const ambient = new THREE.AmbientLight(0xffffff, 1.2);
+  // scene.add(ambient);
   // 6. Загрузка модели с анимацией
   clock = new THREE.Clock();
   let loader = new THREE.GLTFLoader();
-  loader.load('walk3.glb', function(gltf) {
+  loader.load('Cate.glb', function(gltf) {
     model = gltf.scene;
     model.scale.set(0.2, 0.2, 0.2);
-    model.position.set(0, 0, -10); // 1 метр перед камерой
+    model.position.set(0, 0, -8);
+
+    // Настройка материалов и теней как в firstCat.html + фикс прозрачности как в secondCat.html
+    model.traverse((child) => {
+      if (child.isMesh && child.material) {
+        child.material.roughness = 1.0;
+        child.material.metalness = 0.0;
+        child.material.envMapIntensity = 0.0;
+        child.material.needsUpdate = true;
+        child.castShadow = true;
+        child.receiveShadow = true;
+        // Фикс для прозрачных частей (рот, глаза, зрачки, радужка)
+        const n = child.name.toLowerCase();
+        if (n.includes('mouth') || n.includes('eye') || n.includes('pupil') || n.includes('iris')) {
+          child.material.transparent = true;
+          child.material.depthWrite = false;
+          child.material.depthTest = true;
+          child.material.needsUpdate = true;
+        }
+      }
+    });
     scene.add(model);
 
-    // Анимация
+    // Анимации: запускаем все клипы сразу (как в secondCat.html)
     if (gltf.animations && gltf.animations.length > 0) {
       mixer = new THREE.AnimationMixer(model);
-      let action = mixer.clipAction(gltf.animations[0]);
-      action.play();
+      gltf.animations.forEach((clip) => {
+        const action = mixer.clipAction(clip);
+        action.setLoop(THREE.LoopRepeat);
+        action.clampWhenFinished = false;
+        action.play();
+      });
     }
   });
 
@@ -107,13 +138,6 @@
     renderer.render(scene, camera);
   }
   animate();
-
-  // 8. Адаптация под размер окна
-  window.addEventListener('resize', function() {
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.domElement.style.width = '100vw';
-    renderer.domElement.style.height = '100vh';
-  });
 </script>
 </body>
 </html>
