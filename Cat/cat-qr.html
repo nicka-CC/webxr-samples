@@ -60,6 +60,22 @@
       });
     }
   });
+
+  // --- ОТЛАДКА МАРКЕРА ---
+  document.addEventListener('DOMContentLoaded', function() {
+    const marker = document.querySelector('a-marker');
+    if (marker) {
+      marker.addEventListener('markerFound', () => {
+        console.log('МАРКЕР НАЙДЕН!');
+        console.log('pattern url:', marker.getAttribute('url'));
+      });
+      marker.addEventListener('markerLost', () => {
+        console.log('МАРКЕР ПОТЕРЯН!');
+      });
+    } else {
+      console.warn('a-marker не найден на странице!');
+    }
+  });
 </script>
 <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
 <script>eruda.init();</script>
