@@ -6,7 +6,23 @@
   <script src="https://cdn.jsdelivr.net/npm/three@0.125.2/examples/js/loaders/GLTFLoader.js"></script>
   <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js/three.js/build/ar-threex.js"></script>
   <style>
-    body { margin: 0; overflow: hidden; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      background: #000;
+    }
+    canvas, video, #arjs-video {
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+      width: 100vw !important;
+      height: 100vh !important;
+      object-fit: cover !important;
+      z-index: 1;
+    }
   </style>
 </head>
 <body>
@@ -22,15 +38,30 @@
   renderer = new THREE.WebGLRenderer({antialias: true, alpha: true});
   renderer.setClearColor(0x000000, 0);
   renderer.setSize(window.innerWidth, window.innerHeight);
-  renderer.domElement.style.position = 'absolute';
-  renderer.domElement.style.top = '0px';
-  renderer.domElement.style.left = '0px';
+  renderer.domElement.style.position = 'fixed';
+  renderer.domElement.style.top = '0';
+  renderer.domElement.style.left = '0';
+  renderer.domElement.style.width = '100vw';
+  renderer.domElement.style.height = '100vh';
   document.body.appendChild(renderer.domElement);
 
   // 3. AR.js Source (камера)
   let arSource = new THREEx.ArToolkitSource({ sourceType: 'webcam' });
   arSource.init(function onReady() {
     onResize();
+    // Поправляем стили видео после инициализации
+    setTimeout(() => {
+      const arVideo = document.querySelector('video, #arjs-video');
+      if (arVideo) {
+        arVideo.style.position = 'fixed';
+        arVideo.style.top = '0';
+        arVideo.style.left = '0';
+        arVideo.style.width = '100vw';
+        arVideo.style.height = '100vh';
+        arVideo.style.objectFit = 'cover';
+        arVideo.style.zIndex = '0';
+      }
+    }, 1000);
   });
   window.addEventListener('resize', function() {
     onResize();
@@ -38,6 +69,9 @@
   function onResize() {
     arSource.onResizeElement();
     arSource.copyElementSizeTo(renderer.domElement);
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.domElement.style.width = '100vw';
+    renderer.domElement.style.height = '100vh';
     if (arContext.arController !== null) {
       arSource.copyElementSizeTo(arContext.arController.canvas);
     }
