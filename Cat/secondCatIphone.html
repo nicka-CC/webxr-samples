@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>AR Котик через Onirix</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    html, body { margin:0; padding:0; width:100vw; height:100vh; overflow:hidden; }
+    #onirix-container { width:100vw; height:100vh; }
+    #start-ar { position: absolute; top: 20px; left: 20px; z-index: 10; }
+  </style>
+  <script src="https://unpkg.com/onirixplayer@latest/dist/onirixplayer.js"></script>
+</head>
+<body>
+  <div id="onirix-container"></div>
+  <button id="start-ar">Запустить AR</button>
+  <script>
+    let player;
+    let audio = new Audio('./mp3.mp3');
+    audio.loop = false;
+    audio.volume = 1.0;
+
+    document.getElementById('start-ar').onclick = async function() {
+      // Инициализация Onirix Player
+      player = new OX.Player({
+        container: document.getElementById('onirix-container'),
+        mode: 'ar',
+      });
+
+      // Ждём готовности
+      await player.init();
+
+      // Добавляем локальную 3D-модель
+      const model = await player.addModel({
+        url: './Cate.glb',
+        scale: [2.5, 2.5, 2.5],
+        position: [0, 0, -1],
+        rotation: [0, 0, 0]
+      });
+
+      // Запускаем анимацию (если есть)
+      if (model.animations && model.animations.length > 0) {
+        model.playAnimation(0, true); // 0 — индекс анимации, true — зациклить
+      }
+
+      // Воспроизводим звук
+      audio.currentTime = 0;
+      audio.play().catch(()=>{});
+    };
+  </script>
+</body>
+</html>
