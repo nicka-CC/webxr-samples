@@ -1,39 +1,63 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>AR.js Cat Example</title>
+  <meta charset="utf-8">
+  <title>AR Котики (AR.js)</title>
   <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
   <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js/aframe/build/aframe-ar.js"></script>
+  <style>
+    body { margin: 0; overflow: hidden; }
+    #info { position: fixed; top: 10px; left: 10px; background: rgba(0,0,0,0.7); color: white; padding: 10px; border-radius: 5px; font-family: monospace; z-index: 3; font-size: 12px; max-width: 300px; }
+    #info h3 { margin: 0 0 10px 0; color: #4CAF50; }
+    #info p { margin: 5px 0; }
+  </style>
 </head>
-<body style="margin: 0; overflow: hidden;">
-<a-scene
-        embedded
-        arjs="sourceType: webcam; debugUIEnabled: false;"
-        vr-mode-ui="enabled: false"
-        renderer="logarithmicDepthBuffer: true;"
->
-  <!-- Маркер Hiro, можно заменить на свой QR -->
-  <a-marker type="pattern" url="/pattern-qr.patt"
-    <a-entity
-            gltf-model="url(Cat.glb)"
-            animation-mixer
-            scale="0.5 0.5 0.5"
-            position="0 0 0"
-            id="cat"
-    ></a-entity>
-    <!-- Звук -->
-    <a-entity
-            sound="src: url(mp3.mp3); autoplay: false; on: markerFound"
-    ></a-entity>
+<body>
+<div id="info">
+  <h3>AR Котики (AR.js)</h3>
+  <p>Наведи камеру на свой QR-маркер.</p>
+  <p>Модель: walk3.glb</p>
+</div>
+<a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false;">
+  <a-marker type="pattern" url="pattern-qr.patt">
+    <a-entity light="type: directional; intensity: 1" position="1 2 1"></a-entity>
+    <a-entity light="type: ambient; intensity: 0.5"></a-entity>
+    <a-entity id="cat" gltf-model="url(walk3.glb)" scale="0.3 0.3 0.3" animation-mixer cat-scenario></a-entity>
   </a-marker>
   <a-entity camera></a-entity>
 </a-scene>
 <script>
-  // Автоматическое воспроизведение звука при появлении маркера
-  document.querySelector('a-marker').addEventListener('markerFound', function () {
-    var sound = document.querySelector('[sound]');
-    if (sound && !sound.components.sound.isPlaying) {
-      sound.components.sound.playSound();
+  AFRAME.registerComponent('cat-scenario', {
+    init: function () {
+      this.el.addEventListener('markerFound', () => {
+        // Через 2 секунды кот начинает двигаться вперёд
+        setTimeout(() => {
+          this.el.setAttribute('animation__move', {
+            property: 'position',
+            to: '0 0 -2',
+            dur: 2000,
+            easing: 'linear'
+          });
+          // Можно включить нужную анимацию, если есть несколько клипов:
+          // this.el.setAttribute('animation-mixer', 'clip: Walk');
+        }, 2000);
+
+        setTimeout(() => {
+          // Поворот
+          this.el.setAttribute('animation__turn', {
+            property: 'rotation',
+            to: '0 90 0',
+            dur: 1000,
+            easing: 'linear'
+          });
+          // this.el.setAttribute('animation-mixer', 'clip: Turn');
+        }, 4000);
+
+        setTimeout(() => {
+          // Остановился и говорит (если есть анимация)
+          // this.el.setAttribute('animation-mixer', 'clip: Talk');
+        }, 6000);
+      });
     }
   });
 </script>
