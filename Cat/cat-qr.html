@@ -1,50 +1,41 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <meta charset="utf-8">
-    <title>AR Котик без маркера (AR.js)</title>
-    <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js/aframe/build/aframe-ar.js"></script>
-    <style>
-      body { margin: 0; overflow: hidden; }
-    </style>
-  </head>
-  <body>
-    <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false;">
-      <!-- Просто кот в центре сцены -->
-      <a-entity light="type: directional; intensity: 1" position="1 2 1"></a-entity>
-      <a-entity light="type: ambient; intensity: 0.5"></a-entity>
-      <a-entity id="cat" gltf-model="url(walk3.glb)" scale="0.3 0.3 0.3" animation-mixer cat-scenario></a-entity>
-      <a-entity camera></a-entity>
-    </a-scene>
-    <script>
-    AFRAME.registerComponent('cat-scenario', {
-      init: function () {
-        // Сразу после загрузки сцены запускаем сценарий
-        setTimeout(() => {
-          this.el.setAttribute('animation__move', {
-            property: 'position',
-            to: '0 0 -2',
-            dur: 2000,
-            easing: 'linear'
-          });
-        }, 2000);
-
-        setTimeout(() => {
-          this.el.setAttribute('animation__turn', {
-            property: 'rotation',
-            to: '0 90 0',
-            dur: 1000,
-            easing: 'linear'
-          });
-        }, 4000);
-
-        setTimeout(() => {
-          // Можно включить другую анимацию, если есть
-          // this.el.setAttribute('animation-mixer', 'clip: Talk');
-        }, 6000);
-      }
-    });
-    </script>
-  </body>
+<head>
+  <title>AR.js Cat Example</title>
+  <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js/aframe/build/aframe-ar.js"></script>
+</head>
+<body style="margin: 0; overflow: hidden;">
+<a-scene
+        embedded
+        arjs="sourceType: webcam; debugUIEnabled: false;"
+        vr-mode-ui="enabled: false"
+        renderer="logarithmicDepthBuffer: true;"
+>
+  <!-- Маркер Hiro, можно заменить на свой QR -->
+  <a-marker preset="hiro">
+    <a-entity
+            gltf-model="url(Cat/Cat.glb)"
+            animation-mixer
+            scale="0.5 0.5 0.5"
+            position="0 0 0"
+            id="cat"
+    ></a-entity>
+    <!-- Звук -->
+    <a-entity
+            sound="src: url(Cat/mp3.mp3); autoplay: false; on: markerFound"
+    ></a-entity>
+  </a-marker>
+  <a-entity camera></a-entity>
+</a-scene>
+<script>
+  // Автоматическое воспроизведение звука при появлении маркера
+  document.querySelector('a-marker').addEventListener('markerFound', function () {
+    var sound = document.querySelector('[sound]');
+    if (sound && !sound.components.sound.isPlaying) {
+      sound.components.sound.playSound();
+    }
+  });
+</script>
+</body>
 </html>
