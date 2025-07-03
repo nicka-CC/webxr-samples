@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>AR Котики (AR.js)</title>
+  <title>AR Кот без маркера</title>
   <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
   <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js/aframe/build/aframe-ar.js"></script>
   <style>
@@ -15,70 +15,19 @@
 <body>
 <div id="info">
   <h3>AR Котики (AR.js)</h3>
-  <p>Наведи камеру на свой QR-маркер.</p>
+  <p>Кот появляется всегда перед камерой (без маркера).</p>
   <p>Модель: walk3.glb</p>
 </div>
-<a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false;">
-  <a-marker type="pattern" url="pattern-qr.patt">
-<!--  <a-marker preset="hiro">-->
-    <a-entity light="type: directional; intensity: 1" position="1 2 1"></a-entity>
-    <a-entity light="type: ambient; intensity: 0.5"></a-entity>
-    <a-entity id="cat" gltf-model="url(walk3.glb)" scale="0.3 0.3 0.3" animation-mixer cat-scenario></a-entity>
-  </a-marker>
+<a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false;" vr-mode-ui="enabled: false" renderer="logarithmicDepthBuffer: true;">
+  <a-entity light="type: ambient; intensity: 1"></a-entity>
+  <a-entity light="type: directional; intensity: 1" position="1 2 1"></a-entity>
+  <a-entity
+    gltf-model="url(walk3.glb)"
+    animation-mixer
+    scale="0.2 0.2 0.2"
+    position="0 0 -1"
+  ></a-entity>
   <a-entity camera></a-entity>
 </a-scene>
-<script>
-  AFRAME.registerComponent('cat-scenario', {
-    init: function () {
-      this.el.addEventListener('markerFound', () => {
-        // Через 2 секунды кот начинает двигаться вперёд
-        setTimeout(() => {
-          this.el.setAttribute('animation__move', {
-            property: 'position',
-            to: '0 0 -2',
-            dur: 2000,
-            easing: 'linear'
-          });
-          // Можно включить нужную анимацию, если есть несколько клипов:
-          // this.el.setAttribute('animation-mixer', 'clip: Walk');
-        }, 2000);
-
-        setTimeout(() => {
-          // Поворот
-          this.el.setAttribute('animation__turn', {
-            property: 'rotation',
-            to: '0 90 0',
-            dur: 1000,
-            easing: 'linear'
-          });
-          // this.el.setAttribute('animation-mixer', 'clip: Turn');
-        }, 4000);
-
-        setTimeout(() => {
-          // Остановился и говорит (если есть анимация)
-          // this.el.setAttribute('animation-mixer', 'clip: Talk');
-        }, 6000);
-      });
-    }
-  });
-
-  // --- ОТЛАДКА МАРКЕРА ---
-  document.addEventListener('DOMContentLoaded', function() {
-    const marker = document.querySelector('a-marker');
-    if (marker) {
-      marker.addEventListener('markerFound', () => {
-        console.log('МАРКЕР НАЙДЕН!');
-        console.log('pattern url:', marker.getAttribute('url'));
-      });
-      marker.addEventListener('markerLost', () => {
-        console.log('МАРКЕР ПОТЕРЯН!');
-      });
-    } else {
-      console.warn('a-marker не найден на странице!');
-    }
-  });
-</script>
-<script src="https://cdn.jsdelivr.net/npm/eruda"></script>
-<script>eruda.init();</script>
 </body>
 </html>
