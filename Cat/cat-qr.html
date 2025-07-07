@@ -116,7 +116,7 @@
   loader.load('Cate.glb', function(gltf) {
     model = gltf.scene;
     console.log(model)
-    model.position.set(-4, 0, -15);
+    model.position.set(-3, 0, -15);
     model.rotation.x = Math.PI / 18;
     // model.rotation.y = -Math.PI / 90;
     updateModelScale();
@@ -162,8 +162,10 @@
     const fov = camera.fov * (Math.PI / 180);
     // let cameraZ = Math.abs(maxDim / 2 / Math.tan(fov / 2));
     // cameraZ *= 2.3; // небольшой запас
-
-    camera.position.set(0, 0, 13);
+    const aspect = window.innerWidth / window.innerHeight;
+    const baseCameraZ = 12;
+    const cameraZ = baseCameraZ / aspect;
+    camera.position.set(0, 0, cameraZ);
     camera.lookAt(0, 0, 0);
 
     // Если есть функция масштабирования — вызови её
