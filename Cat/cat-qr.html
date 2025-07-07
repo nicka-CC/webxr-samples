@@ -24,6 +24,8 @@
 <audio id="cat-audio" src="speech.mp3" preload="auto"></audio>
 <script>
   let scene, camera, renderer, clock, mixer, model;
+  let animationStarted = false;
+  let loadedAnimations = null;
 
   // 1. Сцена и камера
   scene = new THREE.Scene();
@@ -140,16 +142,9 @@
     });
     scene.add(model);
 
-    // Анимации: запускаем все клипы сразу (как в secondCat.html)
-    if (gltf.animations && gltf.animations.length > 0) {
-      mixer = new THREE.AnimationMixer(model);
-      gltf.animations.forEach((clip) => {
-        const action = mixer.clipAction(clip);
-        action.setLoop(THREE.LoopRepeat);
-        action.clampWhenFinished = false;
-        action.play();
-      });
-    }
+    // Сохраняем анимации для запуска позже
+    loadedAnimations = gltf.animations;
+    mixer = new THREE.AnimationMixer(model);
 
     // --- Автоматическое центрирование и отдаление камеры ---
     // Вычисляем bounding box всей модели
@@ -175,6 +170,27 @@
     if (typeof updateModelScale === 'function') updateModelScale();
   });
 
+  // Функция для запуска анимации и звука по тапу
+  function startAnimationAndSound() {
+    if (animationStarted) return;
+    animationStarted = true;
+    // Запуск анимации
+    if (mixer && loadedAnimations && loadedAnimations.length > 0) {
+      loadedAnimations.forEach((clip) => {
+        const action = mixer.clipAction(clip);
+        action.setLoop(THREE.LoopRepeat);
+        action.clampWhenFinished = false;
+        action.play();
+      });
+    }
+    // Запуск звука
+    const audio = document.getElementById('cat-audio');
+    audio.play();
+    // Удаляем обработчик, чтобы не запускалось повторно
+    window.removeEventListener('pointerdown', startAnimationAndSound);
+  }
+  window.addEventListener('pointerdown', startAnimationAndSound);
+
   // 7. Рендер-цикл
   function animate() {
     requestAnimationFrame(animate);
@@ -183,13 +199,6 @@
     renderer.render(scene, camera);
   }
   animate();
-
-  const audio = document.getElementById('cat-audio');
-  function playCatSoundOnce() {
-    audio.play();
-    window.removeEventListener('pointerdown', playCatSoundOnce);
-  }
-  window.addEventListener('pointerdown', playCatSoundOnce);
 </script>
 </body>
 </html>
