@@ -160,10 +160,10 @@
     // Ставим камеру так, чтобы вся модель была видна
     const maxDim = Math.max(size.x, size.y, size.z);
     const fov = camera.fov * (Math.PI / 180);
-    let cameraZ = Math.abs(maxDim / 2 / Math.tan(fov / 2));
-    cameraZ *= 1.2; // небольшой запас
+    // let cameraZ = Math.abs(maxDim / 2 / Math.tan(fov / 2));
+    // cameraZ *= 2.3; // небольшой запас
 
-    camera.position.set(0, 0, 14);
+    camera.position.set(0, 0, 13);
     camera.lookAt(0, 0, 0);
 
     // Если есть функция масштабирования — вызови её
