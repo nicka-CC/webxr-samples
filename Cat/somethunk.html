@@ -38,10 +38,13 @@
     <a-entity
             id="my-object"
             gltf-model="#model"
+            animation-mixer
+            position="0 0 -2"
             scale="0.5 0.5 0.5"
             visible="false"
             sound="src: #ar-sound"
-            animation="property: rotation; to: 0 360 0; loop: true; dur: 3000"
+            animatio=""
+<!--            animation="property: rotation; to: 0 360 0; loop: true; dur: 3000"-->
     ></a-entity>
 </a-scene>
 <script>
@@ -51,7 +54,13 @@
     let soundPlayed = false;
 
     scene.addEventListener('arjs-plane-detected', function (event) {
-        object.setAttribute('position', event.detail.position);
+        // Отдаляем модель дополнительно на 2 метра по Z
+        let pos = event.detail.position;
+        object.setAttribute('position', {
+            x: pos.x,
+            y: pos.y,
+            z: pos.z - 2
+        });
         object.setAttribute('visible', 'true');
         playARSound();
     });
