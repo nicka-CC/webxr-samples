@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>AR.js Plane Detection + Sound Example</title>
+    <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/ar.js@3.4.4/aframe/build/aframe-ar-nft.js"></script>
+    <style>
+        #sound-btn {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+            padding: 12px 24px;
+            font-size: 18px;
+            background: #1976d2;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            display: none;
+        }
+    </style>
+</head>
+<body style="margin: 0; overflow: hidden;">
+<button id="sound-btn">Включить звук</button>
+<a-scene
+        embedded
+        arjs="sourceType: webcam; debugUIEnabled: false; planeDetectionEnabled: true;"
+        vr-mode-ui="enabled: false"
+        renderer="logarithmicDepthBuffer: true;"
+>
+    <a-assets>
+        <a-asset-item id="model" src="Cate.glb"></a-asset-item>
+        <audio id="ar-sound" src="speech.mp3"></audio>
+    </a-assets>
+
+    <a-entity
+            id="my-object"
+            gltf-model="#model"
+            scale="0.5 0.5 0.5"
+            visible="false"
+            sound="src: #ar-sound"
+            animation="property: rotation; to: 0 360 0; loop: true; dur: 3000"
+    ></a-entity>
+</a-scene>
+<script>
+    const scene = document.querySelector('a-scene');
+    const object = document.getElementById('my-object');
+    const soundBtn = document.getElementById('sound-btn');
+    let soundPlayed = false;
+
+    scene.addEventListener('arjs-plane-detected', function (event) {
+        object.setAttribute('position', event.detail.position);
+        object.setAttribute('visible', 'true');
+        playARSound();
+    });
+
+    function playARSound() {
+        if (soundPlayed) return;
+        try {
+            object.components.sound.playSound();
+            soundPlayed = true;
+        } catch (e) {
+            soundBtn.style.display = 'block';
+        }
+    }
+
+    soundBtn.addEventListener('click', function () {
+        object.components.sound.playSound();
+        soundBtn.style.display = 'none';
+        soundPlayed = true;
+    });
+</script>
+</body>
+</html>
