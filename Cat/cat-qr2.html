@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>three.js + AR.js без маркеров (естественный размер)</title>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.125.2/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.125.2/examples/js/loaders/GLTFLoader.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js/three.js/build/ar-threex.js"></script>
+  <meta charset="utf-8">
+  <style>
+    html, body { margin: 0; padding: 0; width: 100vw; height: 100vh; overflow: hidden; background: #000; }
+    canvas, video, #arjs-video {
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+      margin: 0 !important;
+      width: 100vw !important;
+      height: 100vh !important;
+      object-fit: cover !important;
+      z-index: 1;
+    }
+  </style>
+</head>
+<body>
+<audio id="cat-audio" src="speech.mp3" preload="auto"></audio>
+<script>
+  let scene, camera, renderer, clock, mixer, model;
+  let animationStarted = false;
+  let loadedAnimations = null;
+
+  // 1. Сцена и камера
+  scene = new THREE.Scene();
+  camera = new THREE.PerspectiveCamera(30, window.innerWidth / window.innerHeight, 0.1, 100);
+  camera.position.set(-2, 1, 3);
+  scene.add(camera);
+
+  // 2. Рендерер
+  renderer = new THREE.WebGLRenderer({antialias: true, alpha: true});
+  renderer.setClearColor(0x000000, 0);
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.domElement.style.position = 'fixed';
+  renderer.domElement.style.top = '0';
+  renderer.domElement.style.left = '0';
+  renderer.domElement.style.width = '100vw';
+  renderer.domElement.style.height = '100vh';
+  document.body.appendChild(renderer.domElement);
+
+  // 3. AR.js Source (камера)
+  let arSource = new THREEx.ArToolkitSource({ sourceType: 'webcam' });
+  arSource.init(function onReady() {
+    onResize();
+    setTimeout(() => {
+      const arVideo = document.querySelector('video, #arjs-video');
+      if (arVideo) {
+        arVideo.style.position = 'fixed';
+        arVideo.style.top = '0';
+        arVideo.style.left = '0';
+        arVideo.style.width = '100vw';
+        arVideo.style.height = '100vh';
+        arVideo.style.objectFit = 'cover';
+        arVideo.style.zIndex = '0';
+      }
+    }, 1000);
+  });
+  window.addEventListener('resize', function() {
+    onResize();
+    updateModelScale();
+  });
+  function onResize() {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.domElement.style.width = '100%';
+    renderer.domElement.style.height = '100%';
+    arSource.onResizeElement();
+    arSource.copyElementSizeTo(renderer.domElement);
+    // Масштабируем видео с камеры
+    const arVideo = document.querySelector('video, #arjs-video');
+    if (arVideo) {
+      arVideo.style.width = '100%';
+      arVideo.style.height = '100%';
+      arVideo.style.objectFit = 'cover';
+    }
+  }
+
+  // 4. AR.js Context (используем локальный camera_para.dat)
+  let arContext = new THREEx.ArToolkitContext({
+    cameraParametersUrl: 'camera_para.dat',
+    detectionMode: 'mono'
+  });
+  arContext.init(function onCompleted() {
+    camera.projectionMatrix.copy(arContext.getProjectionMatrix());
+  });
+
+  // 5. Свет
+  const light = new THREE.HemisphereLight(0xffffff, 0xbbbbff, 1);
+  light.position.set(0.5, 1, 0.25);
+  scene.add(light);
+
+  const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+  directionalLight.position.set(1, 1, 1);
+  scene.add(directionalLight);
+
+  const ambient = new THREE.AmbientLight(0xffffff, 1.2);
+  // scene.add(ambient);
+  // 6. Загрузка модели с анимацией
+  clock = new THREE.Clock();
+  let loader = new THREE.GLTFLoader();
+
+  function updateModelScale() {
+    const baseWidth = 450;
+    const scale = Math.max(0.755, Math.min(0.5, window.innerWidth / baseWidth * 0.1));
+   // const scale = 2
+    if (model) model.scale.set(scale, scale, scale);
+  }
+
+  loader.load('Cate2.glb', function(gltf) {
+    model = gltf.scene;
+    console.log(model)
+    model.position.set(-3, 0, -15);
+    model.rotation.x = Math.PI / 18;
+    // model.rotation.y = -Math.PI / 90;
+    updateModelScale();
+
+    // Настройка материалов и теней как в firstCat.html + фикс прозрачности как в secondCat.html
+    model.traverse((child) => {
+      if (child.isMesh && child.material) {
+        child.material.roughness = 1.0;
+        child.material.metalness = 0.0;
+        child.material.envMapIntensity = 0.0;
+        child.material.needsUpdate = true;
+        child.castShadow = true;
+        child.receiveShadow = true;
+        // Фикс для прозрачных частей (рот, глаза, зрачки, радужка)
+        const n = child.name.toLowerCase();
+        if (n.includes('mouth') || n.includes('eye') || n.includes('pupil') || n.includes('iris')) {
+          child.material.transparent = true;
+          child.material.depthWrite = false;
+          child.material.depthTest = true;
+          child.material.needsUpdate = true;
+        }
+      }
+    });
+    scene.add(model);
+
+    // Сохраняем анимации для запуска позже
+    loadedAnimations = gltf.animations;
+    mixer = new THREE.AnimationMixer(model);
+
+    // --- Автоматическое центрирование и отдаление камеры ---
+    // Вычисляем bounding box всей модели
+    const box3 = new THREE.Box3().setFromObject(model);
+    const size = box3.getSize(new THREE.Vector3());
+    const center = box3.getCenter(new THREE.Vector3());
+
+    // Сдвигаем модель в центр сцены
+    model.position.x += (model.position.x - center.x);
+    model.position.y += (model.position.y - center.y);
+    model.position.z += (model.position.z - center.z);
+
+    // Ставим камеру так, чтобы вся модель была видна
+    const maxDim = Math.max(size.x, size.y, size.z);
+    const fov = camera.fov * (Math.PI / 180);
+    // let cameraZ = Math.abs(maxDim / 2 / Math.tan(fov / 2));
+    // cameraZ *= 2.3; // небольшой запас
+    const aspect = window.innerWidth / window.innerHeight;
+    const baseCameraZ = 12;
+    const cameraZ = baseCameraZ / aspect;
+    camera.position.set(0, 0, cameraZ);
+    camera.lookAt(0, 0, 0);
+
+    // Если есть функция масштабирования — вызови её
+    if (typeof updateModelScale === 'function') updateModelScale();
+  });
+
+  // Функция для запуска анимации и звука по тапу
+  function startAnimationAndSound() {
+    if (animationStarted) return;
+    animationStarted = true;
+    // Запуск анимации
+    if (mixer && loadedAnimations && loadedAnimations.length > 0) {
+      loadedAnimations.forEach((clip) => {
+        const action = mixer.clipAction(clip);
+        action.setLoop(THREE.LoopRepeat);
+        action.clampWhenFinished = false;
+        action.play();
+      });
+    }
+    // Запуск звука
+    const audio = document.getElementById('cat-audio');
+    audio.play();
+    // Удаляем обработчик, чтобы не запускалось повторно
+    window.removeEventListener('pointerdown', startAnimationAndSound);
+  }
+  window.addEventListener('pointerdown', startAnimationAndSound);
+
+  // 7. Рендер-цикл
+  function animate() {
+    requestAnimationFrame(animate);
+    if (arSource.ready) arContext.update(arSource.domElement);
+    if (mixer) mixer.update(clock.getDelta());
+    renderer.render(scene, camera);
+  }
+  animate();
+</script>
+</body>
+</html>
