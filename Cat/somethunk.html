@@ -17,18 +17,26 @@
         <audio id="ar-sound" src="speech.mp3"></audio>
     </a-assets>
     <a-marker preset="hiro">
-        <a-entity>
-            <a-entity
-                    gltf-model="#model"
-                    animation-mixer="clip: *"
-                    scale="0.125 0.125 0.125"
-                    sound="src: #ar-sound"
-            ></a-entity>
-        </a-entity>
-
+        <a-entity
+                id="cat"
+                gltf-model="#model"
+                scale="0.125 0.125 0.125"
+                sound="src: #ar-sound"
+        ></a-entity>
     </a-marker>
     <a-entity camera></a-entity>
 </a-scene>
+<script>
+    document.querySelector('#cat').addEventListener('model-loaded', function (e) {
+        const el = this;
+        setTimeout(() => {
+            el.setAttribute('animation-mixer', 'clip: *');
+            // Если знаешь имя анимации, можно так:
+            // el.setAttribute('animation-mixer', 'clip: Animation');
+            console.log('Анимация вручную запущена!');
+        }, 200);
+    });
+</script>
 <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
 <script>
     // Отладка анимации
