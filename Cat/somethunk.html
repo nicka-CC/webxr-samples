@@ -5,7 +5,6 @@
     <title>AR.js Marker (Hiro) + GLB + Animation</title>
     <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/3.4.4/aframe/build/aframe-ar.js"></script>
-    </script>
     <style>
         body { margin: 0; overflow: hidden; }
         canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
@@ -19,10 +18,10 @@
     </a-assets>
     <a-marker preset="hiro">
         <a-entity
-            gltf-model="#model"
-            imation-mixer="debug: true"
-            scale="0.125 0.125 0.125"
-            sound="src: #ar-sound"
+                gltf-model="#model"
+                animation-mixer="debug: true"
+                scale="0.125 0.125 0.125"
+                sound="src: #ar-sound"
         ></a-entity>
     </a-marker>
     <a-entity camera></a-entity>
