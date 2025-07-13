@@ -13,16 +13,19 @@
 <body>
 <a-scene embedded arjs>
     <a-assets>
-        <a-asset-item id="model" src="tell2.glb"></a-asset-item>
+        <a-asset-item id="model" src="Cate2.glb"></a-asset-item>
         <audio id="ar-sound" src="speech.mp3"></audio>
     </a-assets>
     <a-marker preset="hiro">
-        <a-entity
-                gltf-model="#model"
-                animation-mixer
-                scale="0.125 0.125 0.125"
-                sound="src: #ar-sound"
-        ></a-entity>
+        <a-entity>
+            <a-entity
+                    gltf-model="#model"
+                    animation-mixer="debug: true"
+                    scale="0.125 0.125 0.125"
+                    sound="src: #ar-sound"
+            ></a-entity>
+        </a-entity>
+
     </a-marker>
     <a-entity camera></a-entity>
 </a-scene>
