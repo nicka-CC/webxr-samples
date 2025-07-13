@@ -20,7 +20,7 @@
     <a-marker preset="hiro">
         <a-entity
             gltf-model="#model"
-            animation-mixer="clip: *"
+            imation-mixer="debug: true"
             scale="0.125 0.125 0.125"
             sound="src: #ar-sound"
         ></a-entity>
@@ -28,6 +28,28 @@
     <a-entity camera></a-entity>
 </a-scene>
 <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
+<script>
+    // Отладка анимации
+    AFRAME.scenes[0].addEventListener('loaded', function () {
+        const entity = document.querySelector('[gltf-model]');
+        entity.addEventListener('model-loaded', function (e) {
+            const mesh = entity.getObject3D('mesh');
+            if (mesh && mesh.animations) {
+                console.log('GLTF Animations:', mesh.animations);
+                if (mesh.animations.length === 0) {
+                    console.warn('Нет анимаций в модели!');
+                } else {
+                    mesh.animations.forEach(anim => console.log('Анимация:', anim.name));
+                }
+            } else {
+                console.warn('Модель загружена, но анимаций не найдено!');
+            }
+        });
+        entity.addEventListener('animation-mixer-initialized', function (e) {
+            console.log('animation-mixer инициализирован:', e.detail);
+        });
+    });
+</script>
 <script>eruda.init();</script>
 </body>
 </html>
