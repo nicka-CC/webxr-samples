@@ -48,13 +48,22 @@
     const audio = document.getElementById('cat-audio');
 
     // Воспроизвести звук, когда модель поставлена в AR (Android/WebXR/Scene Viewer)
+
+    audio.addEventListener('error', (e) => {
+      alert('Ошибка загрузки аудиофайла!');
+    });
+    audio.addEventListener('play', () => {
+      console.log('Аудио воспроизводится');
+    });
+
     viewer.addEventListener('ar-placement', () => {
+      console.log('ar-placement!');
       audio.currentTime = 0;
       audio.play();
     });
 
-    // Для iOS Quick Look — звук только при нажатии на AR-кнопку (ограничение платформы)
     viewer.addEventListener('quick-look-button-tapped', () => {
+      console.log('quick-look-button-tapped!');
       audio.currentTime = 0;
       audio.play();
     });
