@@ -28,7 +28,8 @@
     <span>Для AR: нажмите иконку "AR".<br>На iPhone — откроется Quick Look, на Android — WebXR.</span>
   </div>
   <model-viewer
-    src="./Cate2.glb"
+    id="catViewer"
+    src="./Cat.glb"
     ar
     ar-modes="scene-viewer quick-look webxr"
     camera-controls
@@ -41,5 +42,22 @@
   >
     <button slot="ar-button" style="position: absolute; bottom: 80px; left: 50%; transform: translateX(-50%); padding: 12px 24px; font-size: 18px; border-radius: 8px; border: none; background: #4CAF50; color: #fff; cursor: pointer;">Показать в AR</button>
   </model-viewer>
+  <audio id="cat-audio" src="cat.mp3" preload="auto"></audio>
+  <script>
+    const viewer = document.getElementById('catViewer');
+    const audio = document.getElementById('cat-audio');
+
+    // Воспроизвести звук, когда модель поставлена в AR (Android/WebXR/Scene Viewer)
+    viewer.addEventListener('ar-placement', () => {
+      audio.currentTime = 0;
+      audio.play();
+    });
+
+    // Для iOS Quick Look — звук только при нажатии на AR-кнопку (ограничение платформы)
+    viewer.addEventListener('quick-look-button-tapped', () => {
+      audio.currentTime = 0;
+      audio.play();
+    });
+  </script>
 </body>
 </html> 
