@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>8th Wall AR Кот по тапу</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { margin: 0; overflow: hidden; background: #000; }
+    #info {
+      position: fixed;
+      top: 10px; left: 10px;
+      background: rgba(0,0,0,0.7); color: #fff;
+      padding: 10px; border-radius: 8px;
+      font-family: monospace; z-index: 10; font-size: 14px;
+    }
+    canvas { display: block; }
+  </style>
+  <!-- 8th Wall WebAR SDK -->
+  <script async src="https://apps.8thwall.com/xrweb?appKey=ВСТАВЬТЕ_СЮДА_ВАШ_APP_KEY"></script>
+  <!-- Three.js и GLTFLoader -->
+  <script src="https://unpkg.com/three@0.150.1/build/three.min.js"></script>
+  <script src="https://unpkg.com/three@0.150.1/examples/js/loaders/GLTFLoader.js"></script>
+</head>
+<body>
+  <div id="info">
+    <b>8th Wall AR Кот</b><br>
+    Тапните по экрану, чтобы разместить кота.<br>
+    <span id="status">Загрузка...</span>
+  </div>
+  <script>
+    // Ждём инициализации 8th Wall
+    window.XR8 ? onXR8Ready() : window.addEventListener('xrloaded', onXR8Ready);
+
+    function onXR8Ready() {
+      document.getElementById('status').textContent = 'Инициализация 8th Wall...';
+      // Запускаем 8th Wall
+      XR8.addCameraPipelineModules([
+        XR8.GlTextureRenderer.pipelineModule(),
+        XR8.Threejs.pipelineModule(),
+        XR8.XrController.pipelineModule(),
+        XR8.Lighting.pipelineModule(),
+      ]);
+      XR8.run({ canvas: document.createElement('canvas'), allowedDevices: XR8.XrDeviceType.ALL });
+      // После запуска
+      XR8.addCameraPipelineModule({
+        name: 'cat-ar-module',
+        onStart: ({canvas, canvasWidth, canvasHeight}) => {
+          document.getElementById('status').textContent = 'Готово! Тапните для размещения кота.';
+          // Получаем сцену и камеру Three.js от 8th Wall
+          const {scene, camera} = XR8.Threejs.xrScene();
+          // Свет
+          const light = new THREE.HemisphereLight(0xffffff, 0x444444, 1.2);
+          scene.add(light);
+          const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+          dirLight.position.set(2, 4, 2);
+          scene.add(dirLight);
+          // Загрузка кота
+          let catModel = null;
+          const loader = new THREE.GLTFLoader();
+          loader.load('./Cat.glb', function(gltf) {
+            catModel = gltf.scene;
+            catModel.scale.set(0.5, 0.5, 0.5);
+            catModel.visible = false;
+            scene.add(catModel);
+            document.getElementById('status').textContent = 'Готово! Тапните для размещения кота.';
+          }, function(xhr) {
+            document.getElementById('status').textContent = `Загрузка: ${(xhr.loaded / xhr.total * 100).toFixed(0)}%`;
+          }, function(error) {
+            document.getElementById('status').textContent = 'Ошибка загрузки модели';
+            console.error('Ошибка загрузки Cat.glb:', error);
+          });
+          // По тапу размещаем кота перед камерой
+          window.addEventListener('click', function() {
+            if (!catModel) return;
+            // Получаем позицию камеры
+            const camDir = new THREE.Vector3();
+            camera.getWorldDirection(camDir);
+            camDir.multiplyScalar(-2); // 2 метра вперёд
+            const camPos = camera.position.clone().add(camDir);
+            catModel.position.copy(camPos);
+            catModel.visible = true;
+          });
+          // Рендерим сцену
+          const threejsCanvas = XR8.Threejs.renderer().domElement;
+          threejsCanvas.style.position = 'absolute';
+          threejsCanvas.style.top = '0';
+          threejsCanvas.style.left = '0';
+          threejsCanvas.style.width = '100vw';
+          threejsCanvas.style.height = '100vh';
+          document.body.appendChild(threejsCanvas);
+        },
+      });
+    }
+  </script>
+</body>
+</html> 
