@@ -33,78 +33,110 @@
   </div>
   <canvas id="zappar-canvas"></canvas>
   <script>
-    // Инициализация сцены
-    const canvas = document.getElementById('zappar-canvas');
-    const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setClearColor(0x000000, 0);
+    // Проверка наличия библиотек
+    if (!window.THREE) {
+      document.getElementById('status').textContent = 'Ошибка: THREE.js не загружен';
+      console.error('THREE.js не найден!');
+    } else {
+      console.log('THREE.js загружен:', THREE.REVISION);
+    }
+    if (!window.ZapparThree) {
+      document.getElementById('status').textContent = 'Ошибка: ZapparThree не загружен';
+      console.error('ZapparThree не найден!');
+    } else {
+      console.log('ZapparThree загружен:', ZapparThree);
+    }
 
-    // Камера Zappar
-    const zapparCamera = new ZapparThree.Camera();
-    zapparCamera.backgroundTexture.encoding = THREE.sRGBEncoding;
-
-    // Сцена
-    const scene = new THREE.Scene();
-
-    // Трекер мира (Instant World Tracking)
-    const instantTracker = new ZapparThree.InstantWorldTracker();
-    const anchor = new ZapparThree.InstantWorldAnchorGroup(zapparCamera, instantTracker);
-    scene.add(anchor);
-
-    // Свет
-    const light = new THREE.HemisphereLight(0xffffff, 0x444444, 1.2);
-    scene.add(light);
-    const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
-    dirLight.position.set(2, 4, 2);
-    scene.add(dirLight);
-
-    // Загрузка 3D-модели кота
-    let catModel = null;
-    const loader = new THREE.GLTFLoader();
-    loader.load('./Cat.glb', function(gltf) {
-      catModel = gltf.scene;
-      catModel.scale.set(0.5, 0.5, 0.5);
-      catModel.visible = false;
-      anchor.add(catModel);
-      document.getElementById('status').textContent = 'Готово!';
-    }, function(xhr) {
-      document.getElementById('status').textContent = `Загрузка: ${(xhr.loaded / xhr.total * 100).toFixed(0)}%`;
-    }, function(error) {
-      document.getElementById('status').textContent = 'Ошибка загрузки модели';
-      console.error(error);
-    });
-
-    // Обработка тапа для размещения кота
-    canvas.addEventListener('click', function(event) {
-      if (!catModel) return;
-      // Получаем координаты тапа относительно центра экрана
-      const x = (event.clientX / window.innerWidth) * 2 - 1;
-      const y = -(event.clientY / window.innerHeight) * 2 + 1;
-      // Ставим трекер в эту точку (примерно по центру камеры)
-      instantTracker.setAnchorPoseFromCameraOffset(0, 0, -2); // -2 метра вперёд
-      catModel.visible = true;
-    });
-
-    // Адаптация под размер окна
-    window.addEventListener('resize', () => {
+    try {
+      // Инициализация сцены
+      const canvas = document.getElementById('zappar-canvas');
+      const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
       renderer.setSize(window.innerWidth, window.innerHeight);
-      zapparCamera.aspect = window.innerWidth / window.innerHeight;
-      zapparCamera.updateProjectionMatrix();
-    });
+      renderer.setClearColor(0x000000, 0);
+      console.log('Рендерер создан');
 
-    // Запуск Zappar камеры
-    ZapparThree.permissionRequestUI().then(() => {
-      ZapparThree.permissionGrantedUI().then(() => {
-        zapparCamera.start();
-        animate();
+      // Камера Zappar
+      const zapparCamera = new ZapparThree.Camera();
+      zapparCamera.backgroundTexture.encoding = THREE.sRGBEncoding;
+      console.log('Камера Zappar создана');
+
+      // Сцена
+      const scene = new THREE.Scene();
+      console.log('Сцена создана');
+
+      // Трекер мира (Instant World Tracking)
+      const instantTracker = new ZapparThree.InstantWorldTracker();
+      const anchor = new ZapparThree.InstantWorldAnchorGroup(zapparCamera, instantTracker);
+      scene.add(anchor);
+      console.log('InstantWorldTracker и Anchor добавлены');
+
+      // Свет
+      const light = new THREE.HemisphereLight(0xffffff, 0x444444, 1.2);
+      scene.add(light);
+      const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+      dirLight.position.set(2, 4, 2);
+      scene.add(dirLight);
+      console.log('Свет добавлен');
+
+      // Загрузка 3D-модели кота
+      let catModel = null;
+      const loader = new THREE.GLTFLoader();
+      loader.load('./Cat.glb', function(gltf) {
+        catModel = gltf.scene;
+        catModel.scale.set(0.5, 0.5, 0.5);
+        catModel.visible = false;
+        anchor.add(catModel);
+        document.getElementById('status').textContent = 'Готово!';
+        console.log('Модель кота загружена и добавлена в anchor');
+      }, function(xhr) {
+        document.getElementById('status').textContent = `Загрузка: ${(xhr.loaded / xhr.total * 100).toFixed(0)}%`;
+      }, function(error) {
+        document.getElementById('status').textContent = 'Ошибка загрузки модели';
+        console.error('Ошибка загрузки Cat.glb:', error);
       });
-    });
 
-    // Основной цикл
-    function animate() {
-      requestAnimationFrame(animate);
-      zapparCamera.updateFrame();
-      renderer.render(scene, zapparCamera);
+      // Обработка тапа для размещения кота
+      canvas.addEventListener('click', function(event) {
+        if (!catModel) {
+          console.warn('Модель ещё не загружена!');
+          return;
+        }
+        // Получаем координаты тапа относительно центра экрана
+        const x = (event.clientX / window.innerWidth) * 2 - 1;
+        const y = -(event.clientY / window.innerHeight) * 2 + 1;
+        // Ставим трекер в эту точку (примерно по центру камеры)
+        instantTracker.setAnchorPoseFromCameraOffset(0, 0, -2); // -2 метра вперёд
+        catModel.visible = true;
+        console.log('Кот размещён по тапу');
+      });
+
+      // Адаптация под размер окна
+      window.addEventListener('resize', () => {
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        zapparCamera.aspect = window.innerWidth / window.innerHeight;
+        zapparCamera.updateProjectionMatrix();
+        console.log('Окно изменено, размеры обновлены');
+      });
+
+      // Запуск Zappar камеры
+      ZapparThree.permissionRequestUI().then(() => {
+        console.log('Права на камеру запрошены');
+        ZapparThree.permissionGrantedUI().then(() => {
+          zapparCamera.start();
+          console.log('Камера Zappar запущена');
+          animate();
+        });
+      });
+
+      // Основной цикл
+      function animate() {
+        requestAnimationFrame(animate);
+        zapparCamera.updateFrame();
+        renderer.render(scene, zapparCamera);
+      }
+    } catch (e) {
+      document.getElementById('status').textContent = 'Глобальная ошибка: ' + e.message;
+      console.error('Глобальная ошибка:', e);
     }
   </script>
   <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
