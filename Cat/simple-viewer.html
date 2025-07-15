@@ -15,69 +15,70 @@
     }
     canvas { display: block; }
   </style>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.150.1/build/three.module.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.150.1/examples/jsm/controls/OrbitControls.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.150.1/examples/jsm/loaders/GLTFLoader.js"></script>
 </head>
 <body>
-  <div id="info">
-    <b>3D Кот</b><br>
-    Вращайте модель мышкой или пальцем.<br>
-    <span id="status">Загрузка...</span>
-  </div>
-  <script>
-    // Сцена, камера, рендерер
-    const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x222222);
-    const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 100);
-    camera.position.set(0, 1, 4);
-    const renderer = new THREE.WebGLRenderer({antialias: true});
+<div id="info">
+  <b>3D Кот</b><br>
+  Вращайте модель мышкой или пальцем.<br>
+  <span id="status">Загрузка...</span>
+</div>
+<script type="module">
+  import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.150.1/build/three.module.js';
+  import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.150.1/examples/jsm/controls/OrbitControls.js';
+  import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.150.1/examples/jsm/loaders/GLTFLoader.js';
+
+  // Сцена, камера, рендерер
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x222222);
+  const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 100);
+  camera.position.set(0, 1, 4);
+  const renderer = new THREE.WebGLRenderer({antialias: true});
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  document.body.appendChild(renderer.domElement);
+
+  // Управление мышкой/тачем
+  const controls = new OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true;
+  controls.dampingFactor = 0.1;
+  controls.target.set(0, 0.5, 0);
+
+  // Свет
+  const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 1.2);
+  scene.add(hemiLight);
+  const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+  dirLight.position.set(2, 4, 2);
+  scene.add(dirLight);
+
+  // Загрузка кота
+  let catModel = null;
+  const loader = new GLTFLoader();
+  loader.load('./Cat.glb', function(gltf) {
+    catModel = gltf.scene;
+    catModel.scale.set(1.2, 1.2, 1.2);
+    catModel.position.set(0, 0, 0);
+    scene.add(catModel);
+    document.getElementById('status').textContent = 'Готово!';
+  }, function(xhr) {
+    document.getElementById('status').textContent = `Загрузка: ${(xhr.loaded / xhr.total * 100).toFixed(0)}%`;
+  }, function(error) {
+    document.getElementById('status').textContent = 'Ошибка загрузки модели';
+    console.error('Ошибка загрузки Cat.glb:', error);
+  });
+
+  // Адаптация под размер окна
+  window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
-    document.body.appendChild(renderer.domElement);
+  });
 
-    // Управление мышкой/тачем
-    const controls = new THREE.OrbitControls(camera, renderer.domElement);
-    controls.enableDamping = true;
-    controls.dampingFactor = 0.1;
-    controls.target.set(0, 0.5, 0);
-
-    // Свет
-    const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 1.2);
-    scene.add(hemiLight);
-    const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
-    dirLight.position.set(2, 4, 2);
-    scene.add(dirLight);
-
-    // Загрузка кота
-    let catModel = null;
-    const loader = new THREE.GLTFLoader();
-    loader.load('./Cat.glb', function(gltf) {
-      catModel = gltf.scene;
-      catModel.scale.set(1.2, 1.2, 1.2);
-      catModel.position.set(0, 0, 0);
-      scene.add(catModel);
-      document.getElementById('status').textContent = 'Готово!';
-    }, function(xhr) {
-      document.getElementById('status').textContent = `Загрузка: ${(xhr.loaded / xhr.total * 100).toFixed(0)}%`;
-    }, function(error) {
-      document.getElementById('status').textContent = 'Ошибка загрузки модели';
-      console.error('Ошибка загрузки Cat.glb:', error);
-    });
-
-    // Адаптация под размер окна
-    window.addEventListener('resize', () => {
-      camera.aspect = window.innerWidth / window.innerHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(window.innerWidth, window.innerHeight);
-    });
-
-    // Анимация
-    function animate() {
-      requestAnimationFrame(animate);
-      controls.update();
-      renderer.render(scene, camera);
-    }
-    animate();
-  </script>
+  // Анимация
+  function animate() {
+    requestAnimationFrame(animate);
+    controls.update();
+    renderer.render(scene, camera);
+  }
+  animate();
+</script>
 </body>
-</html> 
+</html>
