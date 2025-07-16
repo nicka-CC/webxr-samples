@@ -25,11 +25,12 @@
   <div id="info">
     <b>3D Кот в AR</b><br>
     Вращайте модель мышкой или пальцем.<br>
-    <span>Для AR: нажмите иконку "AR".<br>На iPhone — откроется Quick Look, на Android — WebXR.</span>
+    <span>Для AR: нажмите иконку "AR".<br>На iPhone — откроется Quick Look, на Android — WebXR.</span><br>
+    <button id="play-sound" style="margin-top:12px; padding:10px 20px; font-size:16px; border-radius:8px; border:none; background:#4CAF50; color:#fff; cursor:pointer;">Воспроизвести звук кота</button>
   </div>
   <model-viewer
     id="catViewer"
-    src="./Cate2.glb"
+    src="./Cat.glb"
     ar
     ar-modes="scene-viewer quick-look webxr"
     camera-controls
@@ -42,7 +43,7 @@
   >
     <button slot="ar-button" style="position: absolute; bottom: 80px; left: 50%; transform: translateX(-50%); padding: 12px 24px; font-size: 18px; border-radius: 8px; border: none; background: #4CAF50; color: #fff; cursor: pointer;">Показать в AR</button>
   </model-viewer>
-  <audio id="cat-audio" src="./speech.mp3" preload="auto"></audio>
+  <audio id="cat-audio" src="speech.mp3" preload="auto"></audio>
   <script>
     const viewer = document.getElementById('catViewer');
     const audio = document.getElementById('cat-audio');
@@ -64,6 +65,12 @@
 
     viewer.addEventListener('quick-look-button-tapped', () => {
       console.log('quick-look-button-tapped!');
+      audio.currentTime = 0;
+      audio.play();
+    });
+  </script>
+  <script>
+    document.getElementById('play-sound').addEventListener('click', () => {
       audio.currentTime = 0;
       audio.play();
     });
