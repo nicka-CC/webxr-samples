@@ -28,20 +28,18 @@
   <span>Для AR: нажмите иконку "AR".<br>На iPhone — откроется Quick Look, на Android — WebXR.</span>
 </div>
 <model-viewer
-        id="catViewer"
-        src="./Cate_Valday.usdz"
-        ar
-        ar-modes="scene-viewer quick-look webxr"
-        camera-controls
-        auto-rotate
-        shadow-intensity="1"
-        exposure="1.1"
-        environment-image="neutral"
-        poster=""
-        alt="3D Кот для AR"
+  id="catViewer"
+  src="./Cate_Valday.usdz"
+  ar
+  ar-modes="quick-look scene-viewer webxr"  <!-- Измените порядок, quick-look первым -->
+  ios-src="./Cate_Valday.usdz"  <!-- Явное указание для iOS -->
+  camera-controls
+  auto-rotate
+  shadow-intensity="1"
+  exposure="1.1"
+  environment-image="neutral"
+  alt="3D Кот для AR"
 >
-  <button slot="ar-button" style="position: absolute; bottom: 80px; left: 50%; transform: translateX(-50%); padding: 12px 24px; font-size: 18px; border-radius: 8px; border: none; background: #4CAF50; color: #fff; cursor: pointer;">Показать в AR</button>
-</model-viewer>
 <audio id="cat-audio" src="speech.mp3" preload="auto"></audio>
 <script>
   const viewer = document.getElementById('catViewer');
