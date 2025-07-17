@@ -28,11 +28,10 @@
   <span>Для AR: нажмите иконку "AR".<br>На iPhone — откроется Quick Look, на Android — WebXR.</span>
 </div>
 <model-viewer
-  id="catViewer"
-  src="./Cate_Valday.usdz"
+  src="./Cate_Valday.glb"
+  ios-src="./Cate_Valday.usdz"
   ar
-  ar-modes="quick-look scene-viewer webxr"  <!-- Измените порядок, quick-look первым -->
-  ios-src="./Cate_Valday.usdz"  <!-- Явное указание для iOS -->
+  ar-modes="webxr scene-viewer quick-look"
   camera-controls
   auto-rotate
   shadow-intensity="1"
