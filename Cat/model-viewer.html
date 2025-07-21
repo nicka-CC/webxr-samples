@@ -29,7 +29,7 @@
 </div>
 <model-viewer
         src="./Cate_Valday.glb"
-        ios-src="./first.usdz"
+        ios-src="./Cate_Valday.usdz"
         ar
         ar-modes="webxr scene-viewer quick-look"
         camera-controls
@@ -38,23 +38,23 @@
         exposure="1.1"
         environment-image="neutral"
         alt="3D Кот для AR"
->
-<audio id="cat-audio" src="speech.mp3" preload="auto"></audio>
-<script>
-  const viewer = document.getElementById('catViewer');
-  const audio = document.getElementById('cat-audio');
+></model-viewer>
+  <audio id="cat-audio" src="speech.mp3" preload="auto"></audio>
+  <script>
+    const viewer = document.getElementById('catViewer');
+    const audio = document.getElementById('cat-audio');
 
-  // Воспроизвести звук, когда модель поставлена в AR (Android/WebXR/Scene Viewer)
-  viewer.addEventListener('ar-placement', () => {
-    audio.currentTime = 0;
-    audio.play();
-  });
+    // Воспроизвести звук, когда модель поставлена в AR (Android/WebXR/Scene Viewer)
+    viewer.addEventListener('ar-placement', () => {
+      audio.currentTime = 0;
+      audio.play();
+    });
 
-  // Для iOS Quick Look — звук только при нажатии на AR-кнопку (ограничение платформы)
-  viewer.addEventListener('quick-look-button-tapped', () => {
-    audio.currentTime = 0;
-    audio.play();
-  });
-</script>
+    // Для iOS Quick Look — звук только при нажатии на AR-кнопку (ограничение платформы)
+    viewer.addEventListener('quick-look-button-tapped', () => {
+      audio.currentTime = 0;
+      audio.play();
+    });
+  </script>
 </body>
-</html> 
+</html>
