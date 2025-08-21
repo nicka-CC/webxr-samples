@@ -49,7 +49,7 @@
       color: #f44336;
     }
     #question-panel {
-      position: fixed;
+      position: absolute;
       transform: translate(-50%, -100%);
       background: rgba(255, 255, 255, 0.95);
       color: #111;
@@ -61,6 +61,7 @@
       z-index: 5;
       display: none;
       white-space: nowrap;
+      pointer-events: auto;
     }
     #question-panel .q {
       margin: 0 0 6px 0;
@@ -553,30 +554,47 @@
       );
 
       // Добавляем кнопку AR
-      // Новый универсальный блок для автозапуска AR
+      // Новый универсальный блок для автозапуска AR с DOM Overlay
       if (navigator.xr && navigator.xr.isSessionSupported) {
         navigator.xr.isSessionSupported('immersive-ar').then(async (supported) => {
           if (supported) {
             try {
-              const session = await navigator.xr.requestSession('immersive-ar', { requiredFeatures: ['hit-test'] });
+              const arOptions = {
+                requiredFeatures: ['hit-test'],
+                optionalFeatures: ['dom-overlay'],
+                domOverlay: { root: document.body }
+              };
+              const session = await navigator.xr.requestSession('immersive-ar', arOptions);
               renderer.xr.setSession(session);
               document.getElementById('ar-status').textContent = 'AR запущен автоматически';
             } catch (e) {
               // Если не удалось автозапустить — показываем кнопку
-              const arBtn = ARButton.createButton(renderer);
+              const arBtn = ARButton.createButton(renderer, {
+                requiredFeatures: ['hit-test'],
+                optionalFeatures: ['dom-overlay'],
+                domOverlay: { root: document.body }
+              });
               document.body.appendChild(arBtn);
               document.getElementById('ar-status').textContent = 'AR доступен, нажмите кнопку';
             }
           } else {
             // Если не поддерживается — показываем кнопку
-            const arBtn = ARButton.createButton(renderer);
+            const arBtn = ARButton.createButton(renderer, {
+              requiredFeatures: ['hit-test'],
+              optionalFeatures: ['dom-overlay'],
+              domOverlay: { root: document.body }
+            });
             document.body.appendChild(arBtn);
             document.getElementById('ar-status').textContent = 'AR не поддерживается';
           }
         });
       } else {
         // Если WebXR вообще не поддерживается
-        const arBtn = ARButton.createButton(renderer);
+        const arBtn = ARButton.createButton(renderer, {
+          requiredFeatures: ['hit-test'],
+          optionalFeatures: ['dom-overlay'],
+          domOverlay: { root: document.body }
+        });
         document.body.appendChild(arBtn);
         document.getElementById('ar-status').textContent = 'WebXR не поддерживается';
       }
