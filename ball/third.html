@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset='utf-8'>
+    <meta name='viewport' content='width=device-width, initial-scale=1'>
+    <meta name='mobile-web-app-capable' content='yes'>
+    <meta name='apple-mobile-web-app-capable' content='yes'>
+    <title>AR Котики</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: black;
+            overflow: hidden;
+        }
+
+        canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+        #info {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            z-index: 3;
+            font-size: 12px;
+            max-width: 300px;
+        }
+        #info h3 {
+            margin: 0 0 10px 0;
+            color: #4CAF50;
+        }
+        #info p {
+            margin: 5px 0;
+        }
+        #info .status {
+            color: #4CAF50;
+        }
+        #info .error {
+            color: #f44336;
+        }
+    </style>
+    <script type="importmap">
+        {
+          "imports": {
+            "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+          }
+        }
+    </script>
+    <script type="module">
+        import * as THREE from 'three';
+        import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+        import { ARButton } from 'three/addons/webxr/ARButton.js';
+
+        let camera, scene, renderer;
+        let model, mixer, animations;
+        let clock = new THREE.Clock();
+        let audioElement = null;
+
+        init();
+        animate();
+
+        function init() {
+            // Создаем сцену
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x000000);
+
+            // Аудио
+            // audioElement = new Audio('./speech.mp3');
+            audioElement.loop = false;
+            audioElement.volume = 1.0;
+
+            // Камера
+            camera = new THREE.PerspectiveCamera(90, window.innerWidth / window.innerHeight, 0.01, 120);
+            camera.position.set(0, 0, 40);
+
+            // Рендерер
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.xr.enabled = true;
+            renderer.outputEncoding = THREE.sRGBEncoding;
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            renderer.toneMappingExposure = 1.0;
+            document.body.appendChild(renderer.domElement);
+
+            // Свет
+            const light = new THREE.HemisphereLight(0xffffff, 0xbbbbff, 1);
+            light.position.set(0.5, 1, 0.25);
+            scene.add(light);
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+            directionalLight.position.set(1, 1, 1);
+            scene.add(directionalLight);
+
+            // Инфо
+            const infoDiv = document.createElement('div');
+            infoDiv.id = 'info';
+            infoDiv.innerHTML = `
+        <h3>AR Котики</h3>
+        <p>Статус: <span id="status">Загрузка...</span></p>
+        <p>Анимации: <span id="animations">Проверка...</span></p>
+        <p>AR статус: <span id="ar-status">Ожидание...</span></p>
+        <p>Информация об устройстве:</p>
+        <p>Платформа: <span id="platform">-</span></p>
+        <p>Браузер: <span id="browser">-</span></p>
+        <p>Версия: <span id="version">-</span></p>
+        <p>Мобильное: <span id="is-mobile">-</span></p>
+        <p>GPU: <span id="gpu">-</span></p>
+        <p>Производитель: <span id="vendor">-</span></p>
+        <p>Модель: <span id="model">-</span></p>
+        <p>Координаты:</p>
+        <p>Широта: <span id="latitude">-</span></p>
+        <p>Долгота: <span id="longitude">-</span></p>
+        <p>Точность: <span id="accuracy">-</span></p>
+        <p>Высота: <span id="altitude">-</span></p>
+        <p>Скорость: <span id="speed">-</span></p>
+        <p>Управление:</p>
+        <p>- Перетаскивание: Вращение</p>
+        <p>- Двойной тап: Пауза/Воспроизведение</p>
+      `;
+            document.body.appendChild(infoDiv);
+            // Модель и анимации
+            const loader = new GLTFLoader();
+            loader.load(
+                './FlurPlane.glb',
+                function (gltf) {
+                    model = gltf.scene;
+                    model.scale.set(2.5, 2.5, 2.5);
+                    model.position.set(0, -10, -16);
+                    model.traverse((child) => {
+                        if (child.isMesh && child.material) {
+                            child.material.roughness = 1.0;
+                            child.material.metalness = 0.0;
+                            child.material.envMapIntensity = 0.0;
+                            child.material.needsUpdate = true;
+                            child.castShadow = true;
+                            child.receiveShadow = true;
+                            // Фикс для прозрачных частей (рот, глаза, зрачки, радужка)
+                            const n = child.name.toLowerCase();
+                            if (n.includes('mouth') || n.includes('eye') || n.includes('pupil') || n.includes('iris')) {
+                                child.material.transparent = true;
+                                child.material.depthWrite = false;
+                                child.material.depthTest = true;
+                                child.material.needsUpdate = true;
+                            }
+                        }
+                    });
+                    scene.add(model);
+
+                    // Анимации
+                    mixer = new THREE.AnimationMixer(model);
+                    animations = gltf.animations;
+                    if (animations && animations.length > 0) {
+                        document.getElementById('animations').textContent = `Найдено: ${animations.length}`;
+                        document.getElementById('status').textContent = 'Готово';
+                        // Запускаем все анимации сразу
+                        animations.forEach((clip) => {
+                            const action = mixer.clipAction(clip);
+                            action.setLoop(THREE.LoopRepeat);
+                            action.clampWhenFinished = false;
+                            action.play();
+                        });
+                    } else {
+                        document.getElementById('animations').textContent = 'Не найдено';
+                        document.getElementById('status').textContent = 'Нет анимаций';
+                    }
+                },
+                function (xhr) {
+                    document.getElementById('status').textContent = `Загрузка: ${(xhr.loaded / xhr.total * 100).toFixed(0)}%`;
+                },
+                function (error) {
+                    document.getElementById('status').textContent = 'Ошибка загрузки';
+                }
+            );
+            // ARButton (оставляем как есть)
+            if (navigator.xr && navigator.xr.isSessionSupported) {
+                navigator.xr.isSessionSupported('immersive-ar').then(async (supported) => {
+                    if (supported) {
+                        try {
+                            const session = await navigator.xr.requestSession('immersive-ar', { requiredFeatures: ['hit-test'] });
+                            renderer.xr.setSession(session);
+                            document.getElementById('ar-status').textContent = 'AR запущен автоматически';
+                        } catch (e) {
+                            const arBtn = ARButton.createButton(renderer);
+                            document.body.appendChild(arBtn);
+                            document.getElementById('ar-status').textContent = 'AR доступен, нажмите кнопку';
+                            // --- fetch запрос ---
+                            arBtn.addEventListener('click', () => {
+                                fetch(`https://analytic.iwater-crm.online/webxr/create?browser=${browserInfo.browserName}`, {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                        'Accept': 'application/json',
+                                        'api_key': 'analyticTh1vgqq6t4HaOmayyt3JT74CfjzB0dR714ka4C8UUcOyfZp3BN9rskgN'
+                                    }
+                                })
+                                    .then(response => {
+                                        if (!response.ok) {
+                                            throw new Error(`HTTP error! status: ${response.status}`);
+                                        }
+                                        return response.json();
+                                    })
+                                    .then(result => {
+                                        console.log('Успешный ответ:', result);
+                                    })
+                                    .catch(error => {
+                                        console.error('Ошибка fetch:', error);
+                                        if (error instanceof TypeError) {
+                                            console.error('Возможно проблема с CORS или сервер не доступен');
+                                        }
+                                    });
+                            });
+
+                        }
+                    } else {
+                        const arBtn = ARButton.createButton(renderer);
+                        document.body.appendChild(arBtn);
+                        document.getElementById('ar-status').textContent = 'AR не поддерживается';
+                        // --- fetch запрос ---
+                        arBtn.addEventListener('click', () => {
+                            fetch(`https://analytic.iwater-crm.online/webxr/create?browser=${browserInfo.browserName}`, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'Accept': 'application/json',
+                                    'api_key': 'analyticTh1vgqq6t4HaOmayyt3JT74CfjzB0dR714ka4C8UUcOyfZp3BN9rskgN'
+                                }
+                            })
+                                .then(response => {
+                                    if (!response.ok) {
+                                        throw new Error(`HTTP error! status: ${response.status}`);
+                                    }
+                                    return response.json();
+                                })
+                                .then(result => {
+                                    console.log('Успешный ответ:', result);
+                                })
+                                .catch(error => {
+                                    console.error('Ошибка fetch:', error);
+                                    if (error instanceof TypeError) {
+                                        console.error('Возможно проблема с CORS или сервер не доступен');
+                                    }
+                                });
+                        });
+                        // --- конец fetch ---
+                    }
+                });
+            } else {
+                const arBtn = ARButton.createButton(renderer);
+                document.body.appendChild(arBtn);
+                document.getElementById('ar-status').textContent = 'WebXR не поддерживается';
+                // --- fetch запрос ---
+                arBtn.addEventListener('click', () => {
+                    fetch(`https://analytic.iwater-crm.online/webxr/create?browser=${browserInfo.browserName}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json',
+                            'api_key': 'analyticTh1vgqq6t4HaOmayyt3JT74CfjzB0dR714ka4C8UUcOyfZp3BN9rskgN'
+                        }
+                    })
+                        .then(response => {
+                            if (!response.ok) {
+                                throw new Error(`HTTP error! status: ${response.status}`);
+                            }
+                            return response.json();
+                        })
+                        .then(result => {
+                            console.log('Успешный ответ:', result);
+                        })
+                        .catch(error => {
+                            console.error('Ошибка fetch:', error);
+                            if (error instanceof TypeError) {
+                                console.error('Возможно проблема с CORS или сервер не доступен');
+                            }
+                        });
+                });
+                // --- конец fetch ---
+            }
+
+            // После создания renderer добавляем обработчик sessionstart для сброса анимаций при входе в AR
+            renderer.xr.addEventListener('sessionstart', function() {
+                if (model) {
+                    scene.remove(model);
+                    model = null;
+                    mixer = null;
+                }
+                const loader = new GLTFLoader();
+                loader.load('./FlurPlane.glb', function (gltf) {
+                    model = gltf.scene;
+                    model.scale.set(2.5, 2.5, 2.5);
+                    model.position.set(16, -13, -75);
+                    scene.add(model);
+                    // Добавить свет для новой модели
+                    const light = new THREE.HemisphereLight(0xffffff, 0xbbbbff, 1.0);
+                    light.position.set(0.5, 1, 0.25);
+                    scene.add(light);
+                    const directionalLight = new THREE.DirectionalLight(0xffffff, 1.0);
+                    directionalLight.position.set(1, 1, 1);
+                    scene.add(directionalLight);
+                    // Убедиться, что у модели включены тени и материалы поддерживают освещение
+                    model.traverse((child) => {
+                        if (child.isMesh && child.material) {
+                            child.castShadow = true;
+                            child.receiveShadow = true;
+                            child.material.roughness = 1.0;
+                            child.material.metalness = 0.0;
+                            child.material.envMapIntensity = 0.0;
+                            child.material.needsUpdate = true;
+                            // Фикс для прозрачных частей (рот, глаза, зрачки, радужка)
+                            const n = child.name.toLowerCase();
+                            if (n.includes('mouth') || n.includes('eye') || n.includes('pupil') || n.includes('iris')) {
+                                child.material.transparent = true;
+                                child.material.depthWrite = false;
+                                child.material.depthTest = true;
+                                child.material.needsUpdate = true;
+                            }
+                        }
+                    });
+                    mixer = new THREE.AnimationMixer(model);
+                    animations = gltf.animations;
+                    if (animations && animations.length > 0) {
+                        animations.forEach((clip) => {
+                            const action = mixer.clipAction(clip);
+                            action.reset();
+                            action.enabled = true;
+                            action.time = 0;
+                            action.setLoop(THREE.LoopRepeat);
+                            action.clampWhenFinished = false;
+                            action.play();
+                        });
+                    }
+                    // Воспроизвести звук только если AR активен
+                    if (renderer.xr.isPresenting && audioElement) {
+                        audioElement.currentTime = 0;
+                        audioElement.play().catch(() => {});
+                    }
+                });
+            });
+
+            // Останавливаем аудио при выходе из AR
+            renderer.xr.addEventListener('sessionend', function() {
+                if (audioElement && !audioElement.paused) {
+                    audioElement.pause();
+                    audioElement.currentTime = 0;
+                }
+            });
+
+            // --- Блок определения браузера, устройства и GPU ---
+            function getBrowserInfo() {
+                const ua = navigator.userAgent;
+                let browserName;
+                let browserVersion;
+                if (ua.includes('Chrome')) {
+                    browserName = 'Chrome';
+                    browserVersion = ua.match(/Chrome\/(\d+\.\d+\.\d+\.\d+)/)[1];
+                } else if (ua.includes('Firefox')) {
+                    browserName = 'Firefox';
+                    browserVersion = ua.match(/Firefox\/(\d+\.\d+)/)[1];
+                } else if (ua.includes('Safari')) {
+                    browserName = 'Safari';
+                    browserVersion = ua.match(/Version\/(\d+\.\d+\.\d+)/)[1];
+                } else if (ua.includes('Edge')) {
+                    browserName = 'Edge';
+                    browserVersion = ua.match(/Edge\/(\d+\.\d+\.\d+\.\d+)/)[1];
+                } else {
+                    browserName = 'Неизвестный';
+                    browserVersion = 'Неизвестная';
+                }
+                return { browserName, browserVersion };
+            }
+            function getDeviceInfo() {
+                const canvas = document.createElement('canvas');
+                const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+                if (!gl) {
+                    return {
+                        renderer: 'WebGL не поддерживается',
+                        vendor: 'Неизвестно',
+                        model: 'Неизвестно'
+                    };
+                }
+                const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
+                if (!debugInfo) {
+                    return {
+                        renderer: 'Информация недоступна',
+                        vendor: 'Неизвестно',
+                        model: 'Неизвестно'
+                    };
+                }
+                const renderer = gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL);
+                const vendor = gl.getParameter(debugInfo.UNMASKED_VENDOR_WEBGL);
+                let model = 'Неизвестно';
+                if (renderer.includes('Adreno')) {
+                    if (renderer.includes('Adreno 650')) model = 'Snapdragon 865/870';
+                    else if (renderer.includes('Adreno 660')) model = 'Snapdragon 888';
+                    else if (renderer.includes('Adreno 730')) model = 'Snapdragon 8 Gen 1';
+                    else if (renderer.includes('Adreno 740')) model = 'Snapdragon 8 Gen 2';
+                } else if (renderer.includes('Mali')) {
+                    if (renderer.includes('Mali-G78')) model = 'Exynos 2100';
+                    else if (renderer.includes('Mali-G710')) model = 'Dimensity 9000';
+                } else if (renderer.includes('Apple')) {
+                    if (renderer.includes('Apple A15')) model = 'iPhone 13/14';
+                    else if (renderer.includes('Apple A16')) model = 'iPhone 14 Pro';
+                    else if (renderer.includes('Apple A17')) model = 'iPhone 15 Pro';
+                }
+                return {
+                    renderer: renderer,
+                    vendor: vendor,
+                    model: model
+                };
+            }
+            const browserInfo = getBrowserInfo();
+            const deviceInfo = getDeviceInfo();
+            document.getElementById('platform').textContent = navigator.platform;
+            document.getElementById('browser').textContent = browserInfo.browserName;
+            document.getElementById('version').textContent = browserInfo.browserVersion;
+            document.getElementById('is-mobile').textContent = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ? 'Да' : 'Нет';
+            document.getElementById('gpu').textContent = deviceInfo.renderer;
+            document.getElementById('vendor').textContent = deviceInfo.vendor;
+            document.getElementById('model').textContent = deviceInfo.model;
+
+            // --- Геолокация ---
+            if ("geolocation" in navigator) {
+                navigator.geolocation.getCurrentPosition(function(position) {
+                    document.getElementById('latitude').textContent = position.coords.latitude.toFixed(6);
+                    document.getElementById('longitude').textContent = position.coords.longitude.toFixed(6);
+                    document.getElementById('accuracy').textContent = position.coords.accuracy.toFixed(2) + ' м';
+                    document.getElementById('altitude').textContent = position.coords.altitude ?
+                        position.coords.altitude.toFixed(2) + ' м' : 'недоступно';
+                    document.getElementById('speed').textContent = position.coords.speed ?
+                        position.coords.speed.toFixed(2) + ' м/с' : 'недоступно';
+                }, function(error) {
+                    document.getElementById('latitude').textContent = 'ошибка';
+                    document.getElementById('longitude').textContent = 'ошибка';
+                    document.getElementById('accuracy').textContent = 'ошибка';
+                    document.getElementById('altitude').textContent = 'ошибка';
+                    document.getElementById('speed').textContent = 'ошибка';
+                }, {
+                    enableHighAccuracy: true,
+                    timeout: 5000,
+                    maximumAge: 0
+                });
+                navigator.geolocation.watchPosition(function(position) {
+                    document.getElementById('latitude').textContent = position.coords.latitude.toFixed(6);
+                    document.getElementById('longitude').textContent = position.coords.longitude.toFixed(6);
+                    document.getElementById('accuracy').textContent = position.coords.accuracy.toFixed(2) + ' м';
+                    document.getElementById('altitude').textContent = position.coords.altitude ?
+                        position.coords.altitude.toFixed(2) + ' м' : 'недоступно';
+                    document.getElementById('speed').textContent = position.coords.speed ?
+                        position.coords.speed.toFixed(2) + ' м/с' : 'недоступно';
+                }, function(error) {
+                    document.getElementById('latitude').textContent = 'ошибка';
+                    document.getElementById('longitude').textContent = 'ошибка';
+                    document.getElementById('accuracy').textContent = 'ошибка';
+                    document.getElementById('altitude').textContent = 'ошибка';
+                    document.getElementById('speed').textContent = 'ошибка';
+                }, {
+                    enableHighAccuracy: true,
+                    timeout: 5000,
+                    maximumAge: 0
+                });
+            } else {
+                document.getElementById('latitude').textContent = 'не поддерживается';
+                document.getElementById('longitude').textContent = 'не поддерживается';
+                document.getElementById('accuracy').textContent = 'не поддерживается';
+                document.getElementById('altitude').textContent = 'не поддерживается';
+                document.getElementById('speed').textContent = 'не поддерживается';
+            }
+
+            window.addEventListener('resize', onWindowResize);
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function animate() {
+            renderer.setAnimationLoop(function() {
+                if (mixer) {
+                    // Временный лог для проверки
+                    console.log('mixer обновляется');
+                    const delta = clock.getDelta();
+                    mixer.update(delta);
+                }
+                renderer.render(scene, camera);
+            });
+        }
+    </script>
+    <!--  <script src="https://cdn.jsdelivr.net/npm/eruda"></script>-->
+    <!--  <script>eruda.init();</script>-->
+</head>
+<body>
+</body>
+</html>
