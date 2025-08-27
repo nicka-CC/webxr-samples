@@ -77,8 +77,7 @@
 
             // Аудио
             // audioElement = new Audio('./speech.mp3');
-            audioElement.loop = false;
-            audioElement.volume = 1.0;
+
 
             // Камера
             camera = new THREE.PerspectiveCamera(90, window.innerWidth / window.innerHeight, 0.01, 120);
@@ -343,18 +342,15 @@
                         });
                     }
                     // Воспроизвести звук только если AR активен
-                    if (renderer.xr.isPresenting && audioElement) {
-                        audioElement.currentTime = 0;
-                        audioElement.play().catch(() => {});
+                    if (renderer.xr.isPresenting ) {
+
                     }
                 });
             });
 
             // Останавливаем аудио при выходе из AR
             renderer.xr.addEventListener('sessionend', function() {
-                if (audioElement && !audioElement.paused) {
-                    audioElement.pause();
-                    audioElement.currentTime = 0;
+                if (audioElement ) {
                 }
             });
 
