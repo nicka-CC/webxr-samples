@@ -299,7 +299,7 @@
                 const loader = new GLTFLoader();
                 loader.load('./FlurPlane2.glb', function (gltf) {
                     model = gltf.scene;
-                    model.scale.set(2.5, 2.5, 2.5);
+                    model.scale.set(15, 15, 15);
                     model.position.set(16, -5, -75);
                     scene.add(model);
                     // Добавить свет для новой модели
