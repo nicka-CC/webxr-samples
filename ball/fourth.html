@@ -188,11 +188,19 @@
                 navigator.xr.isSessionSupported('immersive-ar').then(async (supported) => {
                     if (supported) {
                         try {
-                            const session = await navigator.xr.requestSession('immersive-ar', { requiredFeatures: ['hit-test'] });
+                            const session = await navigator.xr.requestSession('immersive-ar', {
+                                requiredFeatures: ['hit-test'],
+                                optionalFeatures: ['dom-overlay'],
+                                domOverlay: { root: document.body }
+                            });
                             renderer.xr.setSession(session);
                             document.getElementById('ar-status').textContent = 'AR запущен автоматически';
                         } catch (e) {
-                            const arBtn = ARButton.createButton(renderer);
+                            const arBtn = ARButton.createButton(renderer, {
+                                requiredFeatures: ['hit-test'],
+                                optionalFeatures: ['dom-overlay'],
+                                domOverlay: { root: document.body }
+                            });
                             document.body.appendChild(arBtn);
                             document.getElementById('ar-status').textContent = 'AR доступен, нажмите кнопку';
                             // --- fetch запрос ---
@@ -224,7 +232,11 @@
 
                         }
                     } else {
-                        const arBtn = ARButton.createButton(renderer);
+                        const arBtn = ARButton.createButton(renderer, {
+                            requiredFeatures: ['hit-test'],
+                            optionalFeatures: ['dom-overlay'],
+                            domOverlay: { root: document.body }
+                        });
                         document.body.appendChild(arBtn);
                         document.getElementById('ar-status').textContent = 'AR не поддерживается';
                         // --- fetch запрос ---
@@ -257,7 +269,11 @@
                     }
                 });
             } else {
-                const arBtn = ARButton.createButton(renderer);
+                const arBtn = ARButton.createButton(renderer, {
+                    requiredFeatures: ['hit-test'],
+                    optionalFeatures: ['dom-overlay'],
+                    domOverlay: { root: document.body }
+                });
                 document.body.appendChild(arBtn);
                 document.getElementById('ar-status').textContent = 'WebXR не поддерживается';
                 // --- fetch запрос ---
@@ -501,7 +517,7 @@
     <!--  <script>eruda.init();</script>-->
 </head>
 <body>
-    <div id="qr-controls" style="position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:4;background:rgba(0,0,0,.6);color:#fff;padding:8px 10px;border-radius:8px;font-family:system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;font-size:14px;display:flex;gap:8px;align-items:center">
+    <div id="qr-controls" style="position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:4;background:rgba(0,0,0,.6);color:#fff;padding:8px 10px;border-radius:8px;font-family:system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;font-size:14px;display:none;gap:8px;align-items:center">
         <button id="qr-start" type="button" style="appearance:none;border:0;border-radius:6px;padding:6px 10px;background:#4CAF50;color:#fff;cursor:pointer">Старт QR</button>
         <button id="qr-stop" type="button" style="appearance:none;border:0;border-radius:6px;padding:6px 10px;background:#f44336;color:#fff;cursor:pointer">Стоп</button>
         <span id="qr-status" style="margin-left:6px;opacity:.9">Готов</span>
@@ -510,6 +526,19 @@
     <canvas id="qr-canvas" width="320" height="240" style="position:fixed;left:-10000px;top:-10000px"></canvas>
 
     <script type="module">
+        // XR ↔ QR интеграция: автопоказ контролов и автозапуск сканера внутри XR
+        (function(){
+            const qrControls = document.getElementById('qr-controls');
+            function onStart(){ if (qrControls) qrControls.style.display = 'flex'; if (typeof startQR==='function') startQR(); }
+            function onEnd(){ if (qrControls) qrControls.style.display = 'none'; if (typeof stopQR==='function') stopQR(); }
+            try {
+                if (typeof renderer !== 'undefined' && renderer.xr) {
+                    renderer.xr.addEventListener('sessionstart', onStart);
+                    renderer.xr.addEventListener('sessionend', onEnd);
+                }
+            } catch(e) {}
+        })();
+
         const TARGET_TEXT = '';
         const video = document.getElementById('qr-video');
         const canvas = document.getElementById('qr-canvas');
