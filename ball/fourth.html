@@ -94,6 +94,8 @@
             renderer.toneMapping = THREE.ACESFilmicToneMapping;
             renderer.toneMappingExposure = 1.0;
             document.body.appendChild(renderer.domElement);
+            // Экспортируем renderer глобально для других модулей (QR-интеграция)
+            window.renderer = renderer;
 
             // Свет
             const light = new THREE.HemisphereLight(0xffffff, 0xbbbbff, 1);
@@ -517,7 +519,7 @@
     <!--  <script>eruda.init();</script>-->
 </head>
 <body>
-    <div id="qr-controls" style="position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:4;background:rgba(0,0,0,.6);color:#fff;padding:8px 10px;border-radius:8px;font-family:system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;font-size:14px;display:none;gap:8px;align-items:center">
+    <div id="qr-controls" style="position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:4;background:rgba(0,0,0,.6);color:#fff;padding:8px 10px;border-radius:8px;font-family:system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;font-size:14px;display:flex;gap:8px;align-items:center">
         <button id="qr-start" type="button" style="appearance:none;border:0;border-radius:6px;padding:6px 10px;background:#4CAF50;color:#fff;cursor:pointer">Старт QR</button>
         <button id="qr-stop" type="button" style="appearance:none;border:0;border-radius:6px;padding:6px 10px;background:#f44336;color:#fff;cursor:pointer">Стоп</button>
         <span id="qr-status" style="margin-left:6px;opacity:.9">Готов</span>
@@ -563,6 +565,9 @@
 
         if (btnStart) btnStart.addEventListener('click', startQR);
         if (btnStop) btnStop.addEventListener('click', stopQR);
+        // Делаем функции глобальными для вызова из других скриптов/консоли
+        window.startQR = startQR;
+        window.stopQR = stopQR;
 
         async function startQR() {
             if (running) return;
