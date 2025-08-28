@@ -496,9 +496,114 @@
             });
         }
     </script>
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
     <!--  <script src="https://cdn.jsdelivr.net/npm/eruda"></script>-->
     <!--  <script>eruda.init();</script>-->
 </head>
 <body>
+    <div id="qr-controls" style="position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:4;background:rgba(0,0,0,.6);color:#fff;padding:8px 10px;border-radius:8px;font-family:system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;font-size:14px;display:flex;gap:8px;align-items:center">
+        <button id="qr-start" type="button" style="appearance:none;border:0;border-radius:6px;padding:6px 10px;background:#4CAF50;color:#fff;cursor:pointer">Старт QR</button>
+        <button id="qr-stop" type="button" style="appearance:none;border:0;border-radius:6px;padding:6px 10px;background:#f44336;color:#fff;cursor:pointer">Стоп</button>
+        <span id="qr-status" style="margin-left:6px;opacity:.9">Готов</span>
+    </div>
+    <video id="qr-video" playsinline muted style="position:fixed;left:-10000px;top:-10000px;width:320px;height:auto"></video>
+    <canvas id="qr-canvas" width="320" height="240" style="position:fixed;left:-10000px;top:-10000px"></canvas>
+
+    <script type="module">
+        const TARGET_TEXT = '';
+        const video = document.getElementById('qr-video');
+        const canvas = document.getElementById('qr-canvas');
+        const ctx = canvas ? canvas.getContext('2d') : null;
+        const statusEl = document.getElementById('qr-status');
+        const btnStart = document.getElementById('qr-start');
+        const btnStop = document.getElementById('qr-stop');
+        const audio = new Audio('../Cat/speech.mp3');
+        audio.preload = 'auto';
+
+        let stream = null;
+        let running = false;
+        let usingBarcodeDetector = ('BarcodeDetector' in window);
+        let detector = null;
+        if (usingBarcodeDetector) {
+            try {
+                detector = new window.BarcodeDetector({ formats: ['qr_code'] });
+            } catch (e) {
+                usingBarcodeDetector = false;
+            }
+        }
+
+        if (btnStart) btnStart.addEventListener('click', startQR);
+        if (btnStop) btnStop.addEventListener('click', stopQR);
+
+        async function startQR() {
+            if (running) return;
+            if (statusEl) statusEl.textContent = 'Запрос камеры...';
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } },
+                    audio: false
+                });
+                if (!video) return;
+                video.srcObject = stream;
+                await video.play();
+                if (canvas) {
+                    canvas.width = video.videoWidth || 640;
+                    canvas.height = video.videoHeight || 480;
+                }
+                running = true;
+                if (statusEl) statusEl.textContent = usingBarcodeDetector ? 'Сканирование (BarcodeDetector)...' : 'Сканирование (jsQR)...';
+                tick();
+            } catch (e) {
+                if (statusEl) statusEl.textContent = 'Ошибка доступа к камере';
+                console.error(e);
+            }
+        }
+
+        function stopQR() {
+            running = false;
+            if (stream) {
+                stream.getTracks().forEach(t => t.stop());
+                stream = null;
+            }
+            if (statusEl) statusEl.textContent = 'Остановлено';
+        }
+
+        async function tick() {
+            if (!running) return;
+            try {
+                if (usingBarcodeDetector && detector) {
+                    const bitmap = await createImageBitmap(video);
+                    const results = await detector.detect(bitmap);
+                    if (results && results.length) {
+                        const val = String(results[0].rawValue || '');
+                        if (handleMatch(val)) return;
+                    }
+                } else if (canvas && ctx) {
+                    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                    const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                    const code = window.jsQR ? window.jsQR(img.data, img.width, img.height) : null;
+                    if (code && code.data) {
+                        if (handleMatch(String(code.data))) return;
+                    }
+                }
+            } catch (e) {
+                // noop
+            }
+            requestAnimationFrame(tick);
+        }
+
+        function handleMatch(text) {
+            if (statusEl) statusEl.textContent = `Найдено: ${text}`;
+            if (!TARGET_TEXT || text.includes(TARGET_TEXT)) {
+                try {
+                    audio.currentTime = 0;
+                    audio.play();
+                } catch (e) {}
+                stopQR();
+                return true;
+            }
+            return false;
+        }
+    </script>
 </body>
 </html>
