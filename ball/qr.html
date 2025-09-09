@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QR сканер</title>
+  <script src="https://cdn.jsdelivr.net/npm/jsqr/dist/jsQR.js"></script>
+  <style>
+    body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-top: 20px;
+      font-family: Arial, sans-serif;
+    }
+    video {
+      width: 400px;
+      border: 2px solid #333;
+      border-radius: 8px;
+    }
+    canvas {
+      display: none;
+    }
+    #result {
+      margin-top: 20px;
+      font-size: 18px;
+      color: green;
+    }
+  </style>
+</head>
+<body>
+<h1>QR сканер</h1>
+<video id="video" autoplay playsinline></video>
+<canvas id="canvas"></canvas>
+<div id="result">Результат: <span id="output">—</span></div>
+
+<script>
+  const video = document.getElementById("video");
+  const canvas = document.getElementById("canvas");
+  const ctx = canvas.getContext("2d");
+  const output = document.getElementById("output");
+
+  // Запуск камеры
+  navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
+          .then(stream => {
+            video.srcObject = stream;
+            video.setAttribute("playsinline", true); // для iOS
+            requestAnimationFrame(tick);
+          })
+          .catch(err => {
+            console.error("Ошибка доступа к камере:", err);
+            alert("Не удалось получить доступ к камере");
+          });
+
+  function tick() {
+    if (video.readyState === video.HAVE_ENOUGH_DATA) {
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const code = jsQR(imageData.data, canvas.width, canvas.height, {
+        inversionAttempts: "dontInvert",
+      });
+
+      if (code) {
+        output.innerText = code.data;
+        console.log("QR найден:", code.data);
+      }
+    }
+    requestAnimationFrame(tick);
+  }
+</script>
+</body>
+</html>
