@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8" />
-    <title>AR Viewer</title>
+    <title>AR Viewer with Sound</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
     <!-- Модуль просмотра 3D и AR -->
@@ -14,17 +14,17 @@
             background: #000;
             color: white;
             display: flex;
-            flex-direction: column;
             align-items: center;
             justify-content: center;
             height: 100vh;
             overflow: hidden;
             font-family: Arial, sans-serif;
+            flex-direction: column;
         }
 
         model-viewer {
             width: 100vw;
-            height: 100vh;
+            height: 90vh;
             background: #000;
         }
 
@@ -34,11 +34,27 @@
             color: #ccc;
             padding: 20px;
         }
+
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 10px 18px;
+            font-size: 1em;
+            cursor: pointer;
+            margin-top: 12px;
+        }
+
+        button:hover {
+            background: #0060d0;
+        }
     </style>
 </head>
 <body>
 
 <div id="viewer-container"></div>
+<button id="play-sound" style="display:none;">🔊 Включить звук</button>
 
 <script>
     // --- Одобренные модели ---
@@ -47,23 +63,26 @@
             id: "cat",
             name: "Кот",
             url: "./Cat.glb",
+            sound: "hhhh.mp3"
         },
         {
             id: "astronaut",
             name: "Астронавт",
             url: "./сonus.glb",
+            sound: "hhhh.mp3"
         },
         {
             id: "car",
             name: "Машина",
             url: "./head2.glb",
+            sound: "hhhh.mp3"
         },
     ];
-
     const params = new URLSearchParams(window.location.search);
     const currentModel = params.get("currentModel");
-
     const container = document.getElementById("viewer-container");
+    const btn = document.getElementById("play-sound");
+
     const model = approvedModels.find(m => m.id === currentModel);
 
     if (!model) {
@@ -78,8 +97,31 @@
         viewer.ar = true;
         viewer.arModes = "webxr scene-viewer quick-look";
         viewer.xrEnvironment = true;
-        viewer.iosSrc = model.iosUrl; // для поддержки AR на iOS
+        viewer.iosSrc = model.iosUrl;
         container.appendChild(viewer);
+
+        // 🎵 создаём аудио
+        const audio = new Audio(model.sound);
+        audio.loop = true;
+
+        // Пользователь включает вручную (автоплей не сработает)
+        button.addEventListener("click", () => {
+            if (audio.paused) {
+                audio.play();
+                button.textContent = "🔇 Выключить звук";
+            } else {
+                audio.pause();
+                button.textContent = "🔊 Включить звук";
+            }
+        });
+
+        // показываем кнопку для включения
+        btn.style.display = "block";
+
+        btn.addEventListener("click", () => {
+            audio.play();
+            btn.style.display = "none";
+        });
     }
 </script>
 </body>
