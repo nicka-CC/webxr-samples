@@ -2,78 +2,43 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8" />
-    <title>3D AR Viewer — Просмотр моделей в AR</title>
+    <title>AR Viewer</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-    <!-- Подключаем библиотеку для 3D и AR -->
+    <!-- Модуль просмотра 3D и AR -->
     <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
 
     <style>
         body {
-            font-family: Arial, sans-serif;
-            background-color: #111;
-            color: #fff;
+            margin: 0;
+            background: #000;
+            color: white;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             height: 100vh;
-            margin: 0;
-            padding: 20px;
-            text-align: center;
-        }
-
-        h1 {
-            margin-bottom: 20px;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
         }
 
         model-viewer {
-            width: 80vw;
-            height: 65vh;
-            border-radius: 12px;
+            width: 100vw;
+            height: 100vh;
             background: #000;
         }
 
-        .model-buttons {
-            display: flex;
-            gap: 10px;
-            margin-top: 20px;
-            flex-wrap: wrap;
-            justify-content: center;
-        }
-
-        .model-button {
-            padding: 10px 16px;
-            background-color: #333;
-            border: none;
-            border-radius: 8px;
-            color: #fff;
-            cursor: pointer;
-            transition: background-color 0.2s ease;
-        }
-
-        .model-button:hover {
-            background-color: #555;
-        }
-
-        .active {
-            background-color: #007bff;
-        }
-
-        .ar-hint {
-            margin-top: 10px;
-            font-size: 0.9em;
-            color: #aaa;
+        .error {
+            text-align: center;
+            font-size: 1.2em;
+            color: #ccc;
+            padding: 20px;
         }
     </style>
 </head>
 <body>
 
-<h1 id="model-title">AR-просмотр 3D-моделей</h1>
-
 <div id="viewer-container"></div>
-<div class="ar-hint">📱 Для AR нажмите кнопку «View in your space» (на Android или iOS)</div>
-<div class="model-buttons" id="buttons-container"></div>
 
 <script>
     // --- Одобренные модели ---
@@ -98,57 +63,24 @@
     const params = new URLSearchParams(window.location.search);
     const currentModel = params.get("currentModel");
 
-    const viewerContainer = document.getElementById("viewer-container");
-    const title = document.getElementById("model-title");
-    const buttonsContainer = document.getElementById("buttons-container");
+    const container = document.getElementById("viewer-container");
+    const model = approvedModels.find(m => m.id === currentModel);
 
-    function render() {
-        const model = approvedModels.find(m => m.id === currentModel);
-
-        viewerContainer.innerHTML = "";
-        buttonsContainer.innerHTML = "";
-
-        if (!model) {
-            title.textContent = "Выберите модель для просмотра:";
-            approvedModels.forEach(m => {
-                const btn = document.createElement("button");
-                btn.textContent = m.name;
-                btn.className = "model-button";
-                btn.onclick = () => {
-                    window.location.search = `?currentModel=${m.id}`;
-                };
-                buttonsContainer.appendChild(btn);
-            });
-        } else {
-            title.textContent = model.name;
-
-            // Создаём model-viewer с AR
-            const viewer = document.createElement("model-viewer");
-            viewer.src = model.url;
-            viewer.alt = model.name;
-            viewer.autorotate = true;
-            viewer.cameraControls = true;
-            viewer.shadowIntensity = "1";
-            viewer.ar = true;
-            viewer.arModes = "webxr scene-viewer quick-look";
-            viewer.xrEnvironment = true;
-
-            viewerContainer.appendChild(viewer);
-
-            // Кнопки переключения моделей
-            approvedModels.forEach(m => {
-                const btn = document.createElement("button");
-                btn.textContent = m.name;
-                btn.className = "model-button" + (m.id === currentModel ? " active" : "");
-                btn.onclick = () => {
-                    window.location.search = `?currentModel=${m.id}`;
-                };
-                buttonsContainer.appendChild(btn);
-            });
-        }
+    if (!model) {
+        container.innerHTML = `<div class="error">❌ Модель не найдена.<br>Добавьте параметр <b>?currentModel=...</b></div>`;
+    } else {
+        const viewer = document.createElement("model-viewer");
+        viewer.src = model.url;
+        viewer.alt = model.name;
+        viewer.autorotate = true;
+        viewer.cameraControls = true;
+        viewer.shadowIntensity = "1";
+        viewer.ar = true;
+        viewer.arModes = "webxr scene-viewer quick-look";
+        viewer.xrEnvironment = true;
+        viewer.iosSrc = model.iosUrl; // для поддержки AR на iOS
+        container.appendChild(viewer);
     }
-
-    render();
 </script>
 </body>
 </html>
