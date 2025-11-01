@@ -2,58 +2,120 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <title>3D Кот — Model Viewer + AR</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>3D Кот — Android AR + Sound</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
   <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
   <style>
-    body { margin: 0; background: #222; }
-    #info {
-      position: fixed;
-      top: 10px; left: 10px;
-      background: rgba(0,0,0,0.7); color: #fff;
-      padding: 10px; border-radius: 8px;
-      font-family: monospace; z-index: 10; font-size: 14px;
+    body {
+      margin: 0;
+      background: #111;
+      color: white;
+      font-family: system-ui, sans-serif;
+      overflow: hidden;
     }
+
     model-viewer {
       width: 100vw;
       height: 100vh;
-      background: #222;
+      background: #111;
+    }
+
+    #overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      text-align: center;
+      z-index: 20;
+    }
+
+    #start-btn {
+      background: #00bcd4;
+      color: #fff;
+      font-size: 18px;
+      border: none;
+      border-radius: 10px;
+      padding: 12px 28px;
+      margin-top: 20px;
+      box-shadow: 0 0 10px #00bcd4;
+    }
+
+    #info {
+      position: fixed;
+      bottom: 10px;
+      left: 10px;
+      right: 10px;
+      font-size: 13px;
+      background: rgba(0,0,0,0.6);
+      padding: 6px 10px;
+      border-radius: 8px;
     }
   </style>
 </head>
 <body>
-<div id="info">
-  <b>3D Кот в AR</b><br>
-  Вращайте модель мышкой или пальцем.<br>
-  <span>Для AR: нажмите иконку "AR".<br>На iPhone — откроется Quick Look, на Android — WebXR.</span>
-</div>
-<model-viewer
-        src="./Cate_Valday.glb"
-        ios-src="./output.usdz"
-        ar
-        ar-modes="webxr scene-viewer quick-look"
-        camera-controls
-        auto-rotate
-        shadow-intensity="1"
-        exposure="1.1"
-        environment-image="neutral"
-        alt="3D Кот для AR"
-></model-viewer>
+
+  <div id="overlay">
+    <h2>🐾 3D Кот</h2>
+    <p>Нажмите, чтобы запустить модель и звук</p>
+    <button id="start-btn">▶ Запустить</button>
+  </div>
+
+  <model-viewer
+    id="catViewer"
+    src="Cate.glb"
+    ar
+    ar-modes="webxr scene-viewer"
+    camera-controls
+    auto-rotate
+    shadow-intensity="1"
+    exposure="1.1"
+    environment-image="neutral"
+    alt="3D Кот для Android AR"
+     ar-button="ar-button">
+  </model-viewer>
+
   <audio id="cat-audio" src="speech.mp3" preload="auto"></audio>
+
+  <div id="info">
+    Вращайте модель пальцем. Для AR — нажмите значок "AR".
+  </div>
+<button id="ar-button" slot="ar-button" style="
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  background: #00bcd4;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  padding: 10px 20px;
+  font-size: 16px;
+  box-shadow: 0 0 10px #00bcd4;
+">
+  🔍 В AR
+</button>
   <script>
+    const overlay = document.getElementById('overlay');
+    const startBtn = document.getElementById('start-btn');
     const viewer = document.getElementById('catViewer');
     const audio = document.getElementById('cat-audio');
 
-    // Воспроизвести звук, когда модель поставлена в AR (Android/WebXR/Scene Viewer)
-    viewer.addEventListener('ar-placement', () => {
-      audio.currentTime = 0;
-      audio.play();
+    // Запуск по кнопке
+    startBtn.addEventListener('click', async () => {
+      overlay.style.display = 'none';
+      try {
+        await audio.play();
+      } catch (err) {
+        console.warn('Автозапуск звука невозможен:', err);
+      }
     });
 
-    // Для iOS Quick Look — звук только при нажатии на AR-кнопку (ограничение платформы)
-    viewer.addEventListener('quick-look-button-tapped', () => {
+    // Повторное проигрывание при входе в AR
+    viewer.addEventListener('ar-placement', () => {
       audio.currentTime = 0;
-      audio.play();
+      audio.play().catch(e => console.warn('Звук заблокирован:', e));
     });
   </script>
 </body>
