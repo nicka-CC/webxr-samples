@@ -2,10 +2,10 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8" />
-    <title>3D Viewer — Просмотр моделей</title>
+    <title>3D AR Viewer — Просмотр моделей в AR</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-    <!-- Подключаем библиотеку для 3D-моделей -->
+    <!-- Подключаем библиотеку для 3D и AR -->
     <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
 
     <style>
@@ -20,6 +20,7 @@
             height: 100vh;
             margin: 0;
             padding: 20px;
+            text-align: center;
         }
 
         h1 {
@@ -28,7 +29,7 @@
 
         model-viewer {
             width: 80vw;
-            height: 70vh;
+            height: 65vh;
             border-radius: 12px;
             background: #000;
         }
@@ -58,14 +59,20 @@
         .active {
             background-color: #007bff;
         }
+
+        .ar-hint {
+            margin-top: 10px;
+            font-size: 0.9em;
+            color: #aaa;
+        }
     </style>
 </head>
 <body>
 
-<h1 id="model-title">Просмотр 3D-модели</h1>
+<h1 id="model-title">AR-просмотр 3D-моделей</h1>
 
 <div id="viewer-container"></div>
-
+<div class="ar-hint">📱 Для AR нажмите кнопку «View in your space» (на Android или iOS)</div>
 <div class="model-buttons" id="buttons-container"></div>
 
 <script>
@@ -88,7 +95,6 @@
         },
     ];
 
-    // --- Получаем параметр из URL ---
     const params = new URLSearchParams(window.location.search);
     const currentModel = params.get("currentModel");
 
@@ -96,11 +102,9 @@
     const title = document.getElementById("model-title");
     const buttonsContainer = document.getElementById("buttons-container");
 
-    // --- Функция для обновления отображения ---
     function render() {
         const model = approvedModels.find(m => m.id === currentModel);
 
-        // Очистка контейнеров
         viewerContainer.innerHTML = "";
         buttonsContainer.innerHTML = "";
 
@@ -118,14 +122,20 @@
         } else {
             title.textContent = model.name;
 
+            // Создаём model-viewer с AR
             const viewer = document.createElement("model-viewer");
             viewer.src = model.url;
             viewer.alt = model.name;
             viewer.autorotate = true;
             viewer.cameraControls = true;
             viewer.shadowIntensity = "1";
+            viewer.ar = true;
+            viewer.arModes = "webxr scene-viewer quick-look";
+            viewer.xrEnvironment = true;
+
             viewerContainer.appendChild(viewer);
 
+            // Кнопки переключения моделей
             approvedModels.forEach(m => {
                 const btn = document.createElement("button");
                 btn.textContent = m.name;
@@ -140,6 +150,5 @@
 
     render();
 </script>
-
 </body>
 </html>
