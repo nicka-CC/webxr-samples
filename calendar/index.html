@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <title>3D Viewer — Просмотр моделей</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- Подключаем библиотеку для 3D-моделей -->
+    <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #111;
+            color: #fff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+
+        h1 {
+            margin-bottom: 20px;
+        }
+
+        model-viewer {
+            width: 80vw;
+            height: 70vh;
+            border-radius: 12px;
+            background: #000;
+        }
+
+        .model-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .model-button {
+            padding: 10px 16px;
+            background-color: #333;
+            border: none;
+            border-radius: 8px;
+            color: #fff;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        .model-button:hover {
+            background-color: #555;
+        }
+
+        .active {
+            background-color: #007bff;
+        }
+    </style>
+</head>
+<body>
+
+<h1 id="model-title">Просмотр 3D-модели</h1>
+
+<div id="viewer-container"></div>
+
+<div class="model-buttons" id="buttons-container"></div>
+
+<script>
+    // --- Одобренные модели ---
+    const approvedModels = [
+        {
+            id: "cat",
+            name: "Кот",
+            url: "./Cat.glb",
+        },
+        {
+            id: "astronaut",
+            name: "Астронавт",
+            url: "./сonus.glb",
+        },
+        {
+            id: "car",
+            name: "Машина",
+            url: "./head2.glb",
+        },
+    ];
+
+    // --- Получаем параметр из URL ---
+    const params = new URLSearchParams(window.location.search);
+    const currentModel = params.get("currentModel");
+
+    const viewerContainer = document.getElementById("viewer-container");
+    const title = document.getElementById("model-title");
+    const buttonsContainer = document.getElementById("buttons-container");
+
+    // --- Функция для обновления отображения ---
+    function render() {
+        const model = approvedModels.find(m => m.id === currentModel);
+
+        // Очистка контейнеров
+        viewerContainer.innerHTML = "";
+        buttonsContainer.innerHTML = "";
+
+        if (!model) {
+            title.textContent = "Выберите модель для просмотра:";
+            approvedModels.forEach(m => {
+                const btn = document.createElement("button");
+                btn.textContent = m.name;
+                btn.className = "model-button";
+                btn.onclick = () => {
+                    window.location.search = `?currentModel=${m.id}`;
+                };
+                buttonsContainer.appendChild(btn);
+            });
+        } else {
+            title.textContent = model.name;
+
+            const viewer = document.createElement("model-viewer");
+            viewer.src = model.url;
+            viewer.alt = model.name;
+            viewer.autorotate = true;
+            viewer.cameraControls = true;
+            viewer.shadowIntensity = "1";
+            viewerContainer.appendChild(viewer);
+
+            approvedModels.forEach(m => {
+                const btn = document.createElement("button");
+                btn.textContent = m.name;
+                btn.className = "model-button" + (m.id === currentModel ? " active" : "");
+                btn.onclick = () => {
+                    window.location.search = `?currentModel=${m.id}`;
+                };
+                buttonsContainer.appendChild(btn);
+            });
+        }
+    }
+
+    render();
+</script>
+
+</body>
+</html>
